@@ -1,7 +1,12 @@
 const routes = [
   {
-    path: '/',
+    path: '/login',
+    name: 'login',
     component: () => import('pages/auth/LoginPage.vue'),
+  },
+  {
+    path: '/',
+    redirect: '/login',
   },
   {
     path: '/dashboard',
