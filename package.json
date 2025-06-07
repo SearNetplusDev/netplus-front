@@ -2,7 +2,7 @@
   "name": "netplus-front",
   "version": "0.0.1",
   "description": "ISP Manager",
-  "productName": "Netplus Frontend",
+  "productName": "Netplus ISP",
   "author": "Sear Clímaco <sromero.netplus@gmail.com>",
   "type": "module",
   "private": true,
