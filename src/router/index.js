@@ -35,23 +35,35 @@ export default defineRouter(function (/* { store, ssrContext } */) {
   })
 
   /*
-   * testing
+   * Validate auth middleware
    * */
-  Router.beforeEach(async (to, from, next) => {
-    if (to.meta.requiresAuth) {
-      try {
-        await api.get('/api/user')
-        next()
-      } catch (error) {
-        console.log('Validating error ', error)
-        next('/login')
-      }
-    } else {
-      next()
+
+  let user = null
+
+  async function fetchUser() {
+    if (user) return user
+    try {
+      const response = await api.get('/api/user')
+      user = response.data
+      return user
+    } catch (error) {
+      console.log(`Getting user error: ${error}`)
+      user = null
+      return null
     }
+  }
+
+  Router.beforeEach(async (to, from, next) => {
+    const isAuthenticated = await fetchUser()
+
+    if (to.path === '/login' && isAuthenticated) return next('/dashboard')
+
+    if (to.meta.requiresAuth && !isAuthenticated) return next('/login')
+
+    next()
   })
   /*
-   * end test
+   * End validate auth middleware
    * */
 
   return Router
