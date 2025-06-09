@@ -4,8 +4,8 @@ export function useNotifications() {
   const $q = useQuasar()
   const showNotification = (title, message, color) => {
     $q.notify({
-      title: title,
-      message: message,
+      caption: message,
+      message: title,
       color: color,
       position: 'top-right',
       progress: true,

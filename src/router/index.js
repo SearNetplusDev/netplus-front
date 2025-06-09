@@ -6,7 +6,7 @@ import {
   createWebHashHistory,
 } from 'vue-router'
 import routes from './routes'
-// import { api } from 'boot/axios.js'
+import clients from 'src/router/clients.js'
 import { useAuthStore } from 'stores/auth.js'
 
 /*
@@ -27,7 +27,7 @@ export default defineRouter(function (/* { store, ssrContext } */) {
 
   const Router = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),
-    routes,
+    routes: [...routes, ...clients],
 
     // Leave this as is and make changes in quasar.conf.js instead!
     // quasar.conf.js -> build -> vueRouterMode
@@ -39,38 +39,15 @@ export default defineRouter(function (/* { store, ssrContext } */) {
    * Validate auth middleware
    * */
 
-  // let user = null
-
-  // async function fetchUser() {
-  //   if (user) return user
-  //   try {
-  //     const response = await api.get('/api/user')
-  //     user = response.data
-  //     return user
-  //   } catch (error) {
-  //     console.log(`Getting user error: ${error}`)
-  //     user = null
-  //     return null
-  //   }
-  // }
-
   Router.beforeEach(async (to, from, next) => {
     const auth = useAuthStore()
-    // const isLoggedIn = auth.isAuthenticated || (await auth.fetchUser())
     let isLoggedIn = auth.isAuthenticated
-
-    // const isAuthenticated = await fetchUser()
-
-    // if (to.path === '/login' && isAuthenticated) return next('/dashboard')
-
     if (!isLoggedIn) {
       isLoggedIn = await auth.fetchUser()
     }
     if (to.path === '/login' && isLoggedIn) return next('/dashboard')
 
     if (to.meta.requiresAuth && !isLoggedIn) return next('/login')
-    // if (to.meta.requiresAuth && !isAuthenticated) return next('/login')
-
     next()
   })
   /*

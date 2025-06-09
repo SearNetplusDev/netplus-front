@@ -2,13 +2,12 @@
 import { ref } from 'vue'
 import { useAuthStore } from 'stores/auth.js'
 import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { useNotifications } from 'src/utils/notification.js'
 
-const $q = useQuasar()
+const { showNotification } = useNotifications()
 const router = useRouter()
 const auth = useAuthStore()
 const loading = ref(false)
-const loginError = ref('')
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
@@ -33,18 +32,10 @@ const login = async () => {
     if (success) {
       await router.push('/dashboard')
     } else {
-      loginError.value = 'Credenciales incorrectas o usuario inactivo'
+      console.error('Credenciales incorrectas o Usuario inactivo')
     }
   } catch (error) {
-    $q.notify({
-      title: 'Error',
-      message: 'Credenciales incorrectas o usuario inactivo',
-      color: 'red-10',
-      position: 'top-right',
-      progress: true,
-      avatar: '/icons/favicon-128x128.png',
-      actions: [{ icon: 'close', color: 'white', round: true }],
-    })
+    showNotification('Error', 'Credenciales incorrectas o Usuario inactivo', 'red-10')
     loading.value = false
     console.error('General error: ', error)
   }
