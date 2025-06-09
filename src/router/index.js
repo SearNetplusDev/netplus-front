@@ -6,7 +6,8 @@ import {
   createWebHashHistory,
 } from 'vue-router'
 import routes from './routes'
-import { api } from 'boot/axios.js'
+// import { api } from 'boot/axios.js'
+import { useAuthStore } from 'stores/auth.js'
 
 /*
  * If not building with SSR mode, you can
@@ -38,27 +39,37 @@ export default defineRouter(function (/* { store, ssrContext } */) {
    * Validate auth middleware
    * */
 
-  let user = null
+  // let user = null
 
-  async function fetchUser() {
-    if (user) return user
-    try {
-      const response = await api.get('/api/user')
-      user = response.data
-      return user
-    } catch (error) {
-      console.log(`Getting user error: ${error}`)
-      user = null
-      return null
-    }
-  }
+  // async function fetchUser() {
+  //   if (user) return user
+  //   try {
+  //     const response = await api.get('/api/user')
+  //     user = response.data
+  //     return user
+  //   } catch (error) {
+  //     console.log(`Getting user error: ${error}`)
+  //     user = null
+  //     return null
+  //   }
+  // }
 
   Router.beforeEach(async (to, from, next) => {
-    const isAuthenticated = await fetchUser()
+    const auth = useAuthStore()
+    // const isLoggedIn = auth.isAuthenticated || (await auth.fetchUser())
+    let isLoggedIn = auth.isAuthenticated
 
-    if (to.path === '/login' && isAuthenticated) return next('/dashboard')
+    // const isAuthenticated = await fetchUser()
 
-    if (to.meta.requiresAuth && !isAuthenticated) return next('/login')
+    // if (to.path === '/login' && isAuthenticated) return next('/dashboard')
+
+    if (!isLoggedIn) {
+      isLoggedIn = await auth.fetchUser()
+    }
+    if (to.path === '/login' && isLoggedIn) return next('/dashboard')
+
+    if (to.meta.requiresAuth && !isLoggedIn) return next('/login')
+    // if (to.meta.requiresAuth && !isAuthenticated) return next('/login')
 
     next()
   })

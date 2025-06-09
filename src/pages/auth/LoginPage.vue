@@ -1,10 +1,14 @@
 <script setup>
 import { ref } from 'vue'
-import { api } from 'boot/axios.js'
-import { useNotifications } from 'src/utils/notification.js'
+import { useAuthStore } from 'stores/auth.js'
+import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 
-const { showNotification } = useNotifications()
+const $q = useQuasar()
+const router = useRouter()
+const auth = useAuthStore()
 const loading = ref(false)
+const loginError = ref('')
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
@@ -21,33 +25,27 @@ const login = async () => {
   loading.value = true
 
   try {
-    await api
-      .get('/sanctum/csrf-cookie')
-      .catch((err) => {
-        console.error('Login error: ', err)
-      })
-      .finally(() => {
-        loading.value = false
-      })
-    await api
-      .post('/api/v1/auth/login', {
-        email: email.value,
-        password: password.value,
-      })
-      .then((res) => {
-        showNotification('Hola', `Bienvenido ${res.data.user.name}`, 'blue-grey-10')
-      })
+    const success = await auth.login({
+      email: email.value,
+      password: password.value,
+    })
 
-    await api
-      .get('/api/user')
-      .then((res) => {
-        showNotification('Hola', `Bienvenido ${res.data.email}`, 'blue-grey-10')
-      })
-      .catch((err) => {
-        console.error('User error: ', err)
-      })
-      .finally(() => {})
+    if (success) {
+      await router.push('/dashboard')
+    } else {
+      loginError.value = 'Credenciales incorrectas o usuario inactivo'
+    }
   } catch (error) {
+    $q.notify({
+      title: 'Error',
+      message: 'Credenciales incorrectas o usuario inactivo',
+      color: 'red-10',
+      position: 'top-right',
+      progress: true,
+      avatar: '/icons/favicon-128x128.png',
+      actions: [{ icon: 'close', color: 'white', round: true }],
+    })
+    loading.value = false
     console.error('General error: ', error)
   }
 }
