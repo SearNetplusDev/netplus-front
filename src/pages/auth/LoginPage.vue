@@ -1,6 +1,9 @@
 <script setup>
 import { ref } from 'vue'
+import { api } from 'boot/axios.js'
+import { useNotifications } from 'src/utils/notification.js'
 
+const { showNotification } = useNotifications()
 const loading = ref(false)
 const email = ref('')
 const password = ref('')
@@ -16,6 +19,37 @@ const passwordRules = [
 ]
 const login = async () => {
   loading.value = true
+
+  try {
+    await api
+      .get('/sanctum/csrf-cookie')
+      .catch((err) => {
+        console.error('Login error: ', err)
+      })
+      .finally(() => {
+        loading.value = false
+      })
+    await api
+      .post('/api/v1/auth/login', {
+        email: email.value,
+        password: password.value,
+      })
+      .then((res) => {
+        showNotification('Hola', `Bienvenido ${res.data.user.name}`, 'blue-grey-10')
+      })
+
+    await api
+      .get('/api/user')
+      .then((res) => {
+        showNotification('Hola', `Bienvenido ${res.data.email}`, 'blue-grey-10')
+      })
+      .catch((err) => {
+        console.error('User error: ', err)
+      })
+      .finally(() => {})
+  } catch (error) {
+    console.error('General error: ', error)
+  }
 }
 </script>
 
