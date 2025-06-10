@@ -6,6 +6,8 @@
 
         <q-toolbar-title> Netplus</q-toolbar-title>
 
+        <q-space />
+
         <div>Quasar v{{ $q.version }}</div>
       </q-toolbar>
     </q-header>

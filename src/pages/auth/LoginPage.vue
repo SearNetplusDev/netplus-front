@@ -44,86 +44,78 @@ const login = async () => {
 
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-footer></q-footer>
     <q-page-container>
       <q-page class="flex flex-center login-page">
         <div class="login-container">
-          <q-card class="login-card q-px-xl" flat bordered>
-            <!--    Header    -->
-            <q-card-section class="text-center q-pb-md">
-              <div class="login-icon q-mb-md">
-                <q-icon name="lock" size="48px" color="primary" />
-              </div>
-              <div class="text-h4 text-weight-light text-grey-8 q-mb-xs">Iniciar Sesión</div>
-              <div class="text-subtitle2 text-grey-6">Ingresa tu credenciales para continuar</div>
-            </q-card-section>
-            <!--    End Header    -->
+          <div class="loading-overlay" id="loadingOverlay">
+            <q-circular-progress indeterminate size="50px" color="primary" />
+          </div>
 
-            <!--    Form    -->
-            <q-card-section>
-              <q-form @submit="login" class="q-gutter-md">
-                <!--  Email   -->
-                <q-input
-                  v-model="email"
-                  type="email"
-                  label="Correo electrónico"
-                  outlined
-                  :rules="emailRules"
-                  lazy-rules
-                  class="login-input"
-                >
-                  <template v-slot:prepend>
-                    <q-icon name="email" color="grey-6" />
-                  </template>
-                </q-input>
+          <div class="logo-section">
+            <div class="logo">
+              <q-icon name="mdi-shield-lock" size="48px" />
+            </div>
+            <h1 class="app-title">ISP Manager</h1>
+            <!--            <p class="app-subtitle">Sistema de administración</p>-->
+          </div>
 
-                <!--    Password    -->
-                <q-input
-                  v-model="password"
-                  :type="showPassword ? 'text' : 'password'"
-                  label="Contraseña"
-                  outlined
-                  :rules="passwordRules"
-                  lazy-rules
-                  class="login-input"
-                >
-                  <template v-slot:prepend>
-                    <q-icon name="mdi-key-variant" color="grey-6" />
-                  </template>
-                  <template v-slot:append>
-                    <q-icon
-                      :name="showPassword ? 'visibility_off' : 'visibility'"
-                      class="cursor-pointer"
-                      color="grey-6"
-                      @click="showPassword = !showPassword"
-                    />
-                  </template>
-                </q-input>
+          <q-form @submit="login">
+            <div class="form-section">
+              <q-input
+                v-model="email"
+                outlined
+                label="Correo electrónico"
+                type="email"
+                :rules="emailRules"
+                lazy-rules
+                class="custom-input"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="email" color="grey-6" />
+                </template>
+              </q-input>
 
-                <!--    Remember    -->
-                <div class="row justify-between items-center q-mt-md">
-                  <q-checkbox
-                    v-model="rememberMe"
-                    label="Recordarme"
-                    color="primary"
-                    class="text-grey-7"
+              <q-input
+                v-model="password"
+                outlined
+                label="Contraseña"
+                class="custom-input"
+                lazy-rules
+                :rules="passwordRules"
+                :type="showPassword ? 'text' : 'password'"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="mdi-key-variant" color="grey-6" />
+                </template>
+                <template v-slot:append>
+                  <q-icon
+                    :name="showPassword ? 'visibility_off' : 'visibility'"
+                    class="cursor-pointer"
+                    color="grey-6"
+                    @click="showPassword = !showPassword"
                   />
-                </div>
+                </template>
+              </q-input>
 
-                <!--    Login Button    -->
-                <q-btn
-                  type="submit"
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 24px;
+                "
+              >
+                <q-checkbox
+                  v-model="rememberMe"
+                  label="Recordarme"
                   color="primary"
-                  label="Acceder"
-                  size="lg"
-                  class="full-width q-mt-lg login-button"
-                  :loading="loading"
-                  unelevated
+                  style="color: #cbd5e1"
                 />
-              </q-form>
-            </q-card-section>
-            <!--    End Form    -->
-          </q-card>
+              </div>
+
+              <q-btn class="login-btn" label="Acceder" no-caps :loading="loading" @click="login" />
+            </div>
+          </q-form>
         </div>
       </q-page>
     </q-page-container>
@@ -132,91 +124,221 @@ const login = async () => {
 
 <style lang="scss" scoped>
 .login-page {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: relative;
-
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .login-container {
-  position: relative;
-  z-index: 1;
+  background: #1e293b;
+  border-radius: 16px;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.4),
+    0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  border: 1px solid #334155;
+  padding: 48px;
   width: 100%;
   max-width: 550px;
-  margin: 0 auto;
-  padding: 10px;
+  position: relative;
+  overflow: hidden;
 }
 
-.login-card {
+.login-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+}
+
+.logo-section {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  @media (max-width: 600px) {
-    margin: 10px;
-    padding: 20px !important;
-  }
-}
-
-.login-icon {
-  display: flex;
-  justify-content: center;
+  display: inline-flex;
   align-items: center;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: rgba(25, 118, 210, 0.1);
-  margin: 0 auto;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
 }
 
-.login-input {
-  .q-field__control {
-    border-radius: 12px;
-  }
+.logo i {
+  color: white;
+  font-size: 28px;
 }
 
-.login-button {
-  border-radius: 12px;
-  height: 48px;
+.app-title {
+  color: #f8fafc;
+  font-size: 24px;
   font-weight: 600;
-  text-transform: none;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
+  margin: 0 0 4px 0;
 }
 
-.login-card {
-  animation: slideUp 0.6s ease-out;
+.app-subtitle {
+  color: #94a3b8;
+  font-size: 14px;
+  margin: 0;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.form-section {
+  margin-bottom: 32px;
 }
 
-@media (max-width: 600px) {
+.custom-input {
+  margin-bottom: 24px;
+}
+
+.custom-input .q-field__control {
+  border-color: #475569 !important;
+  background-color: #0f172a !important;
+  border-radius: 8px !important;
+  height: 56px !important;
+}
+
+.custom-input .q-field__native {
+  color: #f8fafc !important;
+  padding: 0 16px !important;
+}
+
+.custom-input .q-field__label {
+  color: #94a3b8 !important;
+  left: 16px !important;
+}
+
+.custom-input.q-field--focused .q-field__control {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.custom-input .q-field__control:hover {
+  border-color: #64748b !important;
+}
+
+.custom-input .q-field__append {
+  color: #94a3b8 !important;
+}
+
+.login-btn {
+  width: 100%;
+  height: 56px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3) !important;
+  margin-bottom: 24px;
+}
+
+.login-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+.forgot-password {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.forgot-password a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.forgot-password a:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 32px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #334155;
+}
+
+.divider span {
+  color: #64748b;
+  padding: 0 16px;
+  font-size: 14px;
+}
+
+.social-login {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.social-btn {
+  flex: 1;
+  height: 48px;
+  background: #334155 !important;
+  border: 1px solid #475569 !important;
+  border-radius: 8px !important;
+  color: #cbd5e1 !important;
+}
+
+.social-btn:hover {
+  background: #475569 !important;
+  border-color: #64748b !important;
+}
+
+.footer-text {
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.footer-text a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.footer-text a:hover {
+  color: #60a5fa;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(30, 41, 59, 0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+}
+
+@media (max-width: 480px) {
   .login-container {
-    padding: 10px;
+    margin: 16px;
+    padding: 32px 24px;
   }
 }
 </style>
