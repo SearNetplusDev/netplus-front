@@ -1,1 +1,53 @@
 // app global css in SCSS form
+.div-background, .bg-toolbar, .q-header, .filter-component .general-background {
+  background: $custom-dark-background !important;
+}
+
+.q-header {
+  background: $custom-dark-background !important;
+  color: $custom-neutral-1 !important;
+}
+
+.q-footer {
+  background: $custom-primary !important;
+  color: $custom-dark-text-accent-color !important;
+}
+
+.custom-cards {
+  background-color: $custom-primary;
+  border: 1px solid $custom-background;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.background {
+  background: $custom-background !important;
+}
+
+.custom-table {
+  background: $custom-primary !important;
+  color: $custom-neutral-2;
+
+  .q-table-top {
+    background-color: $custom-background !important;
+    color: $custom-table-text-color !important;
+  }
+
+  .q-table tbody tr:nth-child(even) {
+    background-color: $custom-dark-background !important;
+  }
+
+  .q-table tbody tr:hover {
+    background-color: $custom-table-hover-color;
+  }
+}
+
+/*
+  Clases complementarias
+  * headers: bg-grey-10 text-grey-1
+  * cards: bg-grey-9 text-grey-1 shadow-3
+  * tables: bg-grey-9 text-grey-1
+  * primary buttons: bg-primary text-white
+  * inputs: bg-grey-8 text-grey-1
+  * separators: bg-grey-7
+*/
+

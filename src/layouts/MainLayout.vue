@@ -1,6 +1,6 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
+  <q-layout view="lHh Lpr lFf" class="bg-grey-10 text-grey-1">
+    <q-header reveal class="bg-primary">
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
 
@@ -10,22 +10,22 @@
       </q-toolbar>
     </q-header>
 
-    <q-footer reveal elevated class="q-py-sm">
+    <q-footer reveal class="q-py-sm">
       <q-toolbar-title class="text-center text-subtitle2">
-        ISP v{{ version }} || All right reserved to Netplus 2021 - {{ currentYear }} &trade;
+        ISP v{{ version }} || All rights reserved to Netplus 2021 - {{ currentYear }} &trade;
       </q-toolbar-title>
     </q-footer>
 
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
       <q-list>
-        <q-item-label header> Essential Links</q-item-label>
+        <q-item-label header> Menu Goes Here</q-item-label>
 
         <!--EssentialLink v-for="link in linksList" :key="link.title" v-bind="link" /-->
       </q-list>
     </q-drawer>
 
     <q-page-container>
-      <router-view />
+      <router-view class="background" />
     </q-page-container>
   </q-layout>
 </template>
