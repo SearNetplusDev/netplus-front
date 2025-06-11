@@ -7,10 +7,7 @@ const menuStore = useMenuStore()
 const menuData = ref([])
 
 onMounted(() => {
-  // menuStore.fetchMenu()
   menuData.value = menuStore.items.data
-
-  console.info(menuData)
 })
 </script>
 

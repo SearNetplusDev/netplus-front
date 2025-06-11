@@ -1,14 +1,10 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 
 const props = defineProps({
   item: Object,
 })
 const hasChildren = computed(() => props.item.children && props.item.children.length > 0)
-
-onMounted(() => {
-  console.error(props.item)
-})
 </script>
 
 <template>

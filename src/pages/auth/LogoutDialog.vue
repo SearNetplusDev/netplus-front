@@ -11,6 +11,7 @@ const props = defineProps({
 const isVisible = ref(props.visible)
 const logout = async () => {
   await auth.logout()
+  localStorage.clear()
   await router.push('/login')
 }
 </script>
