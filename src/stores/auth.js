@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { api } from 'boot/axios.js'
+import { useMenuStore } from 'stores/menu-store.js'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -25,6 +26,8 @@ export const useAuthStore = defineStore('auth', {
     async login(credentials) {
       await api.get('/sanctum/csrf-cookie')
       await api.post('/api/v1/auth/login', credentials)
+      const menuStore = useMenuStore()
+      await menuStore.fetchMenu()
 
       return await this.fetchUser()
     },

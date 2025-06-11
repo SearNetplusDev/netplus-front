@@ -7,13 +7,15 @@ const menuStore = useMenuStore()
 const menuData = ref([])
 
 onMounted(() => {
-  menuStore.fetchMenu()
+  // menuStore.fetchMenu()
   menuData.value = menuStore.items.data
+
+  console.info(menuData)
 })
 </script>
 
 <template>
-  <q-list dark bordered>
+  <q-list dark padding class="rounded-borders text-white" style="max-width: 328px">
     <template v-for="item in menuData" :key="item.id">
       <MenuItemsComponent :item="item" />
     </template>

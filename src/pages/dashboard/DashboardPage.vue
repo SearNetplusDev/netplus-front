@@ -1,17 +1,13 @@
-<script setup>
-import { onMounted } from 'vue'
-import { useAuthStore } from 'stores/auth.js'
-import { useNotifications } from 'src/utils/notification.js'
-
-const auth = useAuthStore()
-const { showNotification } = useNotifications()
-onMounted(() => {
-  showNotification(`Welcome ${auth.user.name}`, '', 'green-10')
-})
-</script>
+<script setup></script>
 
 <template>
-  <div class="text-h6 text-teal-10">Welcome {{ auth.user.name }}</div>
+  <q-page class="q-pa-md">
+    <q-card flat class="custom-cards">
+      <q-card-section>
+        <div class="text-amber text-h6">Dashboard</div>
+      </q-card-section>
+    </q-card>
+  </q-page>
 </template>
 
 <style scoped></style>

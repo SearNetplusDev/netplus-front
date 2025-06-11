@@ -8,7 +8,7 @@
 
         <!--   DataViewer template     -->
 
-        <q-btn flat label="Logout" icon="mdi-power" to="/logout" />
+        <q-btn flat label="Logout" icon="mdi-power" @click="logout" />
       </q-toolbar>
     </q-header>
 
@@ -27,7 +27,7 @@
       @mouseout="showDrawer = true"
       :breakpoint="300"
     >
-      <q-scroll-area style="height: calc(100% - 100px); margin-top: 100px">
+      <q-scroll-area style="height: calc(100% - 153px); margin-top: 153px">
         <MenuComponent />
       </q-scroll-area>
 
@@ -46,6 +46,10 @@
       </q-img>
     </q-drawer>
 
+    <template v-if="showLogout">
+      <LogoutDialog :visible="showLogout" @hide-dialog="showLogout = false" />
+    </template>
+
     <q-page-container>
       <router-view class="background" />
     </q-page-container>
@@ -55,6 +59,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from 'stores/auth.js'
+import LogoutDialog from 'pages/auth/LogoutDialog.vue'
 import MenuComponent from 'components/menu/MenuComponent.vue'
 
 const auth = useAuthStore()
@@ -63,9 +68,14 @@ const today = new Date()
 const currentYear = ref(today.getFullYear())
 const showDrawer = ref(false)
 const leftDrawerOpen = ref(false)
+const showLogout = ref(false)
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value
+}
+
+function logout() {
+  showLogout.value = true
 }
 </script>
 <style lang="scss" scoped></style>
