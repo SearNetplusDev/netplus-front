@@ -1,14 +1,17 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from 'stores/auth.js'
+import { useRouter } from 'vue-router'
 
-const useAuth = useAuthStore()
+const auth = useAuthStore()
+const router = useRouter()
 const props = defineProps({
   visible: Boolean,
 })
 const isVisible = ref(props.visible)
-const logout = () => {
-  useAuth.logout()
+const logout = async () => {
+  await auth.logout()
+  await router.push('/login')
 }
 </script>
 
