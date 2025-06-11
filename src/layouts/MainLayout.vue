@@ -28,8 +28,9 @@
       :breakpoint="300"
     >
       <q-scroll-area style="height: calc(100% - 100px); margin-top: 100px">
-        <!--    Menu component -->
+        <MenuComponent />
       </q-scroll-area>
+
       <q-img class="absolute-top" src="public/images/wallpaper-002.png" style="height: 150px">
         <div class="absolute-bottom bg-transparent q-mini-drawer-hide" v-if="auth.user != null">
           <q-avatar size="56px" class="q-mb-sm">
@@ -54,6 +55,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from 'stores/auth.js'
+import MenuComponent from 'components/menu/MenuComponent.vue'
 
 const auth = useAuthStore()
 const version = ref('1.0.0')
