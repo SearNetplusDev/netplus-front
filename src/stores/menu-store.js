@@ -22,4 +22,9 @@ export const useMenuStore = defineStore('menu', {
       }
     },
   },
+
+  persist: {
+    paths: ['items'],
+    storage: localStorage,
+  },
 })
