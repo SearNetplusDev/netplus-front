@@ -6,7 +6,9 @@ import {
   createWebHashHistory,
 } from 'vue-router'
 import routes from './routes'
+import dashboard from 'src/router/dashboard.js'
 import clients from 'src/router/clients.js'
+import management from 'src/router/management.js'
 import { useAuthStore } from 'stores/auth.js'
 
 /*
@@ -27,7 +29,7 @@ export default defineRouter(function (/* { store, ssrContext } */) {
 
   const Router = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),
-    routes: [...routes, ...clients],
+    routes: [...routes, ...dashboard, ...management, ...clients],
 
     // Leave this as is and make changes in quasar.conf.js instead!
     // quasar.conf.js -> build -> vueRouterMode
