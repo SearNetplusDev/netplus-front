@@ -106,7 +106,7 @@ const resetFilter = () => {
 const getTitle = (item) => {
   let title = ''
   try {
-    title = JSON.parse(item).title
+    title = JSON.parse(item).title ?? 'No hay'
   } catch (e) {
     console.error(`Filter Component Error: ${e}`)
   }
@@ -296,7 +296,7 @@ onMounted(() => {
                       @click="changeColumn(i, j)"
                     >
                       <q-item-section>
-                        <q-item-label :v-html="j.title" />
+                        <q-item-label>{{ j.title }}</q-item-label>
                       </q-item-section>
                     </q-item>
                   </q-expansion-item>
