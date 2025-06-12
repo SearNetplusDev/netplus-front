@@ -7,6 +7,21 @@
         <q-space />
 
         <!--   DataViewer template     -->
+        <template v-if="useDataViewer.dataViewer.show">
+          <q-btn
+            flat
+            :color="useDataViewer.dataViewer.filter ? 'warning' : 'white'"
+            :icon="useDataViewer.dataViewer.filter ? 'search_off' : 'search'"
+            @click="toggle"
+          />
+          <q-btn
+            flat
+            v-if="useDataViewer.dataViewer.allowCreate"
+            color="white"
+            icon="add"
+            @click="create"
+          />
+        </template>
 
         <q-btn flat label="Logout" icon="mdi-power" @click="logout" />
       </q-toolbar>
@@ -31,7 +46,7 @@
         <MenuComponent />
       </q-scroll-area>
 
-      <q-img class="absolute-top" src="public/images/wallpaper-002.png" style="height: 150px">
+      <q-img class="absolute-top" src="/images/wallpaper-002.png" style="height: 150px">
         <div class="absolute-bottom bg-transparent q-mini-drawer-hide" v-if="auth.user != null">
           <q-avatar size="56px" class="q-mb-sm">
             <img src="https://cdn.quasar.dev/img/boy-avatar.png" />
@@ -57,12 +72,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from 'stores/auth.js'
+import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import LogoutDialog from 'pages/auth/LogoutDialog.vue'
 import MenuComponent from 'components/menu/MenuComponent.vue'
 
 const auth = useAuthStore()
+const useDataViewer = useDataviewerStore()
 const version = ref('1.0.0')
 const today = new Date()
 const currentYear = ref(today.getFullYear())
@@ -77,5 +94,27 @@ function toggleLeftDrawer() {
 function logout() {
   showLogout.value = true
 }
+
+const toggle = () => {
+  useDataViewer.setDataViewer({
+    show: useDataViewer.dataViewer.show,
+    filter: !useDataViewer.dataViewer.filter,
+    allowCreate: useDataViewer.dataViewer.allowCreate,
+    showForm: useDataViewer.dataViewer.showForm,
+  })
+}
+
+const create = () => {
+  useDataViewer.setDataViewer({
+    show: useDataViewer.dataViewer.show,
+    filter: useDataViewer.dataViewer.filter,
+    allowCreate: useDataViewer.dataViewer.allowCreate,
+    showForm: 1,
+  })
+}
+
+onMounted(() => {
+  useDataViewer.fetch()
+})
 </script>
 <style lang="scss" scoped></style>
