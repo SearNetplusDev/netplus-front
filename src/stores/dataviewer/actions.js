@@ -83,13 +83,13 @@ export const actions = {
       }
 
       if (this.hasSockets && !data?.force) {
-        timeoutReload = setTimeout(() => this.fetch(data), 10000)
+        timeoutReload = setTimeout(() => this.fetch(data), 60000)
         resolve()
         return
       }
 
       if (this.dataViewer?.showForm !== 0 || !this.filterable.url) {
-        timeoutReload = setTimeout(() => this.fetch(data), 10000)
+        timeoutReload = setTimeout(() => this.fetch(data), 60000)
         resolve()
         return
       }
@@ -122,7 +122,7 @@ export const actions = {
           console.error(err)
         })
         .finally(() => {
-          timeoutReload = setTimeout(() => this.fetch({ force: false }), 10000)
+          timeoutReload = setTimeout(() => this.fetch({ force: false }), 60000)
         })
     })
   },

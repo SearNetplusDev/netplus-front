@@ -303,8 +303,8 @@ onMounted(() => {
                 </template>
 
                 <template v-slot:selected>
-                  <!--                  {{ getTitle(filterCandidates[i].columnData) }}-->
-                  {{ getTitle(filterCandidates[i].value.columnData) }}
+                  {{ getTitle(filterCandidates[i].columnData) }}
+                  <!--                  {{ getTitle(filterCandidates[i].value.columnData) }}-->
                 </template>
               </q-select>
             </div>
@@ -426,16 +426,15 @@ onMounted(() => {
     <div class="q-pa-sm fit row justify-end items-start content-start">
       <div class="col-auto">
         <q-btn-group>
-          <q-btn dense flat color="primary" @click="addFilter" icon="add" />
+          <q-btn flat color="white" @click="addFilter" icon="add" />
           <q-btn
-            dense
             flat
             color="red-10"
             icon="replay"
             @click="resetFilter"
             v-if="appliedFilters.length > 0"
           />
-          <q-btn dense flat color="primary" icon="filter_alt" @click="applyFilter" />
+          <q-btn flat color="white" icon="filter_alt" @click="applyFilter" />
         </q-btn-group>
       </div>
     </div>
