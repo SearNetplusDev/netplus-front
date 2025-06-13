@@ -9,38 +9,45 @@ const dateBetween = ref([])
 const dateBetweenText = ref('')
 const dateQuery = ref('')
 
+const appliedFilters = computed(() => useDataViewer.appliedFilters)
+const filterable = computed(() => useDataViewer.filterable)
+const pagination = computed(() => useDataViewer.pagination)
+
+const availableOperators = () => [
+  { title: 'Igual a', name: 'equal_to', parent: ['numeric', 'string'], component: 'single' },
+  {
+    title: 'No es igual a',
+    name: 'not_equal_to',
+    parent: ['numeric', 'string'],
+    component: 'single',
+  },
+  { title: 'Menor que', name: 'less_than', parent: ['numeric'], component: 'single' },
+  { title: 'Mayor que', name: 'greater_than', parent: ['numeric'], component: 'single' },
+  { title: 'Entre', name: 'between', parent: ['numeric'], component: 'double' },
+  { title: 'Contiene', name: 'contains', parent: ['string'], component: 'single' },
+  { title: 'En el pasado', name: 'in_the_past', parent: ['datetime'], component: 'datetime_1' },
+  { title: 'En el periodo', name: 'in_the_peroid', parent: ['datetime'], component: 'datetime_2' },
+  { title: 'Igual a', name: 'equal_to', parent: ['date'], component: 'date' },
+  { title: 'Entre', name: 'between', parent: ['date'], component: 'date_double' },
+  { title: 'Igual a', name: 'equal_to', parent: ['options'], component: 'options' },
+]
+
 watch(dateQuery, (newVal) => {
-  if (newVal !== null && newVal !== '') {
-    filterCandidates.value[0].query_1 = newVal
-  }
+  if (newVal) filterCandidates.value[0].query_1 = newVal
 })
 watch(dateBetween, (newVal) => {
-  if (newVal === null) return
-  if (newVal['from'] === undefined) return
-  if (newVal['from'] !== '' && newVal['to'] !== '') {
-    filterCandidates.value[0].query_1 = newVal['from']
-    filterCandidates.value[0].query_2 = newVal['to']
-    dateBetweenText.value = `${newVal['from']} - ${newVal['to']}`
+  if (newVal?.from && newVal?.to) {
+    filterCandidates.value[0].query_1 = newVal.from
+    filterCandidates.value[0].query_2 = newVal.to
+    dateBetweenText.value = `${newVal.from} - ${newVal.to}`
   }
 })
-const filterable = computed(() => {
-  return useDataViewer.filterable
-})
-const appliedFilters = computed(() => {
-  return useDataViewer.appliedFilters
-})
-const pagination = computed(() => {
-  return useDataViewer.pagination
-})
-// const hasSockets = computed(() => {
-//   return useDataViewer.hasSockets
-// })
 watch(filterable, (newVal) => {
   filterGroups.value = newVal.filterGroups
 })
 const fetchOperator = computed(() => {
   return (f) => {
-    return availabeOperators().filter((operator) => {
+    return availableOperators().filter((operator) => {
       if (f.column && operator.parent.includes(f.column.type)) {
         return operator
       }
@@ -60,14 +67,11 @@ const applyChange = () => {
   fetch({ force: true })
 }
 const applyFilter = () => {
-  setAppliedFilters(JSON.parse(JSON.stringify(filterCandidates)))
-  setPagination({
-    sortBy: pagination.value.sortBy,
-    descending: pagination.value.descending,
-    filter_match: pagination.value.filterMatch,
+  // setAppliedFilters(JSON.parse(JSON.stringify(filterCandidates.value)))
+  useDataViewer.setAppliedFilters(JSON.parse(JSON.stringify(filterCandidates.value)))
+  useDataViewer.setPagination({
+    ...pagination.value,
     page: 1,
-    rowsPerPage: pagination.value.rowsPerPage,
-    rowsNumber: pagination.value.rowsNumber,
   })
   applyChange()
 }
@@ -91,163 +95,74 @@ const removeFilter = (f, i) => {
 }
 const resetFilter = () => {
   setAppliedFilters([])
-  filterCandidates.value.splice(0)
+  // filterCandidates.value.splice(0)
+  filterCandidates.value = []
   addFilter()
   setPagination({
-    sortBy: pagination.value.sortBy,
-    descending: pagination.value.descending,
-    filter_match: pagination.value.filterMatch,
+    ...pagination.value,
     page: 1,
-    rowsPerPage: pagination.value.rowsPerPage,
-    rowsNumber: pagination.value.rowsNumber,
   })
   applyChange()
 }
 const getTitle = (item) => {
-  let title = ''
   try {
-    title = JSON.parse(item).title ?? 'No hay'
+    return JSON.parse(item).title || ''
   } catch (e) {
     console.error(`Filter Component Error: ${e}`)
+    return ''
   }
-  return title
 }
 const changeColumn = (i, j) => {
-  filterCandidates[i].value.columnData = JSON.stringify(j)
+  // filterCandidates[i].value.columnData = JSON.stringify(j)
+  filterCandidates.value[i].columnData = JSON.stringify(j)
   selectColumn(i)
 }
 const selectColumn = (i) => {
-  if (filterCandidates[i].value.columnData === undefined) return
-  let obj = JSON.parse(filterCandidates[i].value.columnData)
-  filterCandidates[i].value.column = obj
-
-  switch (obj.type) {
-    case 'numeric':
-      filterCandidates[i].value.operator = availabeOperators()[4]
-      filterCandidates[i].value.query_1 = null
-      filterCandidates[i].value.query_2 = null
-      break
-    case 'date':
-      filterCandidates[i].value.operator = availabeOperators()[18]
-      filterCandidates[i].value.query_1 = null
-      filterCandidates[i].value.query_2 = null
-      break
-    case 'string':
-      filterCandidates[i].value.operator = availabeOperators()[6]
-      filterCandidates[i].value.query_1 = null
-      filterCandidates[i].value.query_2 = null
-      break
-    case 'datetime':
-      filterCandidates[i].value.operator = availabeOperators()[9]
-      filterCandidates[i].value.query_1 = 28
-      filterCandidates[i].value.query_2 = 'days'
-      break
-    case 'counter':
-      filterCandidates[i].value.operator = availabeOperators()[14]
-      filterCandidates[i].value.query_1 = 28
-      filterCandidates[i].value.query_2 = 'days'
-      break
-    case 'options':
-      filterCandidates[i].value.operator = availabeOperators()[20]
-      filterCandidates[i].value.query_1 = null
-      filterCandidates[i].value.query_2 = null
-      break
+  const columnObj = JSON.parse(filterCandidates.value[i].columnData)
+  filterCandidates.value[i].column = columnObj
+  const type = columnObj.type
+  const operators = availableOperators()
+  const defaultOperators = {
+    numeric: 4,
+    string: 6,
+    datetime: 9,
+    counter: 14,
+    date: 18,
+    options: 20,
   }
+
+  const op = operators[defaultOperators[type]]
+  filterCandidates.value[i].operator = op
+  filterCandidates.value[i].query_1 = null
+  filterCandidates.value[i].query_2 = null
 }
 const selectOperator = (i) => {
-  let obj = JSON.parse(filterCandidates[i].value.operatorData)
-  filterCandidates[i].value.operator = obj
-  filterCandidates[i].value.query_1 = null
-  filterCandidates[i].value.query_2 = null
+  const operatorObj = JSON.parse(filterCandidates.value[i].operatorData)
+  filterCandidates.value[i].operator = operatorObj
+  filterCandidates.value[i].query_1 = null
+  filterCandidates.value[i].query_2 = null
   dateQuery.value = null
   dateBetween.value = null
-  switch (obj.name) {
+
+  switch (operatorObj.name) {
     case 'in_the_past':
     case 'in_the_next':
-      filterCandidates[i].value.query_1 = 28
-      filterCandidates[i].value.query_2 = 'days'
+      filterCandidates.value[i].query_1 = 28
+      filterCandidates.value[i].query_2 = 'days'
       break
     case 'in_the_period':
-      filterCandidates[i].value.query_1 = 'today'
+      filterCandidates.value[i].query_1 = 'today'
       break
   }
-}
-const availabeOperators = () => {
-  return [
-    { title: 'Igual a', name: 'equal_to', parent: ['numeric', 'string'], component: 'single' },
-    {
-      title: 'No es igual a',
-      name: 'not_equal_to',
-      parent: ['numeric', 'string'],
-      component: 'single',
-    },
-
-    { title: 'Menor que', name: 'less_than', parent: ['numeric'], component: 'single' },
-    { title: 'Mayor que', name: 'greater_than', parent: ['numeric'], component: 'single' }, // 3
-
-    { title: 'Entre', name: 'between', parent: ['numeric'], component: 'double' },
-    { title: 'No entre', name: 'not_between', parent: ['numeric'], component: 'double' }, //5
-
-    { title: 'Contiene', name: 'contains', parent: ['string'], component: 'single' },
-    { title: 'Inicia con', name: 'starts_with', parent: ['string'], component: 'single' },
-    { title: 'Termina con', name: 'ends_with', parent: ['string'], component: 'single' }, //8
-
-    { title: 'En el pasado', name: 'in_the_past', parent: ['datetime'], component: 'datetime_1' },
-    {
-      title: 'En el siguiente',
-      name: 'in_the_next',
-      parent: ['datetime'],
-      component: 'datetime_1',
-    },
-    {
-      title: 'En el periodo',
-      name: 'in_the_peroid',
-      parent: ['datetime'],
-      component: 'datetime_2',
-    }, //11
-
-    { title: 'Igual a cuenta', name: 'equal_to_count', parent: ['counter'], component: 'single' },
-    {
-      title: 'No Igual a cuenta',
-      name: 'not_equal_to_count',
-      parent: ['counter'],
-      component: 'single',
-    },
-    {
-      title: 'Menor que cuenta',
-      name: 'less_than_count',
-      parent: ['counter'],
-      component: 'single',
-    },
-    {
-      title: 'Mayor que cuenta',
-      name: 'greater_than_count',
-      parent: ['counter'],
-      component: 'single',
-    }, //15
-
-    { title: 'Igual a', name: 'equal_to', parent: ['date'], component: 'date' },
-    { title: 'Menor que', name: 'less_than', parent: ['date'], component: 'date' },
-    { title: 'Mayor que', name: 'greater_than', parent: ['date'], component: 'date' },
-    { title: 'Entre', name: 'between', parent: ['date'], component: 'date_double' }, //19
-
-    { title: 'Igual a', name: 'equal_to', parent: ['options'], component: 'options' }, //20
-  ]
 }
 const validateF = (f) => {
-  switch (f.operator.component) {
-    case 'single':
-      return true
-    default:
-      break
-  }
-  return false
+  return f.operator.component === 'single'
 }
 onMounted(() => {
-  const filter = filterable.value
-  if (filter.filterGroups.length > 0) {
-    filterGroups.value = filter.filterGroups
+  if (filterable.value?.filterGroups?.length > 0) {
+    filterGroups.value = filterable.value.filterGroups
   }
+  addFilter()
 })
 </script>
 
