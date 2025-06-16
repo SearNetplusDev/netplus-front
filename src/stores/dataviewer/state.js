@@ -19,11 +19,15 @@ export const state = () => ({
     rowsPerPage: 10,
     rowsNumber: 10,
   },
-  collection: {},
+  // collection: {},
+  collection: {
+    data: [],
+  },
   dataViewer: {
     show: false,
     filter: false,
     allowCreate: false,
     showForm: 0,
   },
+  authorization: null,
 })

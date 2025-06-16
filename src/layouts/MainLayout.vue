@@ -6,7 +6,7 @@
 
         <q-space />
 
-        <!--   DataViewer template     -->
+        <!--   DataViewer filter template     -->
         <template v-if="useDataViewer.dataViewer.show">
           <q-btn
             flat
@@ -22,6 +22,7 @@
             @click="create"
           />
         </template>
+        <!--   End dataViewer filter template     -->
 
         <q-btn flat label="Logout" icon="mdi-power" @click="logout" />
       </q-toolbar>

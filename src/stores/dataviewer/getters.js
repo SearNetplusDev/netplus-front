@@ -23,17 +23,18 @@ export const getters = {
     return f
   },
   */
+
   get_columns: (state) => state.columns,
   get_currentItem: (state) => state.currentItem,
   get_hasSockets: (state) => state.hasSockets,
   get_collection: (state) => state.collection,
-  get_data: (state) => state.collection.data,
+  get_data: (state) => state.collection?.data || [],
   get_dataViewer: (state) => state.dataViewer,
   get_pagination: (state) => state.pagination,
   get_filterable: (state) => state.filterable,
   get_appliedFilters: (state) => state.appliedFilters,
   get_externalFilters: (state) => state.externalFilters,
-  get_getFilters: (state) => {
+  get_filters: (state) => {
     const f = {}
     const filters = state.appliedFilters.filter((filter) => filter.column?.name !== undefined)
     filters.forEach((filter, i) => {

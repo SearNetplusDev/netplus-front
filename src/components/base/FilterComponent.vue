@@ -67,7 +67,6 @@ const applyChange = () => {
   fetch({ force: true })
 }
 const applyFilter = () => {
-  // setAppliedFilters(JSON.parse(JSON.stringify(filterCandidates.value)))
   useDataViewer.setAppliedFilters(JSON.parse(JSON.stringify(filterCandidates.value)))
   useDataViewer.setPagination({
     ...pagination.value,
@@ -95,7 +94,6 @@ const removeFilter = (f, i) => {
 }
 const resetFilter = () => {
   setAppliedFilters([])
-  // filterCandidates.value.splice(0)
   filterCandidates.value = []
   addFilter()
   setPagination({
@@ -113,7 +111,6 @@ const getTitle = (item) => {
   }
 }
 const changeColumn = (i, j) => {
-  // filterCandidates[i].value.columnData = JSON.stringify(j)
   filterCandidates.value[i].columnData = JSON.stringify(j)
   selectColumn(i)
 }
@@ -331,7 +328,7 @@ onMounted(() => {
         <!--    Remover filtro    -->
         <div class="filter-remove center col-xs-2 col-sm-2 col-md-1 q-pa-none q-ma-none" v-if="f">
           <q-field dense borderless class="q-pa-none q-ma-none q-px-md">
-            <q-btn color="red-10" icon="delete_forever" @click="removeFilter(f, i)" />
+            <q-btn color="red-10" size="sm" icon="delete_forever" @click="removeFilter(f, i)" />
           </q-field>
         </div>
         <!--  Fin remover filtro    -->

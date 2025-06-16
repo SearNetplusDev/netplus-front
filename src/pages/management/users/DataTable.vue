@@ -1,7 +1,117 @@
-<script setup></script>
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { useDataviewerStore } from 'stores/dataviewer/index.js'
+import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
+
+const useDataViewer = useDataviewerStore()
+const currentItem = ref(0)
+const showForm = computed(() => useDataViewer.get_dataViewer.showForm)
+const showDeleteItem = ref(false)
+const deleteProps = ref([])
+const columns = [
+  { name: 'id', label: 'ID', align: 'center' },
+  {
+    name: 'status',
+    label: 'Estado',
+    filterable: true,
+    model: [],
+    filterURL: '/api/v1/general-data/estados',
+    options: [],
+    align: 'left',
+  },
+  { name: 'name', label: 'Nombre', align: 'left' },
+  { name: 'email', label: 'Correo electrónico', align: 'left' },
+  { name: 'actions', label: '', align: 'center' },
+]
+const edit = (itm) => {
+  currentItem.value = itm
+  useDataViewer.changeShowForm(2)
+}
+watch(showForm, (newVal) => {
+  if (newVal === 1) {
+    currentItem.value = 0
+  } else {
+    useDataViewer.fetch({ force: true })
+  }
+})
+const showDeleteDialog = (id, name) => {
+  showDeleteItem.value = true
+  deleteProps.value = {
+    title: 'Eliminar usuario',
+    message: `¿Deseas eliminar a ${name}?`,
+    id: id,
+    url: '/api/v1/administracion/usuarios',
+  }
+}
+/*    Not yet
+
+const resetShowDeleteItem = () => {
+  showDeleteItem.value = false
+}
+*/
+</script>
 
 <template>
-  <div></div>
+  <div>
+    <template v-if="showDeleteItem">
+      <!--    COMPONENTE DIALOG PARA ELIMINAR   -->
+    </template>
+
+    <template v-if="showForm === 1 || showForm === 2">
+      <!--    COMPONENTE DIALOG PARA FORMULARIO   -->
+    </template>
+
+    <BaseDataTable :columns="columns">
+      <template v-slot:body="{ props }">
+        <q-tr :props="props">
+          <!--    ID    -->
+          <q-td key="id" class="text-left" :props="props">
+            {{ props.row.id }}
+          </q-td>
+
+          <!--    Status    -->
+          <q-td key="status" :props="props">
+            <q-badge
+              :color="props.row?.status_id ? 'primary' : 'red-10'"
+              :label="props.row?.status_id ? 'Activo' : 'Inactivo'"
+              class="text-center text-weight-bold q-py-xs"
+            />
+          </q-td>
+
+          <!--  Name    -->
+          <q-td key="name" :props="props" class="text-left">
+            {{ props.row?.name }}
+          </q-td>
+
+          <!--    Email   -->
+          <q-td key="email" :props="props">
+            {{ props.row?.email }}
+          </q-td>
+
+          <!--    Action buttoms   -->
+          <q-td key="actions" :props="props">
+            <q-btn-group>
+              <q-btn color="primary" icon="edit" size="sm" @click="edit(props.row.id)">
+                <q-tooltip transition-show="fade" transition-hide="flip-left">
+                  Editar info. de {{ props.row.name }}
+                </q-tooltip>
+              </q-btn>
+              <q-btn
+                color="negative"
+                icon="delete_forever"
+                size="sm"
+                @click="showDeleteDialog(props.row.id, props.row.name)"
+              >
+                <q-tooltip transition-show="fade" transition-hide="flip-left">
+                  Eliminar a {{ props.row.name }}
+                </q-tooltip>
+              </q-btn>
+            </q-btn-group>
+          </q-td>
+        </q-tr>
+      </template>
+    </BaseDataTable>
+  </div>
 </template>
 
 <style scoped></style>

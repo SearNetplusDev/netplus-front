@@ -22,6 +22,9 @@ const show = computed(() => useDataViewer.get_filterable.url !== '')
       <q-card-section class="q-pa-none" v-if="show">
         <slot name="data-table" />
       </q-card-section>
+      <q-card-section class="q-pa-none">
+        <slot name="test"></slot>
+      </q-card-section>
     </q-card>
   </q-page>
 </template>
