@@ -4,6 +4,7 @@ import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { date, copyToClipboard } from 'quasar'
 import { useNotifications } from 'src/utils/notification.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
+import BaseDialog from 'components/base/BaseDialog.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
 
 const useDataViewer = useDataviewerStore()
@@ -78,7 +79,7 @@ const resetShowDeleteItem = () => {
     </template>
 
     <template v-if="showForm === 1 || showForm === 2">
-      <!--    COMPONENTE DIALOG PARA FORMULARIO   -->
+      <BaseDialog :id="currentItem" :content="Form" />
     </template>
 
     <BaseDataTable :columns="columns">
