@@ -1,15 +1,19 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
+import { date, copyToClipboard } from 'quasar'
+import { useNotifications } from 'src/utils/notification.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
+import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
 
 const useDataViewer = useDataviewerStore()
+const { showNotification } = useNotifications()
 const currentItem = ref(0)
 const showForm = computed(() => useDataViewer.get_dataViewer.showForm)
 const showDeleteItem = ref(false)
 const deleteProps = ref([])
 const columns = [
-  { name: 'id', label: 'ID', align: 'center' },
+  { name: 'id', label: 'ID', sortable: true, align: 'center' },
   {
     name: 'status',
     label: 'Estado',
@@ -21,6 +25,8 @@ const columns = [
   },
   { name: 'name', label: 'Nombre', align: 'left' },
   { name: 'email', label: 'Correo electrónico', align: 'left' },
+  // { name: 'role', label: 'Rol', align: 'left' },
+  { name: 'register_date', label: 'Fecha de registro', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ]
 const edit = (itm) => {
@@ -38,23 +44,37 @@ const showDeleteDialog = (id, name) => {
   showDeleteItem.value = true
   deleteProps.value = {
     title: 'Eliminar usuario',
-    message: `¿Deseas eliminar a ${name}?`,
+    message: `¿Deseas eliminar a ${name} de los registros?`,
     id: id,
     url: '/api/v1/administracion/usuarios',
   }
 }
-/*    Not yet
+const formattedDate = (itm) => {
+  return date.formatDate(itm, 'YYYY-MM-DD')
+}
+const copy = (text) => {
+  copyToClipboard(text)
+    .then(() => {
+      showNotification('Elemento copiado', `${text} agregado al portapapeles`, 'blue-grey-10')
+    })
+    .catch((err) => {
+      showNotification('Error', `${err}`, 'red-10')
+    })
+}
 
 const resetShowDeleteItem = () => {
   showDeleteItem.value = false
 }
-*/
 </script>
 
 <template>
   <div>
     <template v-if="showDeleteItem">
-      <!--    COMPONENTE DIALOG PARA ELIMINAR   -->
+      <DeleteItemDialog
+        :data="deleteProps"
+        :visible="showDeleteItem"
+        @hide-dialog="resetShowDeleteItem"
+      />
     </template>
 
     <template v-if="showForm === 1 || showForm === 2">
@@ -65,7 +85,7 @@ const resetShowDeleteItem = () => {
       <template v-slot:body="{ props }">
         <q-tr :props="props">
           <!--    ID    -->
-          <q-td key="id" class="text-left" :props="props">
+          <q-td key="id" class="text-left copy-text" :props="props" @click="copy(props.row?.id)">
             {{ props.row.id }}
           </q-td>
 
@@ -79,13 +99,22 @@ const resetShowDeleteItem = () => {
           </q-td>
 
           <!--  Name    -->
-          <q-td key="name" :props="props" class="text-left">
+          <q-td
+            key="name"
+            :props="props"
+            class="text-left copy-text"
+            @click="copy(props.row?.name)"
+          >
             {{ props.row?.name }}
           </q-td>
 
           <!--    Email   -->
-          <q-td key="email" :props="props">
+          <q-td key="email" :props="props" class="copy-text" @click="copy(props.row?.email)">
             {{ props.row?.email }}
+          </q-td>
+
+          <q-td key="register_date" :props="props">
+            {{ formattedDate(props.row?.created_at) }}
           </q-td>
 
           <!--    Action buttoms   -->

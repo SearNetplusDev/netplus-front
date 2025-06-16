@@ -7,9 +7,7 @@ const useDataViewer = useDataviewerStore()
 const props = defineProps({
   columns: Array,
 })
-// const collection = computed(() => useDataViewer.collection)
 const collection = computed(() => useDataViewer.get_data || [])
-// const collection = useDataViewer.collection
 const paginate = computed({
   get() {
     return useDataViewer.pagination
@@ -38,7 +36,7 @@ const onRequest = (prop) => {
 </script>
 
 <template>
-  <div class="q-px-lg">
+  <div class="q-pa-lg">
     <q-table
       dark
       dense
@@ -67,7 +65,7 @@ const onRequest = (prop) => {
   //height: 69vh
 
   .q-table__top, .q-table__bottom, thead tr:first-child th
-    background-color: $custom-background
+    //background-color: $custom-background
 
     thead tr th
       position: sticky

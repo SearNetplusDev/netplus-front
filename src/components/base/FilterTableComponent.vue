@@ -52,13 +52,13 @@ onMounted(() => {
 
 <template>
   <q-tr>
-    <q-th v-for="col in data.cols" :key="col.name" class="text-left">
-      <span :class="col.model?.length > 0 ? 'text-amber' : 'text-red-10'">
+    <q-th v-for="col in data.cols" :key="col.name" class="text-left q-header">
+      <span :class="col.model?.length > 0 ? 'text-amber' : 'text-white'">
         {{ col.label }}
       </span>
       <q-btn-dropdown v-if="col.filterable" size="xs" class="q-px-sm" dense flat>
         <template v-slot:label>
-          <q-icon name="filter_alt" :color="col.model?.length > 0 ? 'amber' : '#89a2c4'" />
+          <q-icon name="filter_alt" :color="col.model?.length > 0 ? 'amber' : '#fff'" />
         </template>
 
         <q-list dense v-if="col.options">

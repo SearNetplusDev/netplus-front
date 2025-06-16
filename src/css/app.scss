@@ -41,6 +41,16 @@
   }
 }
 
+.copy-text {
+  cursor: pointer;
+
+  &:hover {
+    //color: $custom-corporative-4;
+    color: $warning;
+    text-shadow: 1px 1px 1px #121212;
+  }
+}
+
 /*
   Clases complementarias
   * headers: bg-grey-10 text-grey-1
