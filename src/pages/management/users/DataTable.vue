@@ -6,6 +6,7 @@ import { useNotifications } from 'src/utils/notification.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
+import UsersDialog from 'components/administracion/users/UsersDialog.vue'
 
 const useDataViewer = useDataviewerStore()
 const { showNotification } = useNotifications()
@@ -79,7 +80,7 @@ const resetShowDeleteItem = () => {
     </template>
 
     <template v-if="showForm === 1 || showForm === 2">
-      <BaseDialog :id="currentItem" :content="Form" />
+      <BaseDialog :id="currentItem" :content="UsersDialog" />
     </template>
 
     <BaseDataTable :columns="columns">

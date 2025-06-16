@@ -27,6 +27,7 @@ const reset = () => {
     transition-show="fade-in"
     transition-hide="fade-out"
     maximized
+    backdrop-filter="blur(4px) saturate(150%)"
     @reset="reset"
   >
     <component :is="props.content" :id="props.id" />
