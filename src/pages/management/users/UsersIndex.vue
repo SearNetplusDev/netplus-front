@@ -2,7 +2,6 @@
 import BasePage from 'pages/baseComponents/BasePage.vue'
 import BaseFilters from 'pages/baseComponents/BaseFilters.vue'
 import DataTable from 'pages/management/users/DataTable.vue'
-// import TestComponent from 'components/base/TestComponent.vue'
 
 const filter = {
   title: 'Filtro',
@@ -29,10 +28,6 @@ const filter = {
     </template>
     <template v-slot:data-table>
       <DataTable />
-    </template>
-
-    <template v-slot:test>
-      <!--      <TestComponent />-->
     </template>
   </BasePage>
 </template>

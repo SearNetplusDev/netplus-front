@@ -129,6 +129,7 @@ export const actions = {
   setHasSocket(data) {
     this.hasSockets = data
   },
+
   setFilterable(data) {
     this.filterable = data
   },
@@ -156,6 +157,7 @@ export const actions = {
     this.externalFilters = data
   },
   setDataViewer(data) {
+    // Object.assign(this.dataViewer, data)
     this.dataViewer = data
   },
   changeShowForm(payload) {
@@ -164,8 +166,8 @@ export const actions = {
       showForm: payload,
     }
   },
-  resetDataViewer(payload) {
-    this.dataViewer = payload
+  resetDataViewer() {
+    this.dataViewer = { ...this.dataViewer }
   },
   resetCollection() {
     this.collection = { data: [] }

@@ -28,7 +28,7 @@ const reset = () => {
     transition-hide="fade-out"
     maximized
     backdrop-filter="blur(4px) saturate(150%)"
-    @reset="reset"
+    @hide="reset"
   >
     <component :is="props.content" :id="props.id" />
   </q-dialog>

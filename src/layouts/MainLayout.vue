@@ -28,10 +28,12 @@
       </q-toolbar>
     </q-header>
 
-    <q-footer reveal class="q-py-sm">
-      <q-toolbar-title class="text-center text-subtitle2">
-        ISP v{{ version }} || All rights reserved to Netplus 2021 - {{ currentYear }} &trade;
-      </q-toolbar-title>
+    <q-footer reveal class="q-pa-none">
+      <q-toolbar>
+        <q-toolbar-title class="text-center text-subtitle2">
+          ISP v{{ version }} || All rights reserved to Netplus 2021 - {{ currentYear }} &trade;
+        </q-toolbar-title>
+      </q-toolbar>
     </q-footer>
 
     <q-drawer
@@ -50,7 +52,7 @@
       <q-img class="absolute-top" src="/images/wallpaper-002.png" style="height: 150px">
         <div class="absolute-bottom bg-transparent q-mini-drawer-hide" v-if="auth.user != null">
           <q-avatar size="56px" class="q-mb-sm">
-            <img src="https://cdn.quasar.dev/img/boy-avatar.png" />
+            <img src="https://cdn.quasar.dev/img/boy-avatar.png" alt="avatar image" />
             <!--            <q-icon name="mdi-account-circle" size="56px" />-->
           </q-avatar>
           <div class="text-weight-bold">
