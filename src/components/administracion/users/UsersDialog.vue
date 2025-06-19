@@ -2,8 +2,11 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
+import { useLoading } from 'src/utils/loader.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
+import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
 
+const { showLoading, hideLoading } = useLoading()
 const title = ref('')
 const loading = ref(false)
 const { showNotification } = useNotifications()
@@ -13,13 +16,28 @@ const props = defineProps({
 const url = 'api/v1/administracion/usuarios/'
 const isPwd = ref(true)
 // const errors = ref([])
-const passwordRules = [
-  (val) => !!val || 'La contraseña es requerida',
-  (val) => val.length >= 8 || 'Mínimo de 8 caracteres',
-]
+const passwordRules = computed(() => [
+  (val) => {
+    if (props.id === 0) {
+      return !!val || 'La contraseña es requerida'
+    }
+    if (val && val.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres'
+    }
+    return true
+  },
+])
 const confirmPasswordRules = computed(() => [
-  ...passwordRules,
-  (val) => val === fields.password_1.data || 'Las contraseñas no coinciden',
+  (val) => {
+    const pass = fields.password_1.data
+    if (props.id === 0) {
+      if (!val) return 'Confirma contraseña'
+      if (val !== pass) return 'Las contraseñas no coinciden'
+    } else {
+      if (val && val !== pass) return 'Las contraseñas no coinciden'
+    }
+    return true
+  },
 ])
 const fields = reactive({
   // id: props.id,
@@ -63,6 +81,7 @@ const fields = reactive({
   status: { data: false, error: false, 'error-message': '', type: 'toggle' },
 })
 const getData = () => {
+  showLoading()
   loading.value = true
   title.value = 'Obteniendo datos, espera un momento ...'
   let data = new FormData()
@@ -82,16 +101,54 @@ const getData = () => {
     .finally(() => {
       setTimeout(() => {
         loading.value = false
+        hideLoading()
       }, 1000)
     })
 }
 const sendData = () => {
-  // let request = ''
-  // let params = new FormData()
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
-}
+  showLoading()
+  resetFieldErrors(fields)
+  // const extras = {
+  //   _method: props.id === 0 ? 'POST' : 'PUT',
+  // }
+  // const params = buildFormData(fields, extras)
+  let request = ''
+  let status
+  fields.status.data === true ? (status = 1) : (status = 0)
+  let params = new FormData()
+  params.append('name', fields.name.data)
+  params.append('email', fields.email.data)
+  params.append('status', status)
+  if (fields.password_1.data !== '') params.append('password', fields.password_1.data)
+  props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
+  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
 
+  api
+    .post(request, params, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    .then((res) => {
+      if (res.data.saved) {
+        showNotification('Exito', 'Registro almacenado', 'blue-grey-10')
+      } else {
+        showNotification('Error', 'Verifica la información ingresada', 'red-10')
+      }
+    })
+    .catch((err) => {
+      handleSubmissionError(err, fields)
+      showNotification('Error', `${err}`, 'red-10')
+    })
+    .finally(() => {
+      setTimeout(() => {
+        loading.value = false
+        hideLoading()
+      }, 1000)
+    })
+}
 onMounted(() => {
   if (props.id > 0) {
     getData()
