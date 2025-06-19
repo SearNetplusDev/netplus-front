@@ -11,14 +11,6 @@ const props = defineProps({
   id: Number,
 })
 const url = 'api/v1/administracion/usuarios/'
-const fields = reactive({
-  id: props.id,
-  name: { data: '', error: false, 'error-message': '' },
-  email: { data: '', error: false, 'error-message': '' },
-  password_1: { data: '', error: false, 'error-message': '' },
-  password_2: { data: '', error: false, 'error-message': '' },
-  status: { data: false, error: false, 'error-message': '' },
-})
 const isPwd = ref(true)
 // const errors = ref([])
 const passwordRules = [
@@ -29,6 +21,47 @@ const confirmPasswordRules = computed(() => [
   ...passwordRules,
   (val) => val === fields.password_1.data || 'Las contraseñas no coinciden',
 ])
+const fields = reactive({
+  // id: props.id,
+  name: {
+    data: '',
+    error: false,
+    'error-message': '',
+    label: 'Nombre',
+    type: 'text',
+    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
+  },
+  email: {
+    data: '',
+    error: false,
+    'error-message': '',
+    label: 'Correo electrónico',
+    type: 'text',
+    rules: [
+      (val) => (val && val.length > 0) || 'Campo requerido',
+      (val) =>
+        /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(val) ||
+        'Formato Incorrecto',
+    ],
+  },
+  password_1: {
+    data: '',
+    error: false,
+    'error-message': '',
+    label: 'Contraseña',
+    type: 'password',
+    rules: passwordRules,
+  },
+  password_2: {
+    data: '',
+    error: false,
+    'error-message': '',
+    label: 'Confirma contraseña',
+    type: 'password',
+    rules: confirmPasswordRules,
+  },
+  status: { data: false, error: false, 'error-message': '', type: 'toggle' },
+})
 const getData = () => {
   loading.value = true
   title.value = 'Obteniendo datos, espera un momento ...'
@@ -37,7 +70,7 @@ const getData = () => {
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let item = res.data.response
+      let item = res.data.user
       title.value = `Modificar datos de ${item.name}`
       fields.name.data = item.name
       fields.email.data = item.email
@@ -115,130 +148,68 @@ onMounted(() => {
             <!--    Input content   -->
             <q-card-section>
               <div class="full-width row wrap justify-start items-start content-start">
-                <!--    Name input    -->
-                <div class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-md">
-                  <q-input
-                    v-model="fields.name.data"
-                    dark
-                    dense
-                    outlined
-                    clearable
-                    color="white"
-                    label="Nombre"
-                    lazy-rules
-                    :rules="[(val) => (val && val.length > 0) || 'Campo requerido']"
-                    :error="fields.name.error"
-                    :error-message="fields.name['error-message']"
-                    v-if="!loading"
-                  />
-                  <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
-                </div>
-                <!--    End name input    -->
+                <div
+                  class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-md"
+                  v-for="(field, index) in fields"
+                  :key="index"
+                >
+                  <div v-if="field.type === 'text'">
+                    <q-input
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      v-if="!loading"
+                      v-model="field.data"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                    />
+                  </div>
 
-                <!--    Email input   -->
-                <div class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-md">
-                  <q-input
-                    v-model="fields.email.data"
-                    dark
-                    dense
-                    outlined
-                    clearable
-                    color="white"
-                    label="Correo electrónico"
-                    lazy-rules
-                    :rules="[
-                      (val) => (val && val.length > 0) || 'Campo requerido',
-                      (val) =>
-                        /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(
-                          val,
-                        ) || 'Formato Incorrecto',
-                    ]"
-                    :error="fields.email.error"
-                    :error-message="fields.email['error-message']"
-                    v-if="!loading"
-                  />
-                  <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
-                </div>
-                <!--    End email input   -->
+                  <div v-if="field.type === 'password'">
+                    <q-input
+                      v-model="field.data"
+                      dark
+                      dense
+                      clearable
+                      outlined
+                      :label="field.label"
+                      maxlength="12"
+                      counter
+                      lazy-rules
+                      :type="isPwd ? 'password' : 'text'"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      v-if="!loading"
+                    >
+                      <template v-slot:append>
+                        <q-icon
+                          :name="isPwd ? 'visibility_off' : 'visibility'"
+                          class="cursor-pointer"
+                          @click="isPwd = !isPwd"
+                        />
+                      </template>
+                    </q-input>
+                  </div>
 
-                <!--    Password input    -->
-                <div class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-md">
-                  <q-input
-                    v-model="fields.password_1.data"
-                    dark
-                    dense
-                    clearable
-                    outlined
-                    color="white"
-                    label="Contraseña"
-                    maxlength="12"
-                    counter
-                    lazy-rules
-                    :rules="passwordRules"
-                    v-if="!loading"
-                    :type="isPwd ? 'password' : 'text'"
-                    :error="fields.password_1.error"
-                    :error-message="fields.password_1['error-message']"
-                  >
-                    <template v-slot:append>
-                      <q-icon
-                        :name="isPwd ? 'visibility_off' : 'visibility'"
-                        class="cursor-pointer"
-                        @click="isPwd = !isPwd"
-                      />
-                    </template>
-                  </q-input>
+                  <div v-if="field.type === 'toggle'">
+                    <q-toggle
+                      v-model="fields.status.data"
+                      label="Estado"
+                      checked-icon="check"
+                      unchecked-icon="clear"
+                      size="lg"
+                      color="primary"
+                      v-if="!loading"
+                      :error="fields.status.error"
+                      :error-message="fields.status['error-message']"
+                    />
+                  </div>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </div>
-                <!--    End password input    -->
-
-                <!--    Confirm password input    -->
-                <div class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-md">
-                  <q-input
-                    v-model="fields.password_2.data"
-                    dark
-                    dense
-                    clearable
-                    outlined
-                    color="white"
-                    label="Confirmación de contraseña"
-                    maxlength="12"
-                    counter
-                    lazy-rules
-                    :rules="confirmPasswordRules"
-                    v-if="!loading"
-                    :type="isPwd ? 'password' : 'text'"
-                    :error="fields.password_2.error"
-                    :error-message="fields.password_2['error-message']"
-                  >
-                    <template v-slot:append>
-                      <q-icon
-                        :name="isPwd ? 'visibility_off' : 'visibility'"
-                        class="cursor-pointer"
-                        @click="isPwd = !isPwd"
-                      />
-                    </template>
-                  </q-input>
-                  <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
-                </div>
-                <!--    End confirm password input    -->
-
-                <!--    Status toggle   -->
-                <div class="col-xs-12 col-sm-12 col-md-2 col-lg-2">
-                  <q-toggle
-                    v-model="fields.status.data"
-                    label="Estado"
-                    checked-icon="check"
-                    unchecked-icon="clear"
-                    size="lg"
-                    color="primary"
-                    v-if="!loading"
-                    :error="fields.status.error"
-                    :error-message="fields.status['error-message']"
-                  />
-                  <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
-                </div>
-                <!--    End status toggle   -->
               </div>
             </q-card-section>
             <!--    End input content   -->

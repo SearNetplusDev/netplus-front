@@ -48,7 +48,7 @@ export default defineConfig((ctx) => {
       // publicPath: '/',
       // analyze: true,
       env: {
-        API_URL: 'http://localhost:8080',
+        API_URL: 'http://192.168.1.78:8080',
       },
       // rawDefine: {}
       // ignorePublicFolder: true,
