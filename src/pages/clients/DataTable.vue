@@ -3,7 +3,7 @@
 </script>
 
 <template>
-<div></div>
+<div class="text-amber text-h5">HOLA</div>
 </template>
 
 <style scoped>

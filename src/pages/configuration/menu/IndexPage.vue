@@ -1,21 +1,21 @@
 <script setup>
 import BasePage from 'pages/baseComponents/BasePage.vue'
 import BaseFilters from 'pages/baseComponents/BaseFilters.vue'
-import DataTable from 'pages/clients/DataTable.vue'
+import DataTable from 'pages/configuration/menu/DataTable.vue'
 
 const filter = {
-  title: 'Filtro',
-  url: '/clientes/',
+  title: 'Filtrar',
+  url: '/configuration/menu/',
   nuevo: '/',
   orderables: [{ title: 'ID', name: 'id' }],
   filterGroups: [
     {
-      name: 'Cliente',
+      name: 'Datos del menú',
       opened: true,
       filters: [
         { title: 'ID', name: 'id', type: 'numeric' },
-        { title: 'Nombres', name: 'name', type: 'string' },
-        { title: 'Apellidos', name: 'surname', type: 'string' },
+        { title: 'Nombre', name: 'name', type: 'string' },
+        { title: 'URL', name: 'url', type: 'string' },
       ],
     },
   ],
@@ -23,14 +23,14 @@ const filter = {
 </script>
 
 <template>
-  <BasePage>
+  <base-page>
     <template v-slot:filter>
-      <BaseFilters sort-by="id" :filter="filter" />
+      <base-filters sort-by="id" :filter="filter" />
     </template>
     <template v-slot:data-table>
       <data-table />
     </template>
-  </BasePage>
+  </base-page>
 </template>
 
 <style scoped></style>
