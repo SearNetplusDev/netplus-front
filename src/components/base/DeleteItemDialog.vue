@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineEmits } from 'vue'
+import { ref } from 'vue'
 import { api } from 'boot/axios.js'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { useNotifications } from 'src/utils/notification.js'

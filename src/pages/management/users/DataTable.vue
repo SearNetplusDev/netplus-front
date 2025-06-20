@@ -21,7 +21,7 @@ const columns = [
     label: 'Estado',
     filterable: true,
     model: [],
-    filterURL: '/api/v1/general-data/estados',
+    filterURL: '/api/v1/general/estados',
     options: [],
     align: 'left',
   },
