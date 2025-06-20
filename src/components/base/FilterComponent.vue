@@ -54,8 +54,8 @@ const fetchOperator = computed(() => {
     })
   }
 })
-const fetch = () => {
-  useDataViewer.fetch()
+const fetch = (options = {}) => {
+  useDataViewer.fetch(options)
 }
 const setAppliedFilters = () => {
   useDataViewer.setAppliedFilters()

@@ -46,13 +46,21 @@ export const actions = {
     return new Promise((resolve, reject) => {
       try {
         this.cancelRequest()
+        const pag = this.pagination ?? {
+          sortBy: 'id',
+          descending: false,
+          filter_match: 'and',
+          page: 1,
+          rowsPerPage: 10,
+          rowsNumber: 10,
+        }
         const pagination = {
-          order_column: this.pagination.sortBy,
-          order_direction: this.pagination.descending ? 'desc' : 'asc',
-          filter_match: this.pagination.filter_match,
-          limit: this.pagination.rowsPerPage,
-          page: this.pagination.page,
-          total: this.pagination.rowsNumber,
+          order_column: pag.sortBy,
+          order_direction: pag.descending ? 'desc' : 'asc',
+          filter_match: pag.filter_match,
+          limit: pag.rowsPerPage,
+          page: pag.page,
+          total: pag.rowsNumber,
         }
 
         //  External filters
@@ -93,9 +101,6 @@ export const actions = {
           .then((response) => {
             if (JSON.stringify(response.data?.collection) !== JSON.stringify(this.collection)) {
               this.collection = response.data?.collection
-              // this.setCollection(response.data.collection)
-
-              // const order_direction = pagination.order_direction === 'asc' ? false : true
               const order_direction = pagination.order_direction !== 'asc'
 
               this.pagination = {
@@ -152,8 +157,11 @@ export const actions = {
     }
   },
   setPagination(data) {
-    // Object.assign(this.pagination, data)
-    this.pagination = data
+    if (!data || typeof data !== 'object') return
+    this.pagination = {
+      ...this.pagination,
+      ...data,
+    }
   },
   setAppliedFilters(data = []) {
     // this.externalFilters = data
