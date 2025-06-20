@@ -123,6 +123,7 @@ export const actions = {
       }
     })
   },
+
   setCurrentItem(data) {
     this.currentItem = data
   },
@@ -151,10 +152,12 @@ export const actions = {
     }
   },
   setPagination(data) {
-    Object.assign(this.pagination, data)
+    // Object.assign(this.pagination, data)
+    this.pagination = data
   },
-  setAppliedFilters(data) {
-    this.externalFilters = data
+  setAppliedFilters(data = []) {
+    // this.externalFilters = data
+    this.appliedFilters = data
   },
   setDataViewer(data) {
     // Object.assign(this.dataViewer, data)

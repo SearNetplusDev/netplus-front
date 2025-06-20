@@ -13,6 +13,7 @@ const filter = {
       name: 'Usuario',
       opened: true,
       filters: [
+        { title: 'ID', name: 'id', type: 'numeric' },
         { title: 'Nombre', name: 'name', type: 'string' },
         { title: 'Correo', name: 'email', type: 'string' },
       ],

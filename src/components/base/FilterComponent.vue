@@ -341,7 +341,7 @@ onMounted(() => {
           <q-btn flat color="white" @click="addFilter" icon="add" />
           <q-btn
             flat
-            color="red-10"
+            color="white"
             icon="replay"
             @click="resetFilter"
             v-if="appliedFilters.length > 0"

@@ -35,7 +35,9 @@ export const getters = {
   get_appliedFilters: (state) => state.appliedFilters,
   get_externalFilters: (state) => state.externalFilters,
   get_filters: (state) => {
+    /*
     const f = {}
+
     const filters = state.appliedFilters.filter((filter) => filter.column?.name !== undefined)
     filters.forEach((filter, i) => {
       f[`f[${i}][column]`] = filter.column.name
@@ -45,5 +47,27 @@ export const getters = {
       f[`f[${i}][query_2]`] = filter.query_2
     })
     return f
+     */
+
+    const filters = {}
+
+    if (!state.appliedFilters || state.appliedFilters.length === 0) return filters
+    state.appliedFilters.forEach((f, i) => {
+      if (!f.column?.name || !f.operator?.name) return
+      // filters[`filters[${i}][column]`] = f.column.name
+      filters[`f[${i}][column]`] = f.column.name
+      // filters[`filters[${i}][operator]`] = f.operator.name
+      filters[`f[${i}][operator]`] = f.operator.name
+
+      if (f.query_1 !== undefined && f.query_1 !== null) {
+        // filters[`filters[${i}][query_1]`] = f.query_1
+        filters[`f[${i}][query_1]`] = f.query_1
+      }
+      if (f.query_2 !== undefined && f.query_2 !== null) {
+        // filters[`filters[${i}][query_2]`] = f.query_2
+        filters[`f[${i}][query_2]`] = f.query_2
+      }
+    })
+    return filters
   },
 }
