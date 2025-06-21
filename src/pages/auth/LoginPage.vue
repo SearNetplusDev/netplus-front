@@ -60,7 +60,7 @@ const login = async () => {
             <!--            <p class="app-subtitle">Sistema de administración</p>-->
           </div>
 
-          <q-form @submit="login">
+          <q-form greedy @submit="login">
             <div class="form-section">
               <q-input
                 v-model="email"

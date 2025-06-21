@@ -8,7 +8,7 @@ const hasChildren = computed(() => props.item.children && props.item.children.le
 </script>
 
 <template>
-  <q-item v-if="!hasChildren" clickable :to="item.url || '#'">
+  <q-item v-if="!hasChildren" clickable v-ripple :to="item.url || '#'" active-class="text-amber">
     <q-item-section avatar>
       <q-icon :name="item.icon" />
     </q-item-section>

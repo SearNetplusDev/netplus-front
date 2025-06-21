@@ -15,7 +15,6 @@ const props = defineProps({
 })
 const url = 'api/v1/administracion/usuarios/'
 const isPwd = ref(true)
-// const errors = ref([])
 const passwordRules = computed(() => [
   (val) => {
     if (props.id === 0) {
