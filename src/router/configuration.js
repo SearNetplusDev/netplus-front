@@ -1,17 +1,20 @@
-import MainLayout from 'layouts/MainLayout.vue'
-import IndexPage from 'pages/configuration/menu/IndexPage.vue'
-
 const configuration = [
   {
     path: '/configuracion',
-    component: MainLayout,
+    component: () => import('layouts/MainLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {
         path: 'menu',
         name: 'configuracion.menu',
-        component: IndexPage,
+        component: () => import('pages/configuration/menu/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Configuración > Menú' },
+      },
+      {
+        path: 'geografia/paises',
+        name: 'configuracion.geografia.paises',
+        component: () => import('pages/configuration/geography/countries/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Configuración > Geografía > Países' },
       },
     ],
   },
