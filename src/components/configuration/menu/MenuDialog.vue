@@ -61,7 +61,7 @@ const fields = reactive({
     label: 'Orden',
     type: 'text',
     rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
+      (val) => !!val || 'Campo requerido',
       (val) => /\d{1,2}/.test(val) || 'Solo se admiten números',
     ],
   },
