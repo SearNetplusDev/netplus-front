@@ -13,56 +13,31 @@ const { showNotification } = useNotifications()
 const props = defineProps({
   id: Number,
 })
-const url = 'api/v1/configuration/geography/countries/'
+const url = 'api/v1/configuration/geography/states/'
 const fields = reactive({
-  esName: {
+  name: {
     data: '',
     error: false,
     'error-message': '',
-    label: 'Nombre en español',
+    label: 'Nombre',
     type: 'text',
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
-  enName: {
+  code: {
     data: '',
     error: false,
     'error-message': '',
-    label: 'Nombre en inglés',
+    label: 'Código',
     type: 'text',
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
-  iso2: {
+  iso: {
     data: '',
     error: false,
     'error-message': '',
-    label: 'Formato ISO 2',
+    label: 'Formato ISO',
     type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^[A-Z]{2}/.test(val) || 'Formato Incorrecto',
-    ],
-  },
-  iso3: {
-    data: '',
-    error: false,
-    'error-message': '',
-    label: 'Formato ISO 3',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^[A-Z]{3}/.test(val) || 'Formato Incorrecto',
-    ],
-  },
-  prefix: {
-    data: '',
-    error: false,
-    'error-message': '',
-    label: 'Prefijo telefónico',
-    type: 'text',
-    rules: [
-      (val) => !!val || 'Campo requerido',
-      (val) => /^\d{1,4}$/.test(val) || 'Formato Incorrecto',
-    ],
+    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
   status: {
     data: false,
@@ -80,14 +55,12 @@ const getData = () => {
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let itm = res.data.country
-      fields.esName.data = itm.es_name
-      fields.enName.data = itm.en_name
-      fields.iso2.data = itm.iso_2
-      fields.iso3.data = itm.iso_3
-      fields.prefix.data = itm.phone_prefix
+      let itm = res.data.state
+      fields.name.data = itm.name
+      fields.code.data = itm.code
+      fields.iso.data = itm.iso_code
       fields.status.data = itm.status_id
-      title.value = `Editar datos del país ${itm.es_name}`
+      title.value = `Editar datos del departamento: ${itm.name}`
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -107,11 +80,9 @@ const sendData = () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  params.append('esName', fields.esName.data)
-  params.append('enName', fields.enName.data)
-  params.append('iso2', fields.iso2.data)
-  params.append('iso3', fields.iso3.data)
-  params.append('prefix', fields.prefix.data)
+  params.append('name', fields.name.data)
+  params.append('code', fields.code.data)
+  params.append('iso', fields.iso.data)
   params.append('status', status)
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
@@ -140,7 +111,7 @@ onMounted(() => {
   if (props.id > 0) {
     getData()
   } else {
-    title.value = 'Registrar nuevo país'
+    title.value = 'Registrar nuevo departamento'
   }
 })
 </script>

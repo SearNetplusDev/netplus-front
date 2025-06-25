@@ -16,6 +16,12 @@ const configuration = [
         component: () => import('pages/configuration/geography/countries/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Configuración > Geografía > Países' },
       },
+      {
+        path: 'geografia/departamentos',
+        name: 'configuracion.geografia.departamentos',
+        component: () => import('pages/configuration/geography/states/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Configuración > Geografía > Departamentos' },
+      },
     ],
   },
 ]
