@@ -4,6 +4,7 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
@@ -13,7 +14,7 @@ const { showNotification } = useNotifications()
 const props = defineProps({
   id: Number,
 })
-const url = 'api/v1/configuration/geography/states/'
+const url = 'api/v1/configuration/geography/municipalities/'
 const fields = reactive({
   name: {
     data: '',
@@ -31,13 +32,14 @@ const fields = reactive({
     type: 'text',
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
-  iso: {
+  state: {
     data: '',
     error: false,
     'error-message': '',
-    label: 'Formato ISO',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
+    label: 'Departamento',
+    type: 'select',
+    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
+    options: '',
   },
   status: {
     data: false,
@@ -45,6 +47,9 @@ const fields = reactive({
     'error-message': '',
     type: 'toggle',
   },
+})
+const external = reactive({
+  states: [],
 })
 const getData = () => {
   showLoading()
@@ -55,12 +60,8 @@ const getData = () => {
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let itm = res.data.state
-      fields.name.data = itm.name
-      fields.code.data = itm.code
-      fields.iso.data = itm.iso_code
-      fields.status.data = itm.status_id
-      title.value = `Editar datos del departamento: ${itm.name}`
+      let itm = (res.data.fields.name.data = itm.name)
+      title.value = `Editar datos del  ${itm.name}`
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -81,8 +82,6 @@ const sendData = () => {
   showLoading()
   resetFieldErrors(fields)
   params.append('name', fields.name.data)
-  params.append('code', fields.code.data)
-  params.append('iso', fields.iso.data)
   params.append('status', status)
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
@@ -107,12 +106,13 @@ const sendData = () => {
       }, 1000)
     })
 }
-onMounted(() => {
+onMounted(async () => {
   if (props.id > 0) {
     getData()
   } else {
-    title.value = 'Registrar nuevo departamento'
+    title.value = 'Registrar nuevo Municipio'
   }
+  external.states = await getSupportData('/api/v1/general/states')
 })
 </script>
 
@@ -153,7 +153,7 @@ onMounted(() => {
                     </template>
                     <q-breadcrumbs-el label="Configuración" icon="mdi-cog-outline" />
                     <q-breadcrumbs-el label="Geografía" icon="mdi-google-maps" />
-                    <q-breadcrumbs-el label="Departamentos" icon="mdi-longitude" />
+                    <q-breadcrumbs-el label="Municipios" icon="mdi-map-marker-radius" />
                   </q-breadcrumbs>
                 </div>
               </div>
@@ -183,6 +183,30 @@ onMounted(() => {
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
+                    />
+                  </div>
+
+                  <div v-if="field.type === 'select'">
+                    <q-select
+                      v-model="field.data"
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="flip-up"
+                      transition-hide="flip-down"
+                      lazy-rules
+                      v-if="!loading"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :options="external.parents"
+                      :option-value="(opt) => opt"
+                      :option-label="(opt) => opt.name"
                     />
                   </div>
 
