@@ -15,6 +15,7 @@ const filter = {
       filters: [
         { title: 'ID', name: 'id', type: 'numeric' },
         { title: 'Nombre', name: 'name', type: 'string' },
+        { title: 'Código', name: 'code', type: 'string' },
       ],
     },
   ],

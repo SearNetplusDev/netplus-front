@@ -60,7 +60,11 @@ const getData = () => {
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let itm = (res.data.fields.name.data = itm.name)
+      let itm = res.data.municipality
+      fields.name.data = itm.name
+      fields.code.data = itm.code
+      fields.state.data = itm.state_id
+      fields.status.data = itm.status_id
       title.value = `Editar datos del  ${itm.name}`
     })
     .catch((err) => {
@@ -82,6 +86,8 @@ const sendData = () => {
   showLoading()
   resetFieldErrors(fields)
   params.append('name', fields.name.data)
+  params.append('code', fields.code.data)
+  params.append('state', fields.state.data)
   params.append('status', status)
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
@@ -204,8 +210,8 @@ onMounted(async () => {
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
-                      :options="external.parents"
-                      :option-value="(opt) => opt"
+                      :options="external.states"
+                      :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
                     />
                   </div>

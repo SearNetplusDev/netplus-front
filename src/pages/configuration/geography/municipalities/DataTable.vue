@@ -24,8 +24,8 @@ const columns = [
     options: [],
     align: 'left',
   },
-  { name: 'name', label: 'Nombre', align: 'left' },
   { name: 'code', label: 'Código', align: 'left' },
+  { name: 'name', label: 'Nombre', align: 'left' },
   {
     name: 'state',
     label: 'Departamento',
@@ -102,16 +102,6 @@ watch(showForm, (newVal) => {
             />
           </q-td>
 
-          <!--    Name    -->
-          <q-td
-            key="name"
-            class="text-left copy-text"
-            :props="props"
-            @click="copy(props.row?.name)"
-          >
-            {{ props.row?.name }}
-          </q-td>
-
           <!--    Code    -->
           <q-td
             key="code"
@@ -122,14 +112,24 @@ watch(showForm, (newVal) => {
             {{ props.row?.code }}
           </q-td>
 
+          <!--    Name    -->
+          <q-td
+            key="name"
+            class="text-left copy-text"
+            :props="props"
+            @click="copy(props.row?.name)"
+          >
+            {{ props.row?.name }}
+          </q-td>
+
           <!--    State   -->
           <q-td
             key="state"
             class="text-left copy-text"
             :props="props"
-            @click="copy(props.row?.state)"
+            @click="copy(props.row?.state?.name)"
           >
-            {{ props.row?.state }}
+            {{ props.row?.state?.name }}
           </q-td>
 
           <!--    Actions    -->
