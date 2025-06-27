@@ -6,7 +6,7 @@ import { useNotifications } from 'src/utils/notification.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
-import DistrictDialog from 'components/configuration/districts/DistrictDialog.vue'
+import DistrictDialog from 'components/configuration/geography/districts/DistrictDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { showNotification } = useNotifications()

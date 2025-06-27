@@ -4,6 +4,7 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
@@ -23,12 +24,32 @@ const fields = reactive({
     type: 'text',
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
+  state: {
+    data: '',
+    error: false,
+    'error-message': '',
+    label: 'Departamento',
+    type: 'select',
+    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
+  },
+  municipality: {
+    data: '',
+    error: false,
+    'error-message': '',
+    label: 'Municipio',
+    type: 'select',
+    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
+  },
   status: {
     data: false,
     error: false,
     'error-message': '',
     type: 'toggle',
   },
+})
+const external = reactive({
+  states: [],
+  municipalities: [],
 })
 const getData = () => {
   showLoading()
@@ -39,8 +60,13 @@ const getData = () => {
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let itm = (res.data.fields.name.data = itm.name)
-      title.value = `Editar datos del  ${itm.name}`
+      let itm = res.data.district
+      fields.name.data = itm.name
+      fields.municipality.data = itm.municipality_id
+      fields.state.data = itm.state_id
+      fields.status.data = itm.status_id
+      title.value = `Editar datos del distrito:  ${itm.name}`
+      if (itm) changeState(false)
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -61,6 +87,8 @@ const sendData = () => {
   showLoading()
   resetFieldErrors(fields)
   params.append('name', fields.name.data)
+  params.append('municipality', fields.municipality.data)
+  params.append('state', fields.state.data)
   params.append('status', status)
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
@@ -85,11 +113,32 @@ const sendData = () => {
       }, 1000)
     })
 }
-onMounted(() => {
+const getOptions = (key) => {
+  return (
+    {
+      state: external.states,
+      municipality: external.municipalities,
+    }[key] || []
+  )
+}
+
+const changeState = async (reload) => {
+  if (fields.state.data === undefined) return
+  if (fields.state.data === null) return
+  if (reload) fields.municipality.data = { id: 0, name: '' }
+  external.municipalities = await getSupportData(
+    `api/v1/general/state/${fields.state.data}/municipalities`,
+  )
+}
+
+onMounted(async () => {
+  external.states = await getSupportData('/api/v1/general/states')
+  external.municipalities = await getSupportData('/api/v1/general/municipalities')
+
   if (props.id > 0) {
     getData()
   } else {
-    title.value = 'Registrar nuevo país'
+    title.value = 'Registrar nuevo distrito'
   }
 })
 </script>
@@ -161,6 +210,31 @@ onMounted(() => {
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
+                    />
+                  </div>
+
+                  <div v-if="field.type === 'select'">
+                    <q-select
+                      v-model="field.data"
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="flip-up"
+                      transition-hide="flip-down"
+                      lazy-rules
+                      v-if="!loading"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :options="getOptions(index)"
+                      :option-value="(opt) => opt.id"
+                      :option-label="(opt) => opt.name"
+                      @update:model-value="index === 'state' ? changeState(true) : undefined"
                     />
                   </div>
 
