@@ -28,6 +28,12 @@ const configuration = [
         component: () => import('pages/configuration/geography/municipalities/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Configuración > Geografía > Municipios' },
       },
+      {
+        path: 'geografia/distritos',
+        name: 'configuracion.geografia.distritos',
+        component: () => import('pages/configuration/geography/districts/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Configuración > Geografía > Distritos' },
+      },
     ],
   },
 ]
