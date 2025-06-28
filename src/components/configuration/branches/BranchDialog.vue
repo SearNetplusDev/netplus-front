@@ -4,6 +4,7 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
@@ -102,6 +103,12 @@ const fields = reactive({
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
 })
+const external = reactive({
+  countries: [],
+  states: [],
+  municipalities: [],
+  districts: [],
+})
 const getData = () => {
   showLoading()
   loading.value = true
@@ -113,6 +120,15 @@ const getData = () => {
     .then((res) => {
       let itm = res.data.branch
       fields.name.data = itm.name
+      fields.code.data = itm.code
+      fields.landline.data = itm.landline
+      fields.mobile.data = itm.mobile
+      fields.state.data = itm.state_id
+      fields.municipality.data = itm.municipality_id
+      fields.district.data = itm.district_id
+      fields.country.data = itm.country_id
+      fields.badge.data = itm.badge_color
+      fields.address.data = itm.address
       fields.status.data = itm.status_id
       title.value = `Editar datos de la sucursal: ${itm.name}`
     })
@@ -159,7 +175,23 @@ const sendData = () => {
       }, 1000)
     })
 }
-onMounted(() => {
+
+const getOptions = (key) => {
+  return (
+    {
+      state: external.states,
+      municipality: external.municipalities,
+      district: external.districts,
+      country: external.countries,
+    }[key] || []
+  )
+}
+onMounted(async () => {
+  external.states = await getSupportData('/api/v1/general/states')
+  external.municipalities = await getSupportData('/api/v1/general/municipalities')
+  external.districts = await getSupportData('/api/v1/general/districts')
+  external.countries = await getSupportData('/api/v1/general/countries')
+
   if (props.id > 0) {
     getData()
   } else {
@@ -255,6 +287,9 @@ onMounted(() => {
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
+                      :options="getOptions(index)"
+                      :option-value="(opt) => opt.id"
+                      :option-label="(opt) => opt.name"
                     />
                   </div>
 
@@ -272,6 +307,17 @@ onMounted(() => {
                     />
                   </div>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
+                </div>
+
+                <div class="col-12">
+                  <q-input
+                    v-model="fields.address.data"
+                    outlined
+                    dark
+                    dense
+                    type="textarea"
+                    label="Dirección"
+                  />
                 </div>
               </div>
             </q-card-section>
