@@ -11,6 +11,12 @@ const configuration = [
         meta: { requiresAuth: true, title: 'Configuración > Menú' },
       },
       {
+        path: 'sucursales',
+        name: 'configuracion.sucursales',
+        component: () => import('pages/configuration/branches/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Configuración > Sucursales' },
+      },
+      {
         path: 'geografia/paises',
         name: 'configuracion.geografia.paises',
         component: () => import('pages/configuration/geography/countries/IndexPage.vue'),

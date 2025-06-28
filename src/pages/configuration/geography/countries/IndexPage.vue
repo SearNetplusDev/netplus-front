@@ -10,7 +10,7 @@ const filter = {
   orderables: [{ title: 'ID', name: 'id' }],
   filterGroups: [
     {
-      name: 'Información del país',
+      name: 'Criterio de búsqueda',
       opened: true,
       filters: [
         { title: 'ID', name: 'id', type: 'numeric' },
