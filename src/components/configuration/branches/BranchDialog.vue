@@ -49,7 +49,7 @@ const fields = reactive({
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
   state: {
-    data: '',
+    data: null,
     error: false,
     'error-message': '',
     label: 'Departamento',
@@ -57,7 +57,7 @@ const fields = reactive({
     rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
   },
   municipality: {
-    data: '',
+    data: null,
     error: false,
     'error-message': '',
     label: 'Municipio',
@@ -65,7 +65,7 @@ const fields = reactive({
     rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
   },
   district: {
-    data: '',
+    data: null,
     error: false,
     'error-message': '',
     label: 'Distrito',
@@ -73,7 +73,7 @@ const fields = reactive({
     rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
   },
   country: {
-    data: '',
+    data: null,
     error: false,
     'error-message': '',
     label: 'País',
@@ -131,6 +131,10 @@ const getData = () => {
       fields.address.data = itm.address
       fields.status.data = itm.status_id
       title.value = `Editar datos de la sucursal: ${itm.name}`
+      if (itm) {
+        onStateChange(false)
+        onMunicipalityChange(false)
+      }
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -151,6 +155,15 @@ const sendData = () => {
   showLoading()
   resetFieldErrors(fields)
   params.append('name', fields.name.data)
+  params.append('code', fields.code.data)
+  params.append('landline', fields.landline.data)
+  params.append('mobile', fields.mobile.data)
+  params.append('address', fields.address.data)
+  params.append('state', fields.state.data)
+  params.append('municipality', fields.municipality.data)
+  params.append('district', fields.district.data)
+  params.append('country', fields.country.data)
+  params.append('badge', fields.badge.data)
   params.append('status', status)
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
@@ -186,11 +199,93 @@ const getOptions = (key) => {
     }[key] || []
   )
 }
+const onSelectChange = (name, value) => {
+  switch (name) {
+    case 'state':
+      handleStateChange(value)
+      break
+    case 'municipality':
+      handleMunicipalityChange(value)
+      break
+    case 'district':
+      handleDistrictChange(value)
+      break
+    case 'country':
+      handleCountryChange(value)
+      break
+  }
+}
+
+// Función simplificada para manejar el cambio de estado
+const handleStateChange = (val) => {
+  console.log(`Departamento seleccionado: ${val}`)
+  fields.state.data = val
+  onStateChange(true)
+}
+
+// Función simplificada para manejar el cambio de municipio
+const handleMunicipalityChange = (val) => {
+  console.log(`Municipio seleccionado: ${val}`)
+  fields.municipality.data = val
+  onMunicipalityChange(true)
+}
+
+// Función simplificada para manejar el cambio de distrito
+const handleDistrictChange = (val) => {
+  console.log(`Distrito seleccionado: ${val}`)
+  fields.district.data = val
+}
+
+// Función simplificada para manejar el cambio de país
+const handleCountryChange = (val) => {
+  console.log(`País seleccionado: ${val}`)
+  fields.country.data = val
+}
+
+const onStateChange = async (reload) => {
+  if (!fields.state.data) return
+
+  if (reload) {
+    // Resetear a null en lugar de objetos
+    fields.municipality.data = null
+    fields.district.data = null
+    external.municipalities = []
+    external.districts = []
+  }
+
+  try {
+    external.municipalities = await getSupportData(
+      `api/v1/general/state/${fields.state.data}/municipalities`,
+    )
+  } catch (error) {
+    console.error('Error cargando municipios:', error)
+    showNotification('Error', 'Error al cargar municipios', 'red-10')
+  }
+}
+
+const onMunicipalityChange = async (reload) => {
+  // Condiciones simplificadas
+  if (!fields.municipality.data) return
+
+  if (reload) {
+    // Resetear a null
+    fields.district.data = null
+    external.districts = []
+  }
+
+  try {
+    external.districts = await getSupportData(
+      `api/v1/general/municipality/${fields.municipality.data}/districts`,
+    )
+  } catch (error) {
+    console.error('Error cargando distritos:', error)
+    showNotification('Error', 'Error al cargar distritos', 'red-10')
+  }
+}
+
 onMounted(async () => {
-  external.states = await getSupportData('/api/v1/general/states')
-  external.municipalities = await getSupportData('/api/v1/general/municipalities')
-  external.districts = await getSupportData('/api/v1/general/districts')
   external.countries = await getSupportData('/api/v1/general/countries')
+  external.states = await getSupportData('/api/v1/general/states')
 
   if (props.id > 0) {
     getData()
@@ -250,8 +345,8 @@ onMounted(async () => {
               <div class="row wrap full-width justify-start items-start content-start">
                 <div
                   class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-md"
-                  v-for="(field, index) in fields"
-                  :key="index"
+                  v-for="(field, name) in fields"
+                  :key="name"
                 >
                   <div v-if="field.type === 'text'">
                     <q-input
@@ -287,9 +382,10 @@ onMounted(async () => {
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
-                      :options="getOptions(index)"
+                      :options="getOptions(name)"
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
+                      @update:model-value="onSelectChange(name, $event)"
                     />
                   </div>
 
@@ -317,7 +413,11 @@ onMounted(async () => {
                     dense
                     type="textarea"
                     label="Dirección"
+                    v-if="!loading"
+                    :error="fields.status.error"
+                    :error-message="fields.status['error-message']"
                   />
+                  <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </div>
               </div>
             </q-card-section>
