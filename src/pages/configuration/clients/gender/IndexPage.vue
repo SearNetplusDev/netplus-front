@@ -1,11 +1,11 @@
 <script setup>
 import BasePage from 'pages/baseComponents/BasePage.vue'
 import BaseFilters from 'pages/baseComponents/BaseFilters.vue'
-import DataTable from 'pages/configuration/clients/sex/DataTable.vue'
+import DataTable from 'pages/configuration/clients/gender/DataTable.vue'
 
 const filter = {
   title: 'Filtrar',
-  url: '',
+  url: '/configuration/clients/genders/',
   nuevo: '/',
   orderables: [{ title: 'ID', name: 'id' }],
   filterGroups: [

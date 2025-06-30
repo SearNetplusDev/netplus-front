@@ -6,7 +6,7 @@ import { useNotifications } from 'src/utils/notification.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
-import SexDialog from 'components/configuration/clients/SexDialog.vue'
+import GenderDialog from 'components/configuration/clients/GenderDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { showNotification } = useNotifications()
@@ -38,7 +38,7 @@ const showDeleteDialog = (id, name) => {
     title: 'Eliminar sexo',
     message: `¿Deseas eliminar el sexo ${name} de los registros?`,
     id: id,
-    url: '/api/v1//',
+    url: '/api/v1/configuration/genders/',
   }
 }
 const resetShowDeleteItem = () => {
@@ -72,7 +72,7 @@ watch(showForm, (newVal) => {
     </template>
 
     <template v-if="showForm !== 0">
-      <BaseDialog :id="currentItem" :content="SexDialog" />
+      <BaseDialog :id="currentItem" :content="GenderDialog" />
     </template>
 
     <BaseDataTable :columns="columns">
@@ -87,7 +87,7 @@ watch(showForm, (newVal) => {
           <q-td key="status" :props="props">
             <q-badge
               :color="props.row?.status_id ? 'primary' : 'red-10'"
-              :label="props.row?.status_id ? 'Activo' : 'Inactivo'"
+              :label="props.row?.status?.name"
               class="text-center text-weight-bold q-py-xs"
             />
           </q-td>

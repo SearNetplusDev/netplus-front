@@ -13,10 +13,10 @@ const { showNotification } = useNotifications()
 const props = defineProps({
   id: Number,
 })
-const url = 'api/v1//'
+const url = 'api/v1/configuration/clients/genders/'
 const fields = reactive({
   name: {
-    data: '',
+    data: null,
     error: false,
     'error-message': '',
     label: 'Nombre',
@@ -39,8 +39,10 @@ const getData = () => {
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let itm = (res.data.fields.name.data = itm.name)
-      title.value = `Editar datos del  ${itm.name}`
+      let itm = res.data.gender
+      fields.name.data = itm.name
+      fields.status.data = itm.status_id
+      title.value = `Editar datos de la opción: ${itm.name}`
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -89,7 +91,8 @@ onMounted(() => {
   if (props.id > 0) {
     getData()
   } else {
-    title.value = 'Registrar nuevo país'
+    title.value =
+      'Registrar nuevo género (No lo hagas, solo hay 2 los demás son para gente pendeja)'
   }
 })
 </script>
@@ -129,9 +132,9 @@ onMounted(() => {
                     <template v-slot:separator>
                       <q-icon size="1.5em" name="chevron_right" color="white" />
                     </template>
-                    <q-breadcrumbs-el label="Configuración" icon="mdi-cog-outline" />
-                    <q-breadcrumbs-el label="Geografía" icon="mdi-google-maps" />
-                    <q-breadcrumbs-el label="Países" icon="mdi-earth" />
+                    <q-breadcrumbs-el label="Configuración" icon="mdi-cog" />
+                    <q-breadcrumbs-el label="Clientes" icon="engineering" />
+                    <q-breadcrumbs-el label="Géneros" icon="mdi-gender-male-female" />
                   </q-breadcrumbs>
                 </div>
               </div>

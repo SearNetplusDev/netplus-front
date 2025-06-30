@@ -3,6 +3,7 @@
     <q-header reveal class="bg-primary">
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+        <q-toolbar-title>{{ route.meta.title }}</q-toolbar-title>
 
         <q-space />
 
@@ -78,11 +79,13 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from 'stores/auth.js'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
+import { useRoute } from 'vue-router'
 import LogoutDialog from 'pages/auth/LogoutDialog.vue'
 import MenuComponent from 'components/menu/MenuComponent.vue'
 
 const auth = useAuthStore()
 const useDataViewer = useDataviewerStore()
+const route = useRoute()
 const version = ref('1.0.0')
 const today = new Date()
 const currentYear = ref(today.getFullYear())

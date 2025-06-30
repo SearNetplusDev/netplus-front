@@ -22,15 +22,16 @@ const filter = {
 }
 </script>
 
+<style scoped></style>
+
 <template>
   <BasePage>
     <template v-slot:filter>
       <BaseFilters sort-by="id" :filter="filter" />
     </template>
+
     <template v-slot:data-table>
       <DataTable />
     </template>
   </BasePage>
 </template>
-
-<style scoped></style>
