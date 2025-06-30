@@ -40,6 +40,18 @@ const configuration = [
         component: () => import('pages/configuration/geography/districts/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Configuración > Geografía > Distritos' },
       },
+      {
+        path: 'clientes/documentos',
+        name: 'configuracion.clientes.documentos',
+        component: () => import('pages/configuration/clients/documents/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Configuración > Clientes > Documentos' },
+      },
+      {
+        path: 'clientes/sexo',
+        name: 'configuracion.clientes.sexo',
+        component: () => import('pages/configuration/clients/sex/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Configuración > Clientes > Sexo' },
+      },
     ],
   },
 ]
