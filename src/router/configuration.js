@@ -52,6 +52,12 @@ const configuration = [
         component: () => import('pages/configuration/clients/gender/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Configuración > Clientes > Género' },
       },
+      {
+        path: 'clientes/estado-marital',
+        name: 'configuracion.clientes.estado-marital',
+        component: () => import('pages/configuration/clients/marital_status/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Estado Marital' },
+      },
     ],
   },
 ]

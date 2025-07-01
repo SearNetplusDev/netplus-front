@@ -4,7 +4,6 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
-import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
@@ -14,56 +13,15 @@ const { showNotification } = useNotifications()
 const props = defineProps({
   id: Number,
 })
-const url = 'api/v1/configuration/menu/'
+const url = 'api/v1/configuration/clients/marital/'
 const fields = reactive({
   name: {
-    data: '',
+    data: null,
     error: false,
     'error-message': '',
     label: 'Nombre',
     type: 'text',
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  uri: {
-    data: '',
-    error: false,
-    'error-message': '',
-    label: 'URL',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^\/[a-zA-Z/-]+$|^#$/.test(val) || 'Formato incorrecto de url',
-    ],
-  },
-  icon: {
-    data: '',
-    error: false,
-    'error-message': '',
-    label: 'Ícono',
-    type: 'text',
-    rules: [
-      (val) => !!val || 'Campo requerido',
-      (val) => /^[a-z_-]+$/.test(val) || 'Formato incorrecto',
-    ],
-  },
-  parent: {
-    data: '',
-    error: false,
-    'error-message': '',
-    label: 'Padre',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  order: {
-    data: '',
-    error: false,
-    'error-message': '',
-    label: 'Orden',
-    type: 'text',
-    rules: [
-      (val) => !!val || 'Campo requerido',
-      (val) => /\d{1,2}/.test(val) || 'Solo se admiten números',
-    ],
   },
   status: {
     data: false,
@@ -72,26 +30,19 @@ const fields = reactive({
     type: 'toggle',
   },
 })
-const external = reactive({
-  parents: [],
-})
 const getData = () => {
   showLoading()
   loading.value = true
-  title.value = 'Obteniendo datos, espera un momento...'
+  title.value = 'Obteniedo datos, espera un momento...'
   let data = new FormData()
   data.append('id', props.id)
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let itm = res.data.response
+      let itm = res.data.marital_status
       fields.name.data = itm.name
-      fields.uri.data = itm.url
-      fields.icon.data = itm.icon
-      fields.parent.data = itm.parent_id
-      fields.order.data = itm.order
       fields.status.data = itm.status_id
-      title.value = `Editar elemento ${itm.name}`
+      title.value = `Editar datos del estado: ${itm.name}`
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -105,20 +56,17 @@ const getData = () => {
 }
 const sendData = () => {
   let request = ''
-  let status = fields.status.data === true ? 1 : 0
+  let status = fields.status.data ? 1 : 0
   let params = new FormData()
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
   params.append('name', fields.name.data)
-  params.append('url', fields.uri.data)
-  params.append('icon', fields.icon.data)
-  params.append('parent', fields.parent.data)
-  params.append('order', fields.order.data)
   params.append('status', status)
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
+
   api
     .post(request, params)
     .then((res) => {
@@ -139,13 +87,12 @@ const sendData = () => {
       }, 1000)
     })
 }
-onMounted(async () => {
+onMounted(() => {
   if (props.id > 0) {
     getData()
   } else {
-    title.value = 'Registrar nuevo elemento para el menú'
+    title.value = 'Registrar estado marital'
   }
-  external.parents = await getSupportData('/api/v1/configuration/menu/parents')
 })
 </script>
 
@@ -171,7 +118,7 @@ onMounted(async () => {
         </q-toolbar>
       </q-header>
 
-      <footer-component />
+      <FooterComponent />
 
       <q-page-container>
         <q-page class="q-pa-md bg-dark">
@@ -184,8 +131,9 @@ onMounted(async () => {
                     <template v-slot:separator>
                       <q-icon size="1.5em" name="chevron_right" color="white" />
                     </template>
-                    <q-breadcrumbs-el label="Configuración" icon="mdi-cog-outline" />
-                    <q-breadcrumbs-el label="Menú" icon="mdi-menu-open" />
+                    <q-breadcrumbs-el label="Configuración" icon="mdi-cog" />
+                    <q-breadcrumbs-el label="Clientes" icon="engineering" />
+                    <q-breadcrumbs-el label="Estados Maritales" icon="mdi-dance-ballroom" />
                   </q-breadcrumbs>
                 </div>
               </div>
@@ -218,30 +166,6 @@ onMounted(async () => {
                     />
                   </div>
 
-                  <div v-if="field.type === 'select'">
-                    <q-select
-                      v-model="field.data"
-                      dense
-                      dark
-                      outlined
-                      clearable
-                      color="white"
-                      emit-value
-                      map-options
-                      transition-show="flip-up"
-                      transition-hide="flip-down"
-                      lazy-rules
-                      v-if="!loading"
-                      :label="field.label"
-                      :rules="field.rules"
-                      :error="field.error"
-                      :error-message="field['error-message']"
-                      :options="external.parents"
-                      :option-value="(opt) => opt.id"
-                      :option-label="(opt) => opt.name"
-                    />
-                  </div>
-
                   <div v-if="field.type === 'toggle'">
                     <q-toggle
                       v-model="fields.status.data"
@@ -256,11 +180,6 @@ onMounted(async () => {
                     />
                   </div>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
-                </div>
-
-                <div class="q-pa-md content-center">
-                  <q-icon size="3em" :name="fields.icon.data" class="text-white" />
-                  <span class="text-subtitle2 text-grey q-mx-sm">Icon Preview</span>
                 </div>
               </div>
             </q-card-section>
