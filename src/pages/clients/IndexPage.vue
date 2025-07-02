@@ -5,7 +5,7 @@ import DataTable from 'pages/clients/DataTable.vue'
 
 const filter = {
   title: 'Filtro',
-  url: '/clientes/',
+  url: '/clients/',
   nuevo: '/',
   orderables: [{ title: 'ID', name: 'id' }],
   filterGroups: [
