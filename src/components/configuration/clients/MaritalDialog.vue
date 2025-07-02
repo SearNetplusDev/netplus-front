@@ -39,7 +39,7 @@ const getData = () => {
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let itm = res.data.marital_status
+      let itm = res.data.status
       fields.name.data = itm.name
       fields.status.data = itm.status_id
       title.value = `Editar datos del estado: ${itm.name}`

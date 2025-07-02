@@ -39,7 +39,7 @@ const getData = () => {
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let itm = res.data.client_type
+      let itm = res.data.type
       fields.name.data = itm.name
       fields.status.data = itm.status_id
       title.value = `Editar datos del tipo: ${itm.name}`
