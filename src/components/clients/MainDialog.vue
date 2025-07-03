@@ -2,6 +2,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import GeneralData from 'components/clients/data/general/GeneralData.vue'
+import PersonalDocuments from 'components/clients/data/general/documents/PersonalDocuments.vue'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const $q = useQuasar()
@@ -20,20 +21,20 @@ const menuList = reactive([
   },
   {
     id: 2,
-    icon: 'mdi-account-cash',
-    label: 'Datos de Facturación',
-    state: false,
-  },
-  {
-    id: 3,
     icon: 'mdi-card-account-details',
     label: 'Documentos Personales',
     state: false,
   },
   {
-    id: 4,
+    id: 3,
     icon: 'mdi-card-account-phone',
     label: 'Telefónos',
+    state: false,
+  },
+  {
+    id: 4,
+    icon: 'mdi-map-marker-account',
+    label: 'Direcciones',
     state: false,
   },
   {
@@ -44,8 +45,8 @@ const menuList = reactive([
   },
   {
     id: 6,
-    icon: 'mdi-map-marker-account',
-    label: 'Direcciones',
+    icon: 'mdi-account-cash',
+    label: 'Datos de Facturación',
     state: false,
   },
   {
@@ -128,11 +129,13 @@ onMounted(() => {
           <q-card-section v-if="menuList[0].state === true">
             <GeneralData :client="id" @loadDrawer="handleRegister" />
           </q-card-section>
-          <q-card-section v-if="menuList[1].state === true">Facturación</q-card-section>
-          <q-card-section v-if="menuList[2].state === true">Documentos Personales</q-card-section>
-          <q-card-section v-if="menuList[3].state === true">Telefonos</q-card-section>
-          <q-card-section v-if="menuList[4].state === true">Correos electronicos</q-card-section>
-          <q-card-section v-if="menuList[5].state === true">Direcciones</q-card-section>
+          <q-card-section v-if="menuList[1].state === true">
+            <PersonalDocuments :client="id" />
+          </q-card-section>
+          <q-card-section v-if="menuList[2].state === true">Phones</q-card-section>
+          <q-card-section v-if="menuList[3].state === true">Address</q-card-section>
+          <q-card-section v-if="menuList[4].state === true">Emails</q-card-section>
+          <q-card-section v-if="menuList[5].state === true">Billing</q-card-section>
           <q-card-section v-if="menuList[6].state === true">Contratos</q-card-section>
           <q-card-section v-if="menuList[7].state === true">Referencias</q-card-section>
         </q-card>

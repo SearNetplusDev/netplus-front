@@ -35,7 +35,15 @@ const columns = [
     options: [],
     align: 'left',
   },
-  { name: 'branch', label: 'Sucursal', align: 'left' },
+  {
+    name: 'branch',
+    label: 'Sucursal',
+    filterable: true,
+    model: [],
+    filterURL: '/api/v1/general/branches',
+    options: [],
+    align: 'left',
+  },
   { name: 'actions', label: '', align: 'center' },
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)

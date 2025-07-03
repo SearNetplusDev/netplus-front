@@ -219,13 +219,13 @@ const sendData = () => {
     })
 }
 onMounted(async () => {
+  if (props.client > 0) getData()
   external.gender = await getSupportData('/api/v1/general/genders')
   external.marital = await getSupportData('/api/v1/general/marital')
   external.branch = await getSupportData('/api/v1/general/branches')
   external.type = await getSupportData('/api/v1/general/client/types')
   external.country = await getSupportData('/api/v1/general/countries')
   external.document = await getSupportData('/api/v1/general/billing/documents')
-  if (props.client > 0) getData()
 })
 </script>
 
