@@ -193,9 +193,9 @@ const sendData = () => {
   params.append('document', fields.document.data)
   params.append('entity', entity)
   params.append('status', status)
-  params.append('comments', fields.comments.data)
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  props.id > 0 ? (request = `${url}${props.client}`) : (request = url)
+  params.append('comment', fields.comments.data)
+  props.client > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
+  props.client > 0 ? (request = `${url}${props.client}`) : (request = url)
 
   api
     .post(request, params)

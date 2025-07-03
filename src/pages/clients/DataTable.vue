@@ -26,6 +26,15 @@ const columns = [
   },
   { name: 'name', label: 'Nombres', align: 'left' },
   { name: 'surname', label: 'Apellidos', align: 'left' },
+  {
+    name: 'type',
+    label: 'Tipo de cliente',
+    filterable: true,
+    model: [],
+    filterURL: '/api/v1/general/client/types',
+    options: [],
+    align: 'left',
+  },
   { name: 'branch', label: 'Sucursal', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ]
@@ -101,7 +110,7 @@ watch(showForm, (newVal) => {
             :props="props"
             @click="copy(props.row?.name)"
           >
-            {{ props.row?.names }}
+            {{ props.row?.name }}
           </q-td>
 
           <!--    Surnames     -->
@@ -112,6 +121,11 @@ watch(showForm, (newVal) => {
             @click="copy(props.row?.surname)"
           >
             {{ props.row?.surname }}
+          </q-td>
+
+          <!--    Client Type     -->
+          <q-td key="type" class="text-left copy-text" :props="props">
+            {{ props.row?.client_type?.name }}
           </q-td>
 
           <!--    Branch     -->
