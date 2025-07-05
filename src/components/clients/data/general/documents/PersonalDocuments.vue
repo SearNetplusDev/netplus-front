@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { api } from 'boot/axios.js'
 import { useLoading } from 'src/utils/loader.js'
 import DocumentForm from 'components/clients/data/general/documents/DocumentForm.vue'
+import { copyToClipboard } from 'quasar'
+import { useNotifications } from 'src/utils/notification.js'
 
 const { showLoading, hideLoading } = useLoading()
 const props = defineProps({
@@ -23,17 +25,29 @@ const columns = [
   {
     name: 'type',
     label: 'Tipo de documento',
-    align: 'left',
+    align: 'center',
+    // field: (row) => row.document_type?.name,
   },
   {
     name: 'number',
     label: 'Número',
-    align: 'left',
+    align: 'center',
   },
   { name: 'actions', label: '', align: 'center' },
 ]
 const documents = ref([])
 const isVisible = ref(false)
+const currentDocument = ref(0)
+const { showNotification } = useNotifications()
+const copy = (txt) => {
+  copyToClipboard(txt)
+    .then(() => {
+      showNotification('Elemento copiado', `${txt} agregado al portapapeles`, 'blue-grey-10')
+    })
+    .catch((err) => {
+      showNotification('Error', err, 'red-10')
+    })
+}
 const getDocuments = () => {
   showLoading()
   let data = new FormData()
@@ -49,12 +63,17 @@ const getDocuments = () => {
     .finally(() => {
       setTimeout(() => {
         hideLoading()
-      }, 1000)
+      }, 100)
     })
 }
 const refreshComponent = () => {
   isVisible.value = false
+  currentDocument.value = 0
   getDocuments()
+}
+const edit = (id) => {
+  isVisible.value = true
+  currentDocument.value = id
 }
 onMounted(() => {
   getDocuments()
@@ -93,16 +112,75 @@ onMounted(() => {
           dark
           flat
           binary-state-sort
-          class="custom-table"
+          class="secondary-table"
           :rows="documents"
           :columns="columns"
           row-key="name"
-        />
+        >
+          <template v-slot:body-cell-id="props">
+            <q-td key="id" :props="props" class="copy-text">
+              <div class="text-center">
+                <div @click="copy(props.row?.id)">
+                  {{ props.row?.id }}
+                </div>
+              </div>
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-status="props">
+            <q-td key="status" :props="props">
+              <div class="text-center">
+                <q-badge
+                  align="middle"
+                  class="text-bold"
+                  :color="props.row.status?.id ? 'primary' : 'red-10'"
+                  :label="props.row.status?.name"
+                />
+              </div>
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-type="props">
+            <q-td key="type" :props="props">
+              <q-badge
+                align="middle"
+                class="text-bold"
+                color="indigo"
+                :label="props.row.document_type?.name"
+              />
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-number="props">
+            <q-td key="number" :props="props" class="copy-text">
+              <div @click="copy(props.row?.number)">
+                {{ props.row?.number }}
+              </div>
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-actions="props">
+            <q-td key="actions" :props="props">
+              <q-btn-group>
+                <q-btn color="primary" icon="edit" size="sm" @click="edit(props.row?.id)">
+                  <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-9">
+                    Editar info. de {{ props.row?.number }}
+                  </q-tooltip>
+                </q-btn>
+              </q-btn-group>
+            </q-td>
+          </template>
+        </q-table>
       </div>
     </div>
 
     <template v-if="isVisible">
-      <DocumentForm :client="props.client" :visible="isVisible" @hide="refreshComponent" />
+      <DocumentForm
+        :client="props.client"
+        :visible="isVisible"
+        :documentID="currentDocument"
+        @hide="refreshComponent"
+      />
     </template>
   </div>
 </template>

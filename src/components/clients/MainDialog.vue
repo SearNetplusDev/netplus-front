@@ -98,7 +98,7 @@ onMounted(() => {
       show-if-above
       :width="300"
       :breakpoint="600"
-      :class="$q.dark.isActive ? 'bg-blue-grey-10' : 'bg-grey-3'"
+      :class="$q.dark.isActive ? 'custom-secondary-drawer' : 'bg-grey-3'"
       v-if="id > 0"
     >
       <q-scroll-area class="fit">

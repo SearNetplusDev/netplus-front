@@ -1,13 +1,67 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { api } from 'boot/axios.js'
+import { useNotifications } from 'src/utils/notification.js'
+import { useLoading } from 'src/utils/loader.js'
+import { getSupportData } from 'src/utils/composables/getData.js'
+import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
 import LocaleEs from 'src/utils/composables/localeEs.js'
 
+const { showNotification } = useNotifications()
+const { showLoading, hideLoading } = useLoading()
 const props = defineProps({
   client: Number,
   visible: Boolean,
+  documentID: Number,
 })
 const isVisible = ref(props.visible)
 const loading = ref(false)
+const title = ref('')
+const url = '/api/v1/clients/documents/'
+const validationPatterns = {
+  1: {
+    pattern: /^\d{7}$/,
+    message: 'Formato de Carnet de residente incorrecto',
+    placeholder: '0000000',
+  },
+  2: {
+    pattern: /^[A-Z][0-9]{7,8}$/,
+    message: 'Formato de pasaporte inválido',
+    placeholder: 'A0000000 ó A00000000',
+  },
+  3: {
+    pattern: /^\d{8}-\d$/,
+    message: 'Formato de DUI no válido',
+    placeholder: '00000000-0',
+  },
+  4: {
+    pattern: /^\d{8}-\d$|^\d{4}-\d{6}-\d{3}-\d$/,
+    message: 'Formato de NIT incorrecto',
+    placeholder: '0000-000000-000-0 ó 00000000-6',
+  },
+  5: {
+    pattern: '',
+    message: '',
+    placeholder: '',
+  },
+}
+const numberRules = computed(() => {
+  const baseRules = [(val) => (val && val.length > 0) || 'Campo requerido']
+  const selectedType = fields.type.data
+
+  if (selectedType && validationPatterns[selectedType]) {
+    const pattern = validationPatterns[selectedType]
+    baseRules.push((val) => pattern.pattern.test(val) || pattern.message)
+  }
+  return baseRules
+})
+const numberPlaceHolder = computed(() => {
+  const selectedType = fields.type.data
+  if (selectedType && validationPatterns[selectedType]) {
+    return validationPatterns[selectedType].placeholder
+  }
+  return 'Número de documento'
+})
 const fields = reactive({
   type: {
     data: null,
@@ -23,7 +77,7 @@ const fields = reactive({
     'error-message': '',
     label: 'Número del documento',
     type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
+    rules: numberRules,
   },
   expiration: {
     data: null,
@@ -43,115 +97,195 @@ const fields = reactive({
 })
 const documents = ref([])
 const locale = LocaleEs
+const onTypeChange = () => {
+  fields.number.data = null
+  fields.number.error = false
+  fields.number['error-message'] = ''
+}
+const getDocumentData = () => {
+  showLoading()
+  loading.value = true
+  let data = new FormData()
+  data.append('clientID', props.client)
+  data.append('documentID', props.documentID)
+  api
+    .post(`${url}edit`, data)
+    .then((res) => {
+      let itm = res.data.document
+      fields.type.data = itm.document_type_id
+      fields.number.data = itm.number
+      fields.expiration.data = itm.expiration_date
+      fields.status.data = itm.status_id
+      title.value = `Editar datos del ${itm?.document_type?.name} ${itm.number}`
+    })
+    .catch((err) => {
+      showNotification('Error', err, 'red-10')
+    })
+    .finally(() => {
+      setTimeout(() => {
+        hideLoading()
+        loading.value = false
+      }, 500)
+    })
+}
+const sendData = () => {
+  loading.value = true
+  showLoading()
+  resetFieldErrors(fields)
+  let status = fields.status.data ? 1 : 0
+  let params = new FormData()
+  params.append('client', props.client)
+  params.append('type', fields.type.data)
+  params.append('number', fields.number.data)
+  params.append('expiration', fields.expiration.data)
+  params.append('status', status)
+  props.documentID > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
+  let request = props.documentID > 0 ? `${url}${props.documentID}` : url
+  api
+    .post(request, params)
+    .then((res) => {
+      isVisible.value = false
+      if (res.data.saved) {
+        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      } else {
+        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
+      }
+    })
+    .catch((err) => {
+      handleSubmissionError(err, fields)
+      showNotification('Error', err, 'red-10')
+    })
+    .finally(() => {
+      setTimeout(() => {
+        loading.value = false
+        hideLoading()
+      }, 500)
+    })
+}
+onMounted(async () => {
+  if (props.documentID > 0) getDocumentData()
+  title.value = 'Registrar documento'
+  documents.value = await getSupportData('/api/v1/general/client/documents')
+})
 </script>
 
 <template>
-  <q-dialog v-model="isVisible" persistent transition-show="scale" transition-hide="fade-out">
-    <q-card dark flat style="width: 700px; max-width: 80vh">
+  <q-dialog
+    v-model="isVisible"
+    persistent
+    transition-show="scale"
+    transition-hide="fade-out"
+    backdrop-filter="blur(4px) saturate(150%)"
+  >
+    <q-card dark flat style="width: 700px; max-width: 80vh" class="custom-cards">
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6 text-white">Almacenar / Actualizar</div>
+        <div class="text-h6 text-white">{{ title }}</div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
       <q-card-section>
-        <div class="row content-start items-start q-pa-sm fit">
-          <div
-            class="col-xs-12 col-sm-12 col-md-6 col-lg-6 q-pa-md"
-            v-for="(field, index) in fields"
-            :key="index"
-          >
-            <div v-if="field.type === 'text'">
-              <q-input
-                dense
-                dark
-                outlined
-                clearable
-                lazy-rules
-                v-model="field.data"
-                v-if="!loading"
-                :rules="field.rules"
-                :label="field.label"
-                :error="field.error"
-                :error-message="field['error-message']"
-              />
-            </div>
-            <div v-if="field.type === 'select'">
-              <q-select
-                v-model="field.data"
-                dense
-                dark
-                outlined
-                clearable
-                color="white"
-                emit-value
-                map-options
-                transition-show="flip-up"
-                transition-hide="flip-down"
-                lazy-rules
-                v-if="!loading"
-                :label="field.label"
-                :rules="field.rules"
-                :error="field.error"
-                :error-message="field['error-message']"
-                :options="documents"
-                :option-value="(opt) => opt.id"
-                :option-label="(opt) => opt.name"
-              />
-            </div>
+        <q-form greedy @submit="sendData">
+          <div class="row content-start items-start q-pa-sm fit">
+            <div
+              class="col-xs-12 col-sm-12 col-md-6 col-lg-6 q-pa-md"
+              v-for="(field, index) in fields"
+              :key="index"
+            >
+              <div v-if="field.type === 'text'">
+                <q-input
+                  dense
+                  dark
+                  outlined
+                  clearable
+                  lazy-rules
+                  v-model="field.data"
+                  v-if="!loading"
+                  :rules="field.rules"
+                  :label="field.label"
+                  :error="field.error"
+                  :error-message="field['error-message']"
+                  :placeholder="index === 'number' ? numberPlaceHolder : undefined"
+                />
+              </div>
+              <div v-if="field.type === 'select'">
+                <q-select
+                  v-model="field.data"
+                  dense
+                  dark
+                  outlined
+                  clearable
+                  color="white"
+                  emit-value
+                  map-options
+                  transition-show="flip-up"
+                  transition-hide="flip-down"
+                  lazy-rules
+                  v-if="!loading"
+                  :label="field.label"
+                  :rules="field.rules"
+                  :error="field.error"
+                  :error-message="field['error-message']"
+                  :options="documents"
+                  :option-value="(opt) => opt.id"
+                  :option-label="(opt) => opt.name"
+                  @update:model-value="index === 'type' ? onTypeChange() : null"
+                />
+              </div>
 
-            <div v-if="field.type === 'date'">
-              <q-input
-                dark
-                dense
-                outlined
-                v-model="field.data"
-                v-if="!loading"
-                :rules="field.rules"
-                :label="field.label"
-                :error="field.error"
-                :error-message="field['error-message']"
-              >
-                <template v-slot:append>
-                  <q-icon name="event" class="cursor-pointer">
-                    <q-popup-proxy cover transiton-show="scale" transition-hide="scale">
-                      <q-date
-                        v-model="field.data"
-                        mask="YYYY-MM-DD"
-                        :locale="locale"
-                        color="blue-10"
-                      >
-                        <div class="row items-center justify-end">
-                          <q-btn v-close-popup label="Cerrar" color="white" flat />
-                        </div>
-                      </q-date>
-                    </q-popup-proxy>
-                  </q-icon>
-                </template>
-              </q-input>
-            </div>
+              <div v-if="field.type === 'date'">
+                <q-input
+                  dark
+                  dense
+                  outlined
+                  v-model="field.data"
+                  v-if="!loading"
+                  :rules="field.rules"
+                  :label="field.label"
+                  :error="field.error"
+                  :error-message="field['error-message']"
+                >
+                  <template v-slot:append>
+                    <q-icon name="event" class="cursor-pointer">
+                      <q-popup-proxy cover transiton-show="scale" transition-hide="scale">
+                        <q-date
+                          v-model="field.data"
+                          mask="YYYY-MM-DD"
+                          :locale="locale"
+                          color="blue-10"
+                        >
+                          <div class="row items-center justify-end">
+                            <q-btn v-close-popup label="Cerrar" color="white" flat />
+                          </div>
+                        </q-date>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
+              </div>
 
-            <div v-if="field.type === 'toggle'">
-              <q-toggle
-                v-model="field.data"
-                :label="field.label"
-                checked-icon="check"
-                unchecked-icon="clear"
-                size="lg"
-                color="primary"
-                v-if="!loading"
-                :error="fields.status.error"
-                :error-message="fields.status['error-message']"
-              />
-            </div>
+              <div v-if="field.type === 'toggle'">
+                <q-toggle
+                  v-model="field.data"
+                  :label="field.label"
+                  checked-icon="check"
+                  unchecked-icon="clear"
+                  size="lg"
+                  color="primary"
+                  v-if="!loading"
+                  :error="fields.status.error"
+                  :error-message="fields.status['error-message']"
+                />
+              </div>
 
-            <q-skeleton v-if="loading" class="q-my-xs" dark animation="fade" type="QInput" />
+              <q-skeleton v-if="loading" class="q-my-xs" dark animation="fade" type="QInput" />
+            </div>
           </div>
-        </div>
+          <div class="row content-end justify-end">
+            <q-btn flat label="Cancelar" v-close-popup />
+            <q-btn flat label="Almacenar" type="submit" />
+          </div>
+        </q-form>
       </q-card-section>
-      <q-card-actions align="right">
-        <q-btn flat label="cancelar" v-close-popup />
-        <q-btn flat label="ejecutar" v-close-popup />
-      </q-card-actions>
     </q-card>
   </q-dialog>
 </template>

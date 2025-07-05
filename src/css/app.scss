@@ -39,6 +39,21 @@
   .q-table tbody tr:hover {
     background-color: $custom-table-hover-color;
   }
+
+  thead tr th {
+    position: sticky;
+    z-index: 1;
+  }
+
+  thead tr:first-child th {
+    top: 0;
+  }
+
+  th:last-child, td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+  }
 }
 
 .copy-text {
@@ -61,3 +76,35 @@
   * separators: bg-grey-7
 */
 
+/*
+  CSS Para tabla secundaria
+*/
+.secondary-table {
+  background: $raisin-dark-1;
+
+  .q-table__top, .q-table__bottom, thead tr:first-child th {
+    background: $raisin-dark-base;
+  }
+
+  thead tr th {
+    position: sticky;
+    z-index: 1;
+  }
+
+  thead tr:first-child th {
+    top: 0;
+  }
+
+  th:last-child, td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+  }
+}
+
+/*
+  Custom Secondary Drawer
+*/
+.custom-secondary-drawer {
+  background: $raisin-dark-base;
+}
