@@ -3,6 +3,7 @@ import { reactive, ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import GeneralData from 'components/clients/data/general/GeneralData.vue'
 import PersonalDocuments from 'components/clients/data/general/documents/PersonalDocuments.vue'
+import PhonesDataTable from 'components/clients/data/general/phones/PhonesDataTable.vue'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const $q = useQuasar()
@@ -132,7 +133,9 @@ onMounted(() => {
           <q-card-section v-if="menuList[1].state === true">
             <PersonalDocuments :client="id" />
           </q-card-section>
-          <q-card-section v-if="menuList[2].state === true">Phones</q-card-section>
+          <q-card-section v-if="menuList[2].state === true">
+            <PhonesDataTable :client="id" />
+          </q-card-section>
           <q-card-section v-if="menuList[3].state === true">Address</q-card-section>
           <q-card-section v-if="menuList[4].state === true">Emails</q-card-section>
           <q-card-section v-if="menuList[5].state === true">Billing</q-card-section>

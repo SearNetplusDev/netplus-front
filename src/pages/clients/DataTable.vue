@@ -27,6 +27,7 @@ const columns = [
   { name: 'name', label: 'Nombres', align: 'left' },
   { name: 'surname', label: 'Apellidos', align: 'left' },
   { name: 'document', label: 'DUI', align: 'left' },
+  { name: 'mobile', label: 'Teléfono', align: 'left' },
   {
     name: 'type',
     label: 'Tipo de cliente',
@@ -135,6 +136,11 @@ watch(showForm, (newVal) => {
           <!--    DUI   -->
           <q-td key="document" class="text-left copy-text" @click="copy(props.row?.dui?.number)">
             {{ props.row?.dui?.number }}
+          </q-td>
+
+          <!--    Mobile   -->
+          <q-td key="mobile" class="text-left copy-text" @click="copy(props.row?.mobile?.number)">
+            {{ props.row?.mobile?.number }}
           </q-td>
 
           <!--    Client Type     -->
