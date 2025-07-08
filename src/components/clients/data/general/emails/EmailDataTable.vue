@@ -4,7 +4,7 @@ import { api } from 'boot/axios.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import { useNotifications } from 'src/utils/notification.js'
-import PhonesForm from 'components/clients/data/general/phones/PhonesForm.vue'
+import EmailForm from 'components/clients/data/general/emails/EmailForm.vue'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
@@ -12,7 +12,7 @@ const { copy } = useClipboard()
 const props = defineProps({
   client: Number,
 })
-const url = '/api/v1/clients/phones/data'
+const url = '/api/v1/clients/emails/data'
 const columns = [
   {
     name: 'id',
@@ -25,32 +25,29 @@ const columns = [
     align: 'center',
   },
   {
-    name: 'type',
-    label: 'Tipo de teléfono',
+    name: 'email',
+    label: 'Correo',
     align: 'center',
   },
   {
-    name: 'number',
-    label: 'Número',
+    name: 'actions',
+    label: '',
     align: 'center',
   },
-  { name: 'actions', label: '', align: 'center' },
 ]
-const phones = ref([])
+const emailList = ref([])
 const isVisible = ref(false)
-const currentNumber = ref(0)
-
-const getPhones = () => {
+const currentMail = ref(0)
+const getMails = () => {
   showLoading()
   let data = new FormData()
   data.append('clientID', props.client)
   api
-    .post(`${url}`, data)
+    .post(url, data)
     .then((res) => {
-      phones.value = res.data.response
+      emailList.value = res.data.response
     })
     .catch((err) => {
-      console.error(err)
       showNotification('Error', err, 'red-10')
     })
     .finally(() => {
@@ -61,15 +58,15 @@ const getPhones = () => {
 }
 const refreshComponent = () => {
   isVisible.value = false
-  currentNumber.value = 0
-  getPhones()
+  currentMail.value = 0
+  getMails()
 }
 const edit = (id) => {
   isVisible.value = true
-  currentNumber.value = id
+  currentMail.value = id
 }
 onMounted(() => {
-  getPhones()
+  getMails()
 })
 </script>
 
@@ -81,7 +78,7 @@ onMounted(() => {
           <q-icon size="1.5em" name="chevron_right" color="white" />
         </template>
         <q-breadcrumbs-el label="Clientes" icon="mdi-account" />
-        <q-breadcrumbs-el label="Teléfonos" icon="mdi-card-account-phone" />
+        <q-breadcrumbs-el label="Correos" icon="mdi-card-account-mail" />
       </q-breadcrumbs>
 
       <q-separator dark class="q-my-md" />
@@ -106,8 +103,8 @@ onMounted(() => {
           flat
           binary-state-sort
           class="secondary-table"
-          :rows="phones"
           :columns="columns"
+          :rows="emailList"
           row-key="name"
         >
           <template v-slot:body-cell-id="props">
@@ -133,21 +130,10 @@ onMounted(() => {
             </q-td>
           </template>
 
-          <template v-slot:body-cell-type="props">
-            <q-td key="type" :props="props">
-              <q-badge
-                align="middle"
-                class="text-bold q-pa-xs"
-                color="indigo"
-                :label="props.row.phone_type?.name"
-              />
-            </q-td>
-          </template>
-
-          <template v-slot:body-cell-number="props">
+          <template v-slot:body-cell-email="props">
             <q-td key="number" :props="props" class="copy-text">
-              <div @click="copy(props.row?.number)">
-                {{ props.row?.number }}
+              <div @click="copy(props.row?.email)">
+                {{ props.row?.email }}
               </div>
             </q-td>
           </template>
@@ -157,7 +143,7 @@ onMounted(() => {
               <q-btn-group>
                 <q-btn color="primary" icon="edit" size="sm" @click="edit(props.row?.id)">
                   <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-9">
-                    Editar info. de {{ props.row?.number }}
+                    Editar info. del correo {{ props.row?.email }}
                   </q-tooltip>
                 </q-btn>
               </q-btn-group>
@@ -166,11 +152,12 @@ onMounted(() => {
         </q-table>
       </div>
     </div>
+
     <template v-if="isVisible">
-      <PhonesForm
+      <EmailForm
         :client="props.client"
         :visible="isVisible"
-        :phoneID="currentNumber"
+        :emailID="currentMail"
         @hide="refreshComponent"
       />
     </template>

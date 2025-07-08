@@ -1,42 +1,32 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { getSupportData } from 'src/utils/composables/getData.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
 
 const props = defineProps({
   client: Number,
   visible: Boolean,
-  phoneID: Number,
+  emailID: Number,
 })
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
 const isVisible = ref(props.visible)
 const loading = ref(false)
 const title = ref('')
-const url = '/api/v1/clients/phones/'
+const url = '/api/v1/clients/emails/'
 const fields = reactive({
-  type: {
+  email: {
     data: null,
     error: false,
     'error-message': '',
-    label: 'Tipo de Teléfono',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  number: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Número de teléfono',
+    label: 'Correo electrónico',
     type: 'text',
     rules: [
       (val) => (val !== null && val !== '') || 'Campo requerido',
-      (val) => /^[267]\d{3}-\d{4}$/.test(val) || 'Formato incorrecto',
+      (val) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val) || 'Formato incorrecto',
     ],
-    mask: '####-####',
   },
   status: {
     data: false,
@@ -46,21 +36,18 @@ const fields = reactive({
     type: 'toggle',
   },
 })
-const types = ref([])
-const getPhoneData = () => {
+const getData = () => {
   showLoading()
   loading.value = true
   let data = new FormData()
-  data.append('clientID', props.client)
-  data.append('phoneID', props.phoneID)
+  data.append('id', props.emailID)
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let item = res.data.phone
-      fields.type.data = item.phone_type_id
-      fields.number.data = item.number
+      let item = res.data.email
+      fields.email.data = item.email
       fields.status.data = item.status_id
-      title.value = `Editar datos del ${item?.phone_type?.name} ${item.number}`
+      title.value = `Editar correo electrónico ${item.email}`
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -79,11 +66,10 @@ const sendData = () => {
   let status = fields.status.data ? 1 : 0
   let params = new FormData()
   params.append('client', props.client)
-  params.append('type', fields.type.data)
-  params.append('number', fields.number.data)
+  params.append('email', fields.email.data)
   params.append('status', status)
-  props.phoneID > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  let request = props.phoneID > 0 ? `${url}${props.phoneID}` : url
+  props.emailID > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
+  let request = props.emailID > 0 ? `${url}${props.emailID}` : url
   api
     .post(request, params)
     .then((res) => {
@@ -105,11 +91,9 @@ const sendData = () => {
       }, 500)
     })
 }
-
-onMounted(async () => {
-  if (props.phoneID > 0) getPhoneData()
-  title.value = 'Registrar teléfono'
-  types.value = await getSupportData('/api/v1/general/client/phones')
+onMounted(() => {
+  if (props.emailID > 0) getData()
+  title.value = 'Registrar correo'
 })
 </script>
 
@@ -117,8 +101,8 @@ onMounted(async () => {
   <q-dialog
     v-model="isVisible"
     persistent
-    transition-show="scale"
-    transition-hide="fade-out"
+    transition-show="flip-up"
+    transition-hide="jump-down"
     backdrop-filter="blur(4px) saturate(150%)"
   >
     <q-card dark flat style="width: 700px; max-width: 80vh" class="custom-cards">
@@ -127,6 +111,7 @@ onMounted(async () => {
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
+
       <q-card-section>
         <q-form greedy @submit="sendData">
           <div class="row content-start items-start q-pa-sm fit">
@@ -149,29 +134,6 @@ onMounted(async () => {
                   :label="field.label"
                   :error="field.error"
                   :error-message="field['error-message']"
-                />
-              </div>
-              <div v-if="field.type === 'select'">
-                <q-select
-                  v-model="field.data"
-                  dense
-                  dark
-                  outlined
-                  clearable
-                  color="white"
-                  emit-value
-                  map-options
-                  transition-show="flip-up"
-                  transition-hide="flip-down"
-                  lazy-rules
-                  v-if="!loading"
-                  :label="field.label"
-                  :rules="field.rules"
-                  :error="field.error"
-                  :error-message="field['error-message']"
-                  :options="types"
-                  :option-value="(opt) => opt.id"
-                  :option-label="(opt) => opt.name"
                 />
               </div>
 
