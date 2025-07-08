@@ -4,6 +4,7 @@ import { useQuasar } from 'quasar'
 import GeneralData from 'components/clients/data/general/GeneralData.vue'
 import PersonalDocuments from 'components/clients/data/general/documents/PersonalDocuments.vue'
 import PhonesDataTable from 'components/clients/data/general/phones/PhonesDataTable.vue'
+import AddressDataTable from 'components/clients/data/general/address/AddressDataTable.vue'
 import EmailDataTable from 'components/clients/data/general/emails/EmailDataTable.vue'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
@@ -137,7 +138,9 @@ onMounted(() => {
           <q-card-section v-if="menuList[2].state === true">
             <PhonesDataTable :client="id" />
           </q-card-section>
-          <q-card-section v-if="menuList[3].state === true">Address</q-card-section>
+          <q-card-section v-if="menuList[3].state === true">
+            <AddressDataTable :client="id" />
+          </q-card-section>
           <q-card-section v-if="menuList[4].state === true">
             <EmailDataTable :client="id" />
           </q-card-section>

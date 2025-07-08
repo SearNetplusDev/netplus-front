@@ -1,15 +1,15 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
-import { date, copyToClipboard } from 'quasar'
-import { useNotifications } from 'src/utils/notification.js'
+import { date } from 'quasar'
+import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
 import UsersDialog from 'components/administracion/users/UsersDialog.vue'
 
 const useDataViewer = useDataviewerStore()
-const { showNotification } = useNotifications()
+const { copy } = useClipboard()
 const currentItem = ref(0)
 const showForm = computed(() => useDataViewer.get_dataViewer.showForm)
 const showDeleteItem = ref(false)
@@ -54,16 +54,6 @@ const showDeleteDialog = (id, name) => {
 const formattedDate = (itm) => {
   return date.formatDate(itm, 'YYYY-MM-DD')
 }
-const copy = (text) => {
-  copyToClipboard(text)
-    .then(() => {
-      showNotification('Elemento copiado', `${text} agregado al portapapeles`, 'blue-grey-10')
-    })
-    .catch((err) => {
-      showNotification('Error', `${err}`, 'red-10')
-    })
-}
-
 const resetShowDeleteItem = () => {
   showDeleteItem.value = false
 }

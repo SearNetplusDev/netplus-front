@@ -170,7 +170,7 @@ const getData = () => {
       setTimeout(() => {
         loading.value = false
         hideLoading()
-      }, 1000)
+      }, 500)
     })
 }
 const sendData = () => {
@@ -215,7 +215,7 @@ const sendData = () => {
       setTimeout(() => {
         loading.value = false
         hideLoading()
-      }, 1000)
+      }, 500)
     })
 }
 onMounted(async () => {

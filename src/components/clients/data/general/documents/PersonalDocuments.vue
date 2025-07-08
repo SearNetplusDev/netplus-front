@@ -3,10 +3,10 @@ import { ref, onMounted } from 'vue'
 import { api } from 'boot/axios.js'
 import { useLoading } from 'src/utils/loader.js'
 import DocumentForm from 'components/clients/data/general/documents/DocumentForm.vue'
-import { copyToClipboard } from 'quasar'
-import { useNotifications } from 'src/utils/notification.js'
+import { useClipboard } from 'src/utils/clipboard.js'
 
 const { showLoading, hideLoading } = useLoading()
+const { copy } = useClipboard()
 const props = defineProps({
   client: Number,
 })
@@ -38,16 +38,7 @@ const columns = [
 const documents = ref([])
 const isVisible = ref(false)
 const currentDocument = ref(0)
-const { showNotification } = useNotifications()
-const copy = (txt) => {
-  copyToClipboard(txt)
-    .then(() => {
-      showNotification('Elemento copiado', `${txt} agregado al portapapeles`, 'blue-grey-10')
-    })
-    .catch((err) => {
-      showNotification('Error', err, 'red-10')
-    })
-}
+
 const getDocuments = () => {
   showLoading()
   let data = new FormData()
