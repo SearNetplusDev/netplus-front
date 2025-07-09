@@ -139,7 +139,7 @@ const getOptions = (key) => {
     }[key] || []
   )
 }
-const emit = defineEmits(['loadDrawer'])
+const emit = defineEmits(['loadDrawer', 'updateTitle'])
 const getData = () => {
   showLoading()
   loading.value = true
@@ -162,6 +162,7 @@ const getData = () => {
       fields.entity.data = itm.legal_entity
       fields.comments.data = itm.comments
       fields.status.data = itm.status_id
+      sendTitle(`${itm.name} ${itm.surname}`)
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -172,6 +173,9 @@ const getData = () => {
         hideLoading()
       }, 500)
     })
+}
+const sendTitle = (name) => {
+  emit('updateTitle', name)
 }
 const sendData = () => {
   let request = ''
@@ -202,7 +206,9 @@ const sendData = () => {
     .then((res) => {
       if (res.data.saved) {
         showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        emit('loadDrawer', res.data.client.id)
+        let itm = res.data.client
+        emit('loadDrawer', itm.id)
+        sendTitle(`${itm.name} ${itm.surname}`)
       } else {
         showNotification('Error', 'Verifica la información ingresada', 'teal-10')
       }

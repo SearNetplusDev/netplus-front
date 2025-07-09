@@ -15,7 +15,7 @@ const props = defineProps({
 })
 const id = ref(props.id)
 const drawer = ref(false)
-const title = ref('Registar Cliente')
+const title = ref('Registrar cliente')
 const menuList = reactive([
   {
     id: 1,
@@ -74,11 +74,13 @@ const setMenu = (itm) => {
 const handleRegister = (regID) => {
   id.value = regID
 }
+const setTitle = (name) => {
+  title.value = `Editar información de: ${name}`
+}
 onMounted(() => {
   menuList[0].state = true
-
   if (props.id > 0) {
-    title.value = 'Editar información'
+    // getName(props.id)
   }
 })
 </script>
@@ -131,7 +133,7 @@ onMounted(() => {
       <q-page padding class="q-pa-md bg-dark">
         <q-card class="custom-cards q-pa-sm" flat>
           <q-card-section v-if="menuList[0].state === true">
-            <GeneralData :client="id" @loadDrawer="handleRegister" />
+            <GeneralData :client="id" @loadDrawer="handleRegister" @updateTitle="setTitle" />
           </q-card-section>
           <q-card-section v-if="menuList[1].state === true">
             <PersonalDocuments :client="id" />
