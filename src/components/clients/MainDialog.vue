@@ -6,6 +6,7 @@ import PersonalDocuments from 'components/clients/data/general/documents/Persona
 import PhonesDataTable from 'components/clients/data/general/phones/PhonesDataTable.vue'
 import AddressDataTable from 'components/clients/data/general/address/AddressDataTable.vue'
 import EmailDataTable from 'components/clients/data/general/emails/EmailDataTable.vue'
+import ReferencesTable from 'components/clients/data/general/references/ReferencesTable.vue'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const $q = useQuasar()
@@ -146,7 +147,9 @@ onMounted(() => {
           </q-card-section>
           <q-card-section v-if="menuList[5].state === true">Billing</q-card-section>
           <q-card-section v-if="menuList[6].state === true">Contratos</q-card-section>
-          <q-card-section v-if="menuList[7].state === true">Referencias</q-card-section>
+          <q-card-section v-if="menuList[7].state === true">
+            <ReferencesTable :client="id" />
+          </q-card-section>
         </q-card>
       </q-page>
     </q-page-container>
