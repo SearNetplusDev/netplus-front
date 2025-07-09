@@ -5,7 +5,7 @@ import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
-import MainDialog from 'components/clients/MainDialog.vue'
+import KinshipDialog from 'components/configuration/clients/KinshipDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -23,46 +23,7 @@ const columns = [
     options: [],
     align: 'left',
   },
-  { name: 'name', label: 'Nombres', align: 'left' },
-  { name: 'surname', label: 'Apellidos', align: 'left' },
-  { name: 'document', label: 'DUI', align: 'left' },
-  { name: 'mobile', label: 'Teléfono', align: 'left' },
-  {
-    name: 'type',
-    label: 'Tipo de cliente',
-    filterable: true,
-    model: [],
-    filterURL: '/api/v1/general/client/types',
-    options: [],
-    align: 'left',
-  },
-  {
-    name: 'branch',
-    label: 'Sucursal',
-    filterable: true,
-    model: [],
-    filterURL: '/api/v1/general/branches',
-    options: [],
-    align: 'left',
-  },
-  {
-    name: 'state',
-    label: 'Departamento',
-    filterable: true,
-    model: [],
-    filterURL: '/api/v1/general/states',
-    options: [],
-    align: 'left',
-  },
-  {
-    name: 'district',
-    label: 'Distrito',
-    filterable: true,
-    model: [],
-    filterURL: '/api/v1/general/districts',
-    options: [],
-    align: 'left',
-  },
+  { name: 'name', label: 'Nombre', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
@@ -73,10 +34,10 @@ const edit = (itm) => {
 const showDeleteDialog = (id, name) => {
   showDeleteItem.value = true
   deleteProps.value = {
-    title: 'Eliminar Cliente',
-    message: `¿Deseas eliminar el cliente ${name} de los registros?`,
+    title: 'Eliminar Parentesto',
+    message: `¿Deseas eliminar el parentesco ${name} de los registros?`,
     id: id,
-    url: '/api/v1/clients/',
+    url: '/api/v1/configuration/clients/kinship/',
   }
 }
 const resetShowDeleteItem = () => {
@@ -101,7 +62,7 @@ watch(showForm, (newVal) => {
     </template>
 
     <template v-if="showForm !== 0">
-      <BaseDialog :id="currentItem" :content="MainDialog" />
+      <BaseDialog :id="currentItem" :content="KinshipDialog" />
     </template>
 
     <BaseDataTable :columns="columns">
@@ -121,7 +82,7 @@ watch(showForm, (newVal) => {
             />
           </q-td>
 
-          <!--    Names    -->
+          <!--    Name    -->
           <q-td
             key="name"
             class="text-left copy-text"
@@ -131,51 +92,11 @@ watch(showForm, (newVal) => {
             {{ props.row?.name }}
           </q-td>
 
-          <!--    Surnames     -->
-          <q-td
-            key="surname"
-            class="text-left copy-text"
-            :props="props"
-            @click="copy(props.row?.surname)"
-          >
-            {{ props.row?.surname }}
-          </q-td>
-
-          <!--    DUI   -->
-          <q-td key="document" class="text-left copy-text" @click="copy(props.row?.dui?.number)">
-            {{ props.row?.dui?.number }}
-          </q-td>
-
-          <!--    Mobile   -->
-          <q-td key="mobile" class="text-left copy-text" @click="copy(props.row?.mobile?.number)">
-            {{ props.row?.mobile?.number }}
-          </q-td>
-
-          <!--    Client Type     -->
-          <q-td key="type" class="text-left copy-text" :props="props">
-            {{ props.row?.client_type?.name }}
-          </q-td>
-
-          <!--    Branch     -->
-          <q-td key="branch" class="text-left copy-text" :props="props">
-            {{ props.row?.branch?.name }}
-          </q-td>
-
-          <!--    State     -->
-          <q-td key="state" class="text-left copy-text" :props="props">
-            {{ props.row?.address?.state?.name }}
-          </q-td>
-
-          <!--    District     -->
-          <q-td key="district" class="text-left copy-text" :props="props">
-            {{ props.row?.address?.district?.name }}
-          </q-td>
-
           <!--    Actions    -->
           <q-td key="actions" :props="props">
             <q-btn-group>
               <q-btn color="primary" icon="edit" size="sm" @click="edit(props.row?.id)">
-                <q-tooltip transition-show="fade" transition-hide="flip-left">
+                <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
                   Editar info. de {{ props.row?.name }}
                 </q-tooltip>
               </q-btn>
@@ -185,7 +106,7 @@ watch(showForm, (newVal) => {
                 size="sm"
                 @click="showDeleteDialog(props.row?.id, props.row?.name)"
               >
-                <q-tooltip transition-show="fade" transition-hide="flip-left">
+                <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
                   Eliminar a {{ props.row?.name }}
                 </q-tooltip>
               </q-btn>

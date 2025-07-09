@@ -70,6 +70,12 @@ const configuration = [
         component: () => import('pages/configuration/clients/phones/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Tipos de Teléfono' },
       },
+      {
+        path: 'clientes/parentescos',
+        name: 'configuracion.clientes.parentescos',
+        component: () => import('pages/configuration/clients/kinship/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Parentescos' },
+      },
     ],
   },
 ]
