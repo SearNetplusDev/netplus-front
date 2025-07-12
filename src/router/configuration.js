@@ -76,6 +76,12 @@ const configuration = [
         component: () => import('pages/configuration/clients/kinship/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Parentescos' },
       },
+      {
+        path: 'clientes/contratos',
+        name: 'configuracion.clientes.contratos',
+        component: () => import('pages/configuration/clients/contracts/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Estados para contratos' },
+      },
     ],
   },
 ]
