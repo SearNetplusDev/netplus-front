@@ -319,10 +319,10 @@ const sendData = () => {
     })
 }
 onMounted(async () => {
+  getData()
   external.activities = await getSupportData('/api/v1/general/billing/activities')
   external.states = await getSupportData('/api/v1/general/states')
   filteredActivities.value = external.activities
-  getData()
 })
 </script>
 

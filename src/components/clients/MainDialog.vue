@@ -8,6 +8,7 @@ import AddressDataTable from 'components/clients/data/general/address/AddressDat
 import EmailDataTable from 'components/clients/data/general/emails/EmailDataTable.vue'
 import ReferencesTable from 'components/clients/data/general/references/ReferencesTable.vue'
 import BillingDataForm from 'components/clients/data/general/billing/BillingDataForm.vue'
+import ContractDataTable from 'components/clients/data/general/contracts/ContractDataTable.vue'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const $q = useQuasar()
@@ -151,7 +152,9 @@ onMounted(() => {
           <q-card-section v-if="menuList[5].state === true">
             <BillingDataForm :client="id" />
           </q-card-section>
-          <q-card-section v-if="menuList[6].state === true">Contratos</q-card-section>
+          <q-card-section v-if="menuList[6].state === true">
+            <ContractDataTable :client="id" />
+          </q-card-section>
           <q-card-section v-if="menuList[7].state === true">
             <ReferencesTable :client="id" />
           </q-card-section>

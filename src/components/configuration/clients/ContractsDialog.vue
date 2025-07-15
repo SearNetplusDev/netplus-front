@@ -23,6 +23,14 @@ const fields = reactive({
     type: 'text',
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
+  badge: {
+    data: null,
+    error: false,
+    'error-message': '',
+    label: 'Color',
+    type: 'text',
+    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
+  },
   status: {
     data: false,
     error: false,
@@ -42,6 +50,7 @@ const getData = () => {
     .then((res) => {
       let itm = res.data.status
       fields.name.data = itm.name
+      fields.badge.data = itm.badge_color
       fields.status.data = itm.status_id
       title.value = `Editar estado de contrato ${itm.name}`
     })
@@ -65,6 +74,7 @@ const sendData = () => {
   resetFieldErrors(fields)
   params.append('name', fields.name.data)
   params.append('status', status)
+  params.append('badge', fields.badge.data)
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
 
