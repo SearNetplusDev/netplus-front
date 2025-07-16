@@ -13,7 +13,7 @@ const { showNotification } = useNotifications()
 const props = defineProps({
   id: Number,
 })
-const url = 'api/v1/administracion/usuarios/'
+const url = 'api/v1/management/users/'
 const isPwd = ref(true)
 const passwordRules = computed(() => [
   (val) => {

@@ -1,5 +1,4 @@
 import MainLayout from 'layouts/MainLayout.vue'
-import UsersIndex from 'pages/management/users/UsersIndex.vue'
 
 const management = [
   {
@@ -10,8 +9,14 @@ const management = [
       {
         path: 'usuarios',
         name: 'administracion.usuarios',
-        component: UsersIndex,
-        meta: { requiresAuth: true, title: 'Administración > Usuarios' },
+        component: () => import('pages/management/users/UsersIndex.vue'),
+        meta: { requiresAuth: true, title: 'Administración de Usuarios' },
+      },
+      {
+        path: 'perfiles/internet',
+        name: 'administracion.perfiles.internet',
+        component: () => import('pages/management/profiles/internet/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Perfiles de internet disponibles' },
       },
     ],
   },

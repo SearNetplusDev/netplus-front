@@ -1,11 +1,11 @@
 <script setup>
 import BasePage from 'pages/baseComponents/BasePage.vue'
 import BaseFilters from 'pages/baseComponents/BaseFilters.vue'
-import DataTable from 'pages/management/users/DataTable.vue'
+import DataTable from './DataTable.vue'
 
 const filter = {
-  title: 'Filtro',
-  url: '/management/users/',
+  title: 'Filtrar',
+  url: '/management/profiles/internet/',
   nuevo: '/',
   orderables: [{ title: 'ID', name: 'id' }],
   filterGroups: [
@@ -15,7 +15,8 @@ const filter = {
       filters: [
         { title: 'ID', name: 'id', type: 'numeric' },
         { title: 'Nombre', name: 'name', type: 'string' },
-        { title: 'Correo', name: 'email', type: 'string' },
+        { title: 'Alias', name: 'alias', type: 'string' },
+        { title: 'Precio', name: 'price', type: 'numeric' },
       ],
     },
   ],
