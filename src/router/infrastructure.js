@@ -10,6 +10,12 @@ const infrastructure = [
         component: () => import('pages/infrastructure/network/auth-server/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Servidores de autenticación' },
       },
+      {
+        path: 'redes/nodos',
+        name: 'infraestructura.redes.nodos',
+        component: () => import('pages/infrastructure/network/nodes/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Nodos' },
+      },
     ],
   },
 ]
