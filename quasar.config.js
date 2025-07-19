@@ -48,7 +48,7 @@ export default defineConfig((ctx) => {
       // publicPath: '/',
       // analyze: true,
       env: {
-        API_URL: ctx.dev ? 'http://192.168.1.78:8080' : 'http://18.212.30.215:8080',
+        API_URL: ctx.dev ? 'http://192.168.1.78:8080' : 'http://3.86.221.226:8080',
       },
       // rawDefine: {}
       // ignorePublicFolder: true,

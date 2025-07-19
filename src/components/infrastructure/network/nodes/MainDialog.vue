@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import GeneralData from 'components/infrastructure/network/nodes/general/GeneralData.vue'
+import ContactDataTable from 'components/infrastructure/network/nodes/contacts/ContactDataTable.vue'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const $q = useQuasar()
@@ -82,7 +83,9 @@ onMounted(() => {
           <q-card-section v-if="menuList[0].state === true">
             <GeneralData :node="id" @loadDrawer="setID" @updateTitle="setTitle" />
           </q-card-section>
-          <q-card-section v-if="menuList[1].state === true"></q-card-section>
+          <q-card-section v-if="menuList[1].state === true">
+            <ContactDataTable :node="id" />
+          </q-card-section>
         </q-card>
       </q-page>
     </q-page-container>

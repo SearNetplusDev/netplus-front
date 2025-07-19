@@ -144,7 +144,7 @@ const getData = () => {
       fields.address.data = item.address
       fields.nc.data = item.nc
       fields.owner.data = item.nc_owner
-      fields.comments.data = item.comments === null ? '' : item.comments
+      fields.comments.data = item.comments === 'null' ? '' : item.comments
       fields.status.data = item.status_id
       if (item) {
         onStateChange(false)
