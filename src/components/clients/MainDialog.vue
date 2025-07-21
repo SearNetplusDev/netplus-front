@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
+import DUIForm from 'components/clients/data/general/DUIForm.vue'
 import GeneralData from 'components/clients/data/general/GeneralData.vue'
 import PersonalDocuments from 'components/clients/data/general/documents/PersonalDocuments.vue'
 import PhonesDataTable from 'components/clients/data/general/phones/PhonesDataTable.vue'
@@ -79,11 +80,11 @@ const handleRegister = (regID) => {
 const setTitle = (name) => {
   title.value = `Editar información de: ${name}`
 }
+const showDUIForm = ref(true)
 onMounted(() => {
   menuList[0].state = true
-  if (props.id > 0) {
-    // getName(props.id)
-  }
+  if (props.id > 0) showDUIForm.value = false
+  // getName(props.id)
 })
 </script>
 
@@ -133,6 +134,10 @@ onMounted(() => {
 
     <q-page-container>
       <q-page padding class="q-pa-md bg-dark">
+        <template v-if="showDUIForm">
+          <DUIForm :visible="showDUIForm" @hideDuiDialog="handleRegister" />
+        </template>
+
         <q-card class="custom-cards q-pa-sm" flat>
           <q-card-section v-if="menuList[0].state === true">
             <GeneralData :client="id" @loadDrawer="handleRegister" @updateTitle="setTitle" />

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { api } from 'boot/axios.js'
 import localeEs from 'src/utils/composables/localeEs.js'
 import { useNotifications } from 'src/utils/notification.js'
@@ -224,8 +224,17 @@ const sendData = () => {
       }, 500)
     })
 }
+//  Observa cambios en la propiedad cliente, de haberlos ejecuta getData
+watch(
+  () => props.client,
+  (newValue, oldValue) => {
+    if (newValue > 0 && newValue !== oldValue) getData()
+  },
+)
 onMounted(async () => {
-  if (props.client > 0) getData()
+  if (props.client > 0) {
+    getData()
+  }
   external.gender = await getSupportData('/api/v1/general/genders')
   external.marital = await getSupportData('/api/v1/general/marital')
   external.branch = await getSupportData('/api/v1/general/branches')
