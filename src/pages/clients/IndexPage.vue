@@ -16,6 +16,7 @@ const filter = {
         { title: 'ID', name: 'id', type: 'numeric' },
         { title: 'Nombres', name: 'name', type: 'string' },
         { title: 'Apellidos', name: 'surname', type: 'string' },
+        { title: 'DUI', name: 'dui.number', type: 'string' },
       ],
     },
   ],

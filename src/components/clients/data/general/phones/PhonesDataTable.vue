@@ -30,6 +30,12 @@ const columns = [
     align: 'center',
   },
   {
+    name: 'country',
+    label: 'País',
+    align: 'center',
+    field: (row) => row?.country?.es_name,
+  },
+  {
     name: 'number',
     label: 'Número',
     align: 'center',

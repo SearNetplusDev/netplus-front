@@ -36,6 +36,12 @@ const columns = [
     align: 'center',
     field: (row) => row.contract_end_date,
   },
+  {
+    name: 'days',
+    label: 'Días Restantes',
+    align: 'center',
+    field: (row) => `${row?.diff_days} días`,
+  },
   { name: 'actions', label: '', align: 'center' },
 ]
 const contracts = ref([])
@@ -178,11 +184,7 @@ onMounted(() => {
     </template>
 
     <template v-if="visiblePDF">
-      <PDFDialog
-        :visible="visiblePDF"
-        :uri="pdfUrl"
-        @hide="refreshPDFComponent"
-      />
+      <PDFDialog :visible="visiblePDF" :uri="pdfUrl" @hide="refreshPDFComponent" />
     </template>
   </div>
 </template>

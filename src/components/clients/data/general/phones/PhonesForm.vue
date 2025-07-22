@@ -5,6 +5,7 @@ import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { parsePhoneNumberFromString } from 'libphonenumber-js'
 
 const props = defineProps({
   client: Number,
@@ -26,6 +27,14 @@ const fields = reactive({
     type: 'select',
     rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
   },
+  country: {
+    data: 'SV',
+    error: false,
+    'error-message': '',
+    label: 'País',
+    type: 'select',
+    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
+  },
   number: {
     data: null,
     error: false,
@@ -34,9 +43,11 @@ const fields = reactive({
     type: 'text',
     rules: [
       (val) => (val !== null && val !== '') || 'Campo requerido',
-      (val) => /^[267]\d{3}-\d{4}$/.test(val) || 'Formato incorrecto',
+      (val) => {
+        const parsed = parsePhoneNumberFromString(val, fields.country.data)
+        return (parsed && parsed.isValid()) || 'Telefóno inválido para el país seleccionado'
+      },
     ],
-    mask: '####-####',
   },
   status: {
     data: false,
@@ -46,7 +57,10 @@ const fields = reactive({
     type: 'toggle',
   },
 })
-const types = ref([])
+const external = reactive({
+  types: [],
+  countries: [],
+})
 const getPhoneData = () => {
   showLoading()
   loading.value = true
@@ -58,6 +72,7 @@ const getPhoneData = () => {
     .then((res) => {
       let item = res.data.phone
       fields.type.data = item.phone_type_id
+      fields.country.data = item.country_code
       fields.number.data = item.number
       fields.status.data = item.status_id
       title.value = `Editar datos del ${item?.phone_type?.name} ${item.number}`
@@ -80,6 +95,7 @@ const sendData = () => {
   let params = new FormData()
   params.append('client', props.client)
   params.append('type', fields.type.data)
+  params.append('country', fields.country.data)
   params.append('number', fields.number.data)
   params.append('status', status)
   props.phoneID > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
@@ -105,11 +121,19 @@ const sendData = () => {
       }, 500)
     })
 }
-
+const getOptions = (key) => {
+  return (
+    {
+      country: external.countries,
+      type: external.types,
+    }[key] || []
+  )
+}
 onMounted(async () => {
   if (props.phoneID > 0) getPhoneData()
   title.value = 'Registrar teléfono'
-  types.value = await getSupportData('/api/v1/general/client/phones')
+  external.types = await getSupportData('/api/v1/general/client/phones')
+  external.countries = await getSupportData('/api/v1/general/countries/phones')
 })
 </script>
 
@@ -169,7 +193,7 @@ onMounted(async () => {
                   :rules="field.rules"
                   :error="field.error"
                   :error-message="field['error-message']"
-                  :options="types"
+                  :options="getOptions(index)"
                   :option-value="(opt) => opt.id"
                   :option-label="(opt) => opt.name"
                 />
