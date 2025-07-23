@@ -82,6 +82,13 @@ const configuration = [
         component: () => import('pages/configuration/clients/contracts/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Estados para contratos' },
       },
+      {
+        path: 'infraestructura/equipos/estados',
+        name: 'configuracion.infraestructura.equipos.estados',
+        component: () =>
+          import('pages/configuration/infrastructure/equipment/status/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Estados para equipos' },
+      },
     ],
   },
 ]
