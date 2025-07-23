@@ -54,7 +54,7 @@ const login = async () => {
 
           <div class="logo-section">
             <div class="logo">
-              <q-icon name="mdi-shield-lock" size="48px" />
+              <q-img src="images/logos/logo_wth.png" spinner-color="white" />
             </div>
             <h1 class="app-title">ISP Manager</h1>
             <!--            <p class="app-subtitle">Sistema de administración</p>-->
@@ -155,7 +155,8 @@ const login = async () => {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+  //background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(90deg, #bc1718 0%, #26326c 65%);
 }
 
 .logo-section {
@@ -164,15 +165,16 @@ const login = async () => {
 }
 
 .logo {
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
-  border-radius: 16px;
+  //width: 64px;
+  //height: 64px;
+  width: 60%;
+  //background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  //border-radius: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
-  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+  //margin-bottom: 16px;
+  //box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
 }
 
 .logo i {

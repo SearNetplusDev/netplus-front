@@ -9,7 +9,7 @@ export const useClipboard = () => {
       position: 'top-right',
       progress: true,
       timeout: 3000,
-      avatar: '/icons/favicon-128x128.png',
+      avatar: '/images/logos/iso_wth.png',
       actions: [{ icon: 'close', color: 'white', round: true }],
     })
   }
