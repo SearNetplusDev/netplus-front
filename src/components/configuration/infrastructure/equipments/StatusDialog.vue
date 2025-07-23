@@ -38,6 +38,14 @@ const fields = reactive({
     type: 'toggle',
     label: 'Estado',
   },
+  description: {
+    data: null,
+    error: false,
+    'error-message': '',
+    label: 'Descripción',
+    type: 'textarea',
+    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
+  },
 })
 const getData = () => {
   showLoading()
@@ -50,6 +58,7 @@ const getData = () => {
     .then((res) => {
       let itm = res.data.status
       fields.name.data = itm.name
+      fields.description.data = itm.description
       fields.color.data = itm.badge_color
       fields.status.data = itm.status_id
       title.value = `Editar datos del estado: ${itm.name}`
@@ -73,6 +82,7 @@ const sendData = () => {
   showLoading()
   resetFieldErrors(fields)
   params.append('name', fields.name.data)
+  params.append('description', fields.description.data)
   params.append('badge', fields.color.data)
   params.append('status', status)
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
@@ -192,6 +202,22 @@ onMounted(() => {
                       :error-message="fields.status['error-message']"
                     />
                   </div>
+                  <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
+                </div>
+
+                <div class="col-xs-12 q-pa-md">
+                  <q-input
+                    v-model="fields.description.data"
+                    dark
+                    dense
+                    outlined
+                    clearable
+                    v-if="!loading"
+                    type="textarea"
+                    :rules="fields.description.rules"
+                    :error="fields.description.error"
+                    :error-message="fields.description['error-message']"
+                  />
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </div>
               </div>
