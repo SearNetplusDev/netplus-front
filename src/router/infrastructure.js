@@ -16,6 +16,12 @@ const infrastructure = [
         component: () => import('pages/infrastructure/network/nodes/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Nodos' },
       },
+      {
+        path: 'equipos/tipos',
+        name: 'infraestructura.equipos.tipos',
+        component: () => import('pages/infrastructure/equipments/types/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Tipos de equipos' },
+      },
     ],
   },
 ]
