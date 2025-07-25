@@ -5,7 +5,7 @@ import DataTable from './DataTable.vue'
 
 const filter = {
   title: 'Filtrar',
-  url: '/infrastructure/equipments/types/',
+  url: '/infrastructure/equipment/models/',
   nuevo: '',
   orderables: [{ title: 'ID', name: 'id' }],
   filterGroups: [

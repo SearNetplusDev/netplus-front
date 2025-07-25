@@ -4,6 +4,7 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
@@ -13,8 +14,24 @@ const { showNotification } = useNotifications()
 const props = defineProps({
   id: Number,
 })
-const url = 'api/v1/infrastructure/equipments/types/'
+const url = 'api/v1/infrastructure/equipment/models/'
 const fields = reactive({
+  type: {
+    data: null,
+    error: false,
+    'error-message': '',
+    label: 'Tipo',
+    type: 'select',
+    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
+  },
+  brand: {
+    data: null,
+    error: false,
+    'error-message': '',
+    label: 'Marca',
+    type: 'select',
+    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
+  },
   name: {
     data: null,
     error: false,
@@ -31,6 +48,18 @@ const fields = reactive({
     label: 'Estado',
   },
 })
+const external = reactive({
+  types: [],
+  brands: [],
+})
+const options = (key) => {
+  return (
+    {
+      type: external.types,
+      brand: external.brands,
+    }[key] || []
+  )
+}
 const getData = () => {
   showLoading()
   loading.value = true
@@ -40,10 +69,12 @@ const getData = () => {
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let itm = res.data.type
+      let itm = res.data.model
       fields.name.data = itm.name
+      fields.type.data = itm.equipment_type_id
+      fields.brand.data = itm.brand_id
       fields.status.data = itm.status_id
-      title.value = `Editar datos del tipo: ${itm.name}`
+      title.value = `Editar datos del modelo: ${itm.name}`
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -63,6 +94,8 @@ const sendData = () => {
   showLoading()
   resetFieldErrors(fields)
   params.append('name', fields.name.data)
+  params.append('type', fields.type.data)
+  params.append('brand', fields.brand.data)
   params.append('status', status)
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   let request = props.id > 0 ? `${url}${props.id}` : url
@@ -72,7 +105,7 @@ const sendData = () => {
     .then((res) => {
       if (res.data.saved) {
         showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        title.value = `Editar información de: ${res.data.type?.name}`
+        title.value = `Editar datos del modelo: ${res.data.model?.name}`
       } else {
         showNotification('Error', 'Verifica la información ingresada', 'teal-10')
       }
@@ -88,12 +121,11 @@ const sendData = () => {
       }, 1000)
     })
 }
-onMounted(() => {
-  if (props.id > 0) {
-    getData()
-  } else {
-    title.value = 'Registrar nuevo país'
-  }
+onMounted(async () => {
+  if (props.id > 0) getData()
+  title.value = 'Registrar nuevo modelo'
+  external.types = await getSupportData('/api/v1/general/infrastructure/types')
+  external.brands = await getSupportData('/api/v1/general/infrastructure/brands')
 })
 </script>
 
@@ -137,7 +169,7 @@ onMounted(() => {
                       icon="mdi-office-building-cog-outline"
                     />
                     <q-breadcrumbs-el label="Equipos" icon="mdi-access-point-network" />
-                    <q-breadcrumbs-el label="Tipos" icon="mdi-format-list-bulleted" />
+                    <q-breadcrumbs-el label="Modelos" icon="mdi-format-list-group" />
                   </q-breadcrumbs>
                 </div>
               </div>
@@ -167,6 +199,30 @@ onMounted(() => {
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
+                    />
+                  </div>
+
+                  <div v-if="field.type === 'select'">
+                    <q-select
+                      v-model="field.data"
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="flip-up"
+                      transition-hide="flip-down"
+                      lazy-rules
+                      v-if="!loading"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :options="options(index)"
+                      :option-value="(opt) => opt.id"
+                      :option-label="(opt) => opt.name"
                     />
                   </div>
 

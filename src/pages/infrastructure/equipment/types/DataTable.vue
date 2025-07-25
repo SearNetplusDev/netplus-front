@@ -5,7 +5,7 @@ import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
-import BrandsFormDialog from 'components/infrastructure/equipments/BrandsFormDialog.vue'
+import TypesFormDialog from 'components/infrastructure/equipment/TypesFormDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -34,10 +34,10 @@ const edit = (itm) => {
 const showDeleteDialog = (id, name) => {
   showDeleteItem.value = true
   deleteProps.value = {
-    title: 'Eliminar Marca',
-    message: `¿Deseas eliminar la marca ${name} de los registros?`,
+    title: 'Eliminar tipo',
+    message: `¿Deseas eliminar el tipo: ${name} de los registros?`,
     id: id,
-    url: '/api/v1/infrastructure/equipments/brands/',
+    url: '/api/v1/infrastructure/equipment/types/',
   }
 }
 const resetShowDeleteItem = () => {
@@ -62,7 +62,7 @@ watch(showForm, (newVal) => {
     </template>
 
     <template v-if="showForm !== 0">
-      <BaseDialog :id="currentItem" :content="BrandsFormDialog" />
+      <BaseDialog :id="currentItem" :content="TypesFormDialog" />
     </template>
 
     <BaseDataTable :columns="columns">

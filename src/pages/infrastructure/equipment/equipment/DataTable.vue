@@ -5,7 +5,7 @@ import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
-import ModelsFormDialog from 'components/infrastructure/equipments/ModelsFormDialog.vue'
+import EquipmentFormDialog from 'components/infrastructure/equipment/EquipmentFormDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -19,13 +19,14 @@ const columns = [
     label: 'Estado',
     filterable: true,
     model: [],
-    filterURL: '/api/v1/general/estados',
+    filterURL: '/api/v1/general/infrastructure/status',
     options: [],
     align: 'left',
   },
+  { name: 'name', label: 'Nombre', align: 'left' },
   {
     name: 'type',
-    label: 'Tipo',
+    label: 'Tipo de equipo',
     filterable: true,
     model: [],
     filterURL: '/api/v1/general/infrastructure/types',
@@ -41,7 +42,25 @@ const columns = [
     options: [],
     align: 'left',
   },
-  { name: 'name', label: 'Nombre del modelo', align: 'left' },
+  {
+    name: 'model',
+    label: 'Modelo',
+    filterable: true,
+    model: [],
+    filterURL: '/api/v1/general/infrastructure/models',
+    options: [],
+    align: 'left',
+  },
+  {
+    name: 'node',
+    label: 'Nodo',
+    filterable: true,
+    model: [],
+    filterURL: '/api/v1/general/infrastructure/nodes',
+    options: [],
+    align: 'left',
+  },
+  { name: 'ip', label: 'Dirección IP', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
@@ -52,10 +71,10 @@ const edit = (itm) => {
 const showDeleteDialog = (id, name) => {
   showDeleteItem.value = true
   deleteProps.value = {
-    title: 'Eliminar Modelo',
-    message: `¿Deseas eliminar el modelo ${name} de los registros?`,
+    title: 'Eliminar',
+    message: `¿Deseas eliminar el equipo ${name} de los registros?`,
     id: id,
-    url: '/api/v1/infrastructure/equipments/models/',
+    url: '/api/v1/infrastructure/equipment/',
   }
 }
 const resetShowDeleteItem = () => {
@@ -80,7 +99,7 @@ watch(showForm, (newVal) => {
     </template>
 
     <template v-if="showForm !== 0">
-      <BaseDialog :id="currentItem" :content="ModelsFormDialog" />
+      <BaseDialog :id="currentItem" :content="EquipmentFormDialog" />
     </template>
 
     <BaseDataTable :columns="columns">
@@ -94,10 +113,15 @@ watch(showForm, (newVal) => {
           <!--    Status    -->
           <q-td key="status" :props="props">
             <q-badge
-              :color="props.row?.status?.id ? 'primary' : 'red-10'"
+              :color="props.row?.status?.color"
               :label="props.row?.status?.name"
               class="text-center text-weight-bold q-py-xs"
             />
+          </q-td>
+
+          <!--    Name    -->
+          <q-td key="name" class="text-left copy-text" :props="props">
+            {{ props.row?.name }}
           </q-td>
 
           <!--    Type     -->
@@ -110,9 +134,24 @@ watch(showForm, (newVal) => {
             {{ props.row?.brand?.name }}
           </q-td>
 
-          <!--    Name    -->
-          <q-td key="name" class="text-left copy-text" :props="props">
-            {{ props.row?.name }}
+          <!--    Model    -->
+          <q-td key="model" class="text-left copy-text" :props="props">
+            {{ props.row?.model?.name }}
+          </q-td>
+
+          <!--    Node    -->
+          <q-td key="node" class="text-left copy-text" :props="props">
+            {{ props.row?.node?.name }}
+          </q-td>
+
+          <!--    IP    -->
+          <q-td
+            key="ip"
+            class="text-left copy-text"
+            :props="props"
+            @click="copy(props.row?.ip_address)"
+          >
+            {{ props.row?.ip_address }}
           </q-td>
 
           <!--    Actions    -->
