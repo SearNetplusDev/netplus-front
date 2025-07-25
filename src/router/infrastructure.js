@@ -28,6 +28,12 @@ const infrastructure = [
         component: () => import('pages/infrastructure/equipments/brands/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Marcas' },
       },
+      {
+        path: 'equipos/modelos',
+        name: 'infraestructura.equipos.modelos',
+        component: () => import('pages/infrastructure/equipments/models/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Modelos' },
+      },
     ],
   },
 ]
