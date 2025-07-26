@@ -45,7 +45,7 @@ const fields = reactive({
     error: false,
     'error-message': '',
     label: 'Modelo',
-    type: 'select',
+    type: 'select-filter',
     rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
   },
   mac: {
@@ -54,7 +54,10 @@ const fields = reactive({
     'error-message': '',
     label: 'Dirección MAC',
     type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
+    rules: [
+      (val) => (val && val.length > 0) || 'Campo requerido',
+      (val) => /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(val) || 'Formato incorrecto.',
+    ],
   },
   ip: {
     data: null,
@@ -62,7 +65,13 @@ const fields = reactive({
     'error-message': '',
     label: 'Dirección IP',
     type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
+    rules: [
+      (val) => (val && val.length > 0) || 'Campo requerido',
+      (val) =>
+        /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
+          val,
+        ) || 'Formato inválido',
+    ],
   },
   username: {
     data: null,
@@ -104,6 +113,7 @@ const fields = reactive({
     type: 'textarea',
   },
 })
+const filteredModels = ref([])
 const external = reactive({
   types: [],
   brands: [],
@@ -116,11 +126,28 @@ const options = (key) => {
     {
       type: external.types,
       brand: external.brands,
-      model: external.models,
       node: external.nodes,
       status: external.status,
     }[key] || []
   )
+}
+const filterModels = (val, update) => {
+  if (val === '') {
+    update(() => {
+      filteredModels.value = external.models
+    })
+    return
+  }
+
+  update(() => {
+    const needle = val.toLowerCase()
+    filteredModels.value = external.models.filter(
+      (model) => model.name.toLowerCase().indexOf(needle) > -1,
+    )
+  })
+}
+const clearModelFilter = () => {
+  filteredModels.value = external.models
 }
 const getData = () => {
   showLoading()
@@ -141,7 +168,7 @@ const getData = () => {
       fields.username.data = itm.username
       fields.secret.data = itm.secret
       fields.node.data = itm.node_id
-      fields.comments.data = itm.comments ?? null
+      fields.comments.data = itm.comments === 'null' ? null : itm.comments
       fields.status.data = itm.status_id
       title.value = `Editar datos del equipo: ${itm.name}`
     })
@@ -204,6 +231,7 @@ onMounted(async () => {
   external.nodes = await getSupportData('/api/v1/general/infrastructure/nodes')
   external.status = await getSupportData('api/v1/general/infrastructure/status')
   external.models = await getSupportData('api/v1/general/infrastructure/models')
+  filteredModels.value = external.models
 })
 </script>
 
@@ -299,6 +327,34 @@ onMounted(async () => {
                       :options="options(index)"
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
+                    />
+                  </div>
+
+                  <div v-if="field.type === 'select-filter'">
+                    <q-select
+                      v-model="field.data"
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="flip-up"
+                      transition-hide="flip-down"
+                      lazy-rules
+                      use-input
+                      input-debounce="0"
+                      v-if="!loading"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :options="filteredModels"
+                      :option-value="(opt) => opt.id"
+                      :option-label="(opt) => opt.name"
+                      @filter="filterModels"
+                      @filter-abort="clearModelFilter"
                     />
                   </div>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
