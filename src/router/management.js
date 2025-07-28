@@ -1,9 +1,7 @@
-import MainLayout from 'layouts/MainLayout.vue'
-
 const management = [
   {
     path: '/administracion',
-    component: MainLayout,
+    component: () => import('layouts/MainLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {
@@ -11,6 +9,12 @@ const management = [
         name: 'administracion.usuarios',
         component: () => import('pages/management/users/UsersIndex.vue'),
         meta: { requiresAuth: true, title: 'Administración de Usuarios' },
+      },
+      {
+        path: '/administracion/roles',
+        name: 'administracion.roles',
+        component: () => import('pages/management/roles/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Roles' },
       },
       {
         path: 'perfiles/internet',
