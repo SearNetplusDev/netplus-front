@@ -27,7 +27,15 @@ const columns = [
   },
   { name: 'name', label: 'Nombre', align: 'left' },
   { name: 'email', label: 'Correo electrónico', align: 'left' },
-  { name: 'role', label: 'Rol', align: 'left' },
+  {
+    name: 'role',
+    label: 'Rol',
+    filterable: true,
+    model: [],
+    filterURL: '/api/v1/general/management/roles',
+    options: [],
+    align: 'left',
+  },
   { name: 'register_date', label: 'Fecha de registro', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ]

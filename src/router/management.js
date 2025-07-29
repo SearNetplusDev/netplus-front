@@ -17,6 +17,12 @@ const management = [
         meta: { requiresAuth: true, title: 'Roles' },
       },
       {
+        path: '/administracion/permisos',
+        name: 'administracion.permisos',
+        component: () => import('pages/management/permissions/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Permisos' },
+      },
+      {
         path: 'perfiles/internet',
         name: 'administracion.perfiles.internet',
         component: () => import('pages/management/profiles/internet/IndexPage.vue'),
