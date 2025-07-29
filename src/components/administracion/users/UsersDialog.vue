@@ -5,6 +5,7 @@ import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { getSupportData } from 'src/utils/composables/getData.js'
 
 const { showLoading, hideLoading } = useLoading()
 const title = ref('')
@@ -39,9 +40,8 @@ const confirmPasswordRules = computed(() => [
   },
 ])
 const fields = reactive({
-  // id: props.id,
   name: {
-    data: '',
+    data: null,
     error: false,
     'error-message': '',
     label: 'Nombre',
@@ -49,7 +49,7 @@ const fields = reactive({
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
   email: {
-    data: '',
+    data: null,
     error: false,
     'error-message': '',
     label: 'Correo electrónico',
@@ -62,7 +62,7 @@ const fields = reactive({
     ],
   },
   password_1: {
-    data: '',
+    data: null,
     error: false,
     'error-message': '',
     label: 'Contraseña',
@@ -70,15 +70,30 @@ const fields = reactive({
     rules: passwordRules,
   },
   password_2: {
-    data: '',
+    data: null,
     error: false,
     'error-message': '',
     label: 'Confirma contraseña',
     type: 'password',
     rules: confirmPasswordRules,
   },
-  status: { data: false, error: false, 'error-message': '', type: 'toggle' },
+  role: {
+    data: null,
+    error: false,
+    'error-message': '',
+    label: 'Rol',
+    type: 'select',
+    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
+  },
+  status: {
+    data: false,
+    error: false,
+    'error-message': '',
+    type: 'toggle',
+    label: 'Estado',
+  },
 })
+const roles = ref([])
 const getData = () => {
   showLoading()
   loading.value = true
@@ -93,6 +108,7 @@ const getData = () => {
       fields.name.data = item.name
       fields.email.data = item.email
       fields.status.data = item.status_id
+      fields.role.data = item.roles[0]?.id
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -109,19 +125,15 @@ const sendData = () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  // const extras = {
-  //   _method: props.id === 0 ? 'POST' : 'PUT',
-  // }
-  // const params = buildFormData(fields, extras)
-  let request = ''
   let status
   fields.status.data === true ? (status = 1) : (status = 0)
   let params = new FormData()
   params.append('name', fields.name.data)
   params.append('email', fields.email.data)
   params.append('status', status)
-  if (fields.password_1.data !== '') params.append('password', fields.password_1.data)
-  props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
+  params.append('role', fields.role.data)
+  if (fields.password_1.data !== null) params.append('password', fields.password_1.data)
+  let request = props.id > 0 ? `${url}${props.id}` : url
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
 
   api
@@ -133,6 +145,7 @@ const sendData = () => {
     .then((res) => {
       if (res.data.saved) {
         showNotification('Exito', 'Registro almacenado', 'blue-grey-10')
+        title.value = `Modificar datos de ${res.data.user?.name}`
       } else {
         showNotification('Error', 'Verifica la información ingresada', 'red-10')
       }
@@ -148,12 +161,10 @@ const sendData = () => {
       }, 1000)
     })
 }
-onMounted(() => {
-  if (props.id > 0) {
-    getData()
-  } else {
-    title.value = 'Registrar nuevo usuario'
-  }
+onMounted(async () => {
+  if (props.id > 0) getData()
+  title.value = 'Registrar nuevo usuario'
+  roles.value = await getSupportData('/api/v1/general/management/roles')
 })
 </script>
 
@@ -249,6 +260,30 @@ onMounted(() => {
                         />
                       </template>
                     </q-input>
+                  </div>
+
+                  <div v-if="field.type === 'select'">
+                    <q-select
+                      v-model="field.data"
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="flip-up"
+                      transition-hide="flip-down"
+                      lazy-rules
+                      v-if="!loading"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :options="roles"
+                      :option-value="(opt) => opt.id"
+                      :option-label="(opt) => opt.name"
+                    />
                   </div>
 
                   <div v-if="field.type === 'toggle'">

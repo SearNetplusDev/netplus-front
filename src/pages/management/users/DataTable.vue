@@ -27,7 +27,7 @@ const columns = [
   },
   { name: 'name', label: 'Nombre', align: 'left' },
   { name: 'email', label: 'Correo electrónico', align: 'left' },
-  // { name: 'role', label: 'Rol', align: 'left' },
+  { name: 'role', label: 'Rol', align: 'left' },
   { name: 'register_date', label: 'Fecha de registro', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ]
@@ -105,6 +105,12 @@ const resetShowDeleteItem = () => {
             {{ props.row?.email }}
           </q-td>
 
+          <!--    Role    -->
+          <q-td key="role" :props="props" class="copy-text">
+            {{ props.row?.roles[0]?.name }}
+          </q-td>
+
+          <!--    Register Date   -->
           <q-td key="register_date" :props="props">
             {{ formattedDate(props.row?.created_at) }}
           </q-td>
