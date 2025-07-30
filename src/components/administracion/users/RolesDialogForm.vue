@@ -97,6 +97,14 @@ const sendData = () => {
       }, 1000)
     })
 }
+
+const selectOrRemove = () => {
+  if (fields.role_permissions.data.length > 0) {
+    fields.role_permissions.data = []
+  } else {
+    fields.role_permissions.data = permissions.value.map((p) => p.value)
+  }
+}
 onMounted(async () => {
   if (props.id > 0) getData()
   title.value = 'Registrar nuevo rol'
@@ -177,17 +185,37 @@ onMounted(async () => {
               </div>
             </q-card-section>
 
+            <!--    Permissions   -->
             <q-card-section>
               <q-card flat class="custom-cards">
-                <q-card-section class="q-header">
-                  <span class="text-white text-subtitle2">Permisos asignados al rol</span>
+                <q-card-section class="q-header row no-wrap items-center">
+                  <div>
+                    <span class="text-white text-subtitle2">Permisos asignados al rol</span>
+                  </div>
+
+                  <q-space />
+
+                  <div>
+                    <q-btn
+                      :label="
+                        fields.role_permissions.data.length > 0
+                          ? 'deseleccionar todos'
+                          : 'seleccionar todos'
+                      "
+                      flat
+                      @click="selectOrRemove"
+                    />
+                  </div>
                 </q-card-section>
                 <q-card-section class="q-pa-md">
                   <q-option-group
+                    v-if="!loading"
                     :options="permissions"
                     type="checkbox"
                     v-model="fields.role_permissions.data"
+                    inline
                   />
+                  <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </q-card-section>
               </q-card>
             </q-card-section>

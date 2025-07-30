@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
@@ -92,8 +92,14 @@ const fields = reactive({
     type: 'toggle',
     label: 'Estado',
   },
+  permissions: {
+    data: [],
+  },
 })
-const roles = ref([])
+const external = reactive({
+  roles: [],
+  permissions: [],
+})
 const getData = () => {
   showLoading()
   loading.value = true
@@ -109,6 +115,7 @@ const getData = () => {
       fields.email.data = item.email
       fields.status.data = item.status_id
       fields.role.data = item.roles[0]?.id
+      fields.permissions.data = res.data?.permissions
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -132,6 +139,9 @@ const sendData = () => {
   params.append('email', fields.email.data)
   params.append('status', status)
   params.append('role', fields.role.data)
+  fields.permissions.data.forEach((perm) => {
+    params.append('permissions[]', perm)
+  })
   if (fields.password_1.data !== null) params.append('password', fields.password_1.data)
   let request = props.id > 0 ? `${url}${props.id}` : url
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
@@ -161,10 +171,41 @@ const sendData = () => {
       }, 1000)
     })
 }
+watch(
+  () => fields.role.data,
+  async (newRoleID) => {
+    if (!newRoleID) {
+      fields.permissions.data = []
+      return
+    }
+
+    try {
+      showLoading()
+      loading.value = true
+      fields.permissions.data = await getSupportData(
+        `/api/v1/general/management/roles/${newRoleID}/permissions`,
+      )
+    } catch (err) {
+      showNotification('Error', err, 'red-10')
+    } finally {
+      hideLoading()
+      loading.value = false
+    }
+  },
+)
+
+const selectOrRemove = () => {
+  if (fields.permissions.data.length > 0) {
+    fields.permissions.data = []
+  } else {
+    fields.permissions.data = external.permissions.map((p) => p.value)
+  }
+}
 onMounted(async () => {
   if (props.id > 0) getData()
   title.value = 'Registrar nuevo usuario'
-  roles.value = await getSupportData('/api/v1/general/management/roles')
+  external.roles = await getSupportData('/api/v1/general/management/roles')
+  external.permissions = await getSupportData('/api/v1/general/management/permissions')
 })
 </script>
 
@@ -280,7 +321,7 @@ onMounted(async () => {
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
-                      :options="roles"
+                      :options="external.roles"
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
                     />
@@ -302,6 +343,41 @@ onMounted(async () => {
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </div>
               </div>
+            </q-card-section>
+
+            <!--    Permissions   -->
+            <q-card-section>
+              <q-card flat class="custom-cards">
+                <q-card-section class="q-header row no-wrap items-center">
+                  <div>
+                    <span class="text-white text-subtitle2">Permisos asignados al usuario</span>
+                  </div>
+
+                  <q-space />
+
+                  <div>
+                    <q-btn
+                      :label="
+                        fields.permissions.data.length > 0
+                          ? 'deseleccionar todos'
+                          : 'seleccionar todos'
+                      "
+                      flat
+                      @click="selectOrRemove"
+                    />
+                  </div>
+                </q-card-section>
+                <q-card-section class="q-pa-md">
+                  <q-option-group
+                    v-if="!loading"
+                    :options="external.permissions"
+                    type="checkbox"
+                    v-model="fields.permissions.data"
+                    inline
+                  />
+                  <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
+                </q-card-section>
+              </q-card>
             </q-card-section>
             <!--    End input content   -->
           </q-card>
