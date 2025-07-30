@@ -4,6 +4,7 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
@@ -31,7 +32,11 @@ const fields = reactive({
     type: 'text',
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
+  role_permissions: {
+    data: [],
+  },
 })
+const permissions = ref([])
 const getData = () => {
   showLoading()
   loading.value = true
@@ -42,9 +47,10 @@ const getData = () => {
     .post(`${url}edit`, data)
     .then((res) => {
       let itm = res.data.role
-      fields.name.data = itm.name
-      fields.home.data = itm.homepage
-      title.value = `Editar datos del rol: ${itm.name}`
+      fields.name.data = itm.role?.name
+      fields.home.data = itm.role?.homepage
+      fields.role_permissions.data = itm.permissions
+      title.value = `Editar datos del rol: ${itm.role?.name}`
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -64,6 +70,9 @@ const sendData = () => {
   resetFieldErrors(fields)
   params.append('name', fields.name.data)
   params.append('homepage', fields.home.data)
+  fields.role_permissions.data.forEach((perm) => {
+    params.append('permissions[]', perm)
+  })
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   let request = props.id > 0 ? `${url}${props.id}` : url
 
@@ -88,12 +97,10 @@ const sendData = () => {
       }, 1000)
     })
 }
-onMounted(() => {
-  if (props.id > 0) {
-    getData()
-  } else {
-    title.value = 'Registrar nuevo rol'
-  }
+onMounted(async () => {
+  if (props.id > 0) getData()
+  title.value = 'Registrar nuevo rol'
+  permissions.value = await getSupportData('/api/v1/general/management/permissions')
 })
 </script>
 
@@ -165,23 +172,24 @@ onMounted(() => {
                       :error-message="field['error-message']"
                     />
                   </div>
-
-                  <div v-if="field.type === 'toggle'">
-                    <q-toggle
-                      v-model="field.data"
-                      :label="field.label"
-                      checked-icon="check"
-                      unchecked-icon="clear"
-                      size="lg"
-                      color="primary"
-                      v-if="!loading"
-                      :error="fields.status.error"
-                      :error-message="fields.status['error-message']"
-                    />
-                  </div>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </div>
               </div>
+            </q-card-section>
+
+            <q-card-section>
+              <q-card flat class="custom-cards">
+                <q-card-section class="q-header">
+                  <span class="text-white text-subtitle2">Permisos asignados al rol</span>
+                </q-card-section>
+                <q-card-section class="q-pa-md">
+                  <q-option-group
+                    :options="permissions"
+                    type="checkbox"
+                    v-model="fields.role_permissions.data"
+                  />
+                </q-card-section>
+              </q-card>
             </q-card-section>
             <!--    End input content   -->
           </q-card>
