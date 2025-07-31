@@ -13,6 +13,7 @@ import management from 'src/router/management.js'
 import billing from 'src/router/billing.js'
 import infrastructure from 'src/router/infrastructure.js'
 import { useAuthStore } from 'stores/auth.js'
+import { Notify } from 'quasar'
 
 /*
  * If not building with SSR mode, you can
@@ -61,8 +62,32 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     if (to.path === '/login' && isLoggedIn) return next('/dashboard')
 
     if (to.meta.requiresAuth && !isLoggedIn) return next('/login')
+
+    if (to.meta.permission) {
+      const requiredPermissions = to.meta.permission
+
+      const hasPermission = requiredPermissions.some((perm) => auth.permissions.includes(perm))
+
+      if (!hasPermission) {
+        console.log('Permisos requeridos: ', requiredPermissions)
+        console.log('Permisos del usuario: ', auth.permissions)
+
+        Notify.create({
+          color: 'red-10',
+          message: 'No tienes permisos para acceder a esta sección',
+          caption: 'Contacta al administrador si necesitas acceso',
+          position: 'top-right',
+          timeout: 10000,
+          avatar: '/images/logos/iso_wth.png',
+          actions: [{ icon: 'close', color: 'white' }],
+        })
+        return next('/dashboard')
+      }
+    }
+
     next()
   })
+
   /*
    * End validate auth middleware
    * */

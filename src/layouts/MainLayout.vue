@@ -60,7 +60,7 @@
             {{ auth.user.name }}
           </div>
           <div>{{ auth.user.email }}</div>
-          <div>Rol (próximamente será dinámico)</div>
+          <div class="text-bold">{{ auth.user.roles[0] }}</div>
         </div>
       </q-img>
     </q-drawer>

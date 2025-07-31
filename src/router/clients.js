@@ -6,7 +6,7 @@ const clients = [
       {
         path: '',
         component: () => import('pages/clients/IndexPage.vue'),
-        meta: { requiresAuth: true, title: 'Clientes' },
+        meta: { requiresAuth: true, title: 'Clientes', permission: [19] },
       },
     ],
   },
