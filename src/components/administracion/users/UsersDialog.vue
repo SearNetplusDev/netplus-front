@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
@@ -171,29 +171,21 @@ const sendData = () => {
       }, 1000)
     })
 }
-watch(
-  () => fields.role.data,
-  async (newRoleID) => {
-    if (!newRoleID) {
-      fields.permissions.data = []
-      return
-    }
-
-    try {
-      showLoading()
-      loading.value = true
-      fields.permissions.data = await getSupportData(
-        `/api/v1/general/management/roles/${newRoleID}/permissions`,
-      )
-    } catch (err) {
-      showNotification('Error', err, 'red-10')
-    } finally {
-      hideLoading()
-      loading.value = false
-    }
-  },
-)
-
+const getPermissions = async (index) => {
+  const role = fields[index].data
+  try {
+    showLoading()
+    loading.value = true
+    fields.permissions.data = await getSupportData(
+      `/api/v1/general/management/roles/${role}/permissions`,
+    )
+  } catch (err) {
+    showNotification('Error', err, 'red-10')
+  } finally {
+    hideLoading()
+    loading.value = false
+  }
+}
 const selectOrRemove = () => {
   if (fields.permissions.data.length > 0) {
     fields.permissions.data = []
@@ -324,6 +316,7 @@ onMounted(async () => {
                       :options="external.roles"
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
+                      @update:model-value="getPermissions(index)"
                     />
                   </div>
 
