@@ -6,7 +6,9 @@ import { useLoading } from 'src/utils/loader.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
+import { useAuthStore } from 'stores/auth.js'
 
+const auth = useAuthStore()
 const { showLoading, hideLoading } = useLoading()
 const title = ref('')
 const loading = ref(false)
@@ -94,6 +96,7 @@ const fields = reactive({
   },
   permissions: {
     data: [],
+    disabled: null,
   },
 })
 const external = reactive({
@@ -198,6 +201,9 @@ onMounted(async () => {
   title.value = 'Registrar nuevo usuario'
   external.roles = await getSupportData('/api/v1/general/management/roles')
   external.permissions = await getSupportData('/api/v1/general/management/permissions')
+  auth.user.roles[0] === 'Root'
+    ? (fields.permissions.disabled = false)
+    : (fields.permissions.disabled = true)
 })
 </script>
 
@@ -337,7 +343,6 @@ onMounted(async () => {
                 </div>
               </div>
             </q-card-section>
-
             <!--    Permissions   -->
             <q-card-section>
               <q-card flat class="custom-cards">
@@ -350,13 +355,13 @@ onMounted(async () => {
 
                   <div>
                     <q-btn
-                      :label="
-                        fields.permissions.data.length > 0
-                          ? 'deseleccionar todos'
-                          : 'seleccionar todos'
+                      :icon="
+                        fields.permissions.data.length > 0 ? 'mdi-close-circle' : 'mdi-check-all'
                       "
+                      :color="fields.permissions.data.length > 0 ? 'white' : 'primary'"
                       flat
                       @click="selectOrRemove"
+                      :disable="fields.permissions.disabled"
                     />
                   </div>
                 </q-card-section>
@@ -364,6 +369,7 @@ onMounted(async () => {
                   <q-option-group
                     v-if="!loading"
                     :options="external.permissions"
+                    :disable="fields.permissions.disabled"
                     type="checkbox"
                     v-model="fields.permissions.data"
                     inline

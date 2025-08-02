@@ -6,7 +6,9 @@ import { useLoading } from 'src/utils/loader.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
+import { useAuthStore } from 'stores/auth.js'
 
+const auth = useAuthStore()
 const { showLoading, hideLoading } = useLoading()
 const title = ref('')
 const loading = ref(false)
@@ -34,6 +36,7 @@ const fields = reactive({
   },
   role_permissions: {
     data: [],
+    disabled: false,
   },
 })
 const permissions = ref([])
@@ -109,6 +112,9 @@ onMounted(async () => {
   if (props.id > 0) getData()
   title.value = 'Registrar nuevo rol'
   permissions.value = await getSupportData('/api/v1/general/management/permissions')
+  auth.user.roles[0] === 'Root'
+    ? (fields.role_permissions.disabled = false)
+    : (fields.role_permissions.disabled = true)
 })
 </script>
 
@@ -197,13 +203,15 @@ onMounted(async () => {
 
                   <div>
                     <q-btn
-                      :label="
+                      :icon="
                         fields.role_permissions.data.length > 0
-                          ? 'deseleccionar todos'
-                          : 'seleccionar todos'
+                          ? 'mdi-close-circle'
+                          : 'mdi-check-all'
                       "
+                      :color="fields.role_permissions.data.length > 0 ? 'white' : 'primary'"
                       flat
                       @click="selectOrRemove"
+                      :disable="fields.role_permissions.disabled"
                     />
                   </div>
                 </q-card-section>
@@ -214,6 +222,7 @@ onMounted(async () => {
                     type="checkbox"
                     v-model="fields.role_permissions.data"
                     inline
+                    :disable="fields.role_permissions.disabled"
                   />
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </q-card-section>
