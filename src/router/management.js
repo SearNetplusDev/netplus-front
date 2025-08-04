@@ -23,6 +23,12 @@ const management = [
         meta: { requiresAuth: true, title: 'Permisos', permission: [26] },
       },
       {
+        path: '/administracion/tecnicos',
+        name: 'administracion.tecnicos',
+        component: () => import('pages/management/technicians/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Técnicos', permission: [41] },
+      },
+      {
         path: 'perfiles/internet',
         name: 'administracion.perfiles.internet',
         component: () => import('pages/management/profiles/internet/IndexPage.vue'),
