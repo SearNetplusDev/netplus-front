@@ -12,6 +12,7 @@ import clients from 'src/router/clients.js'
 import management from 'src/router/management.js'
 import billing from 'src/router/billing.js'
 import infrastructure from 'src/router/infrastructure.js'
+import services from 'src/router/services.js'
 import { useAuthStore } from 'stores/auth.js'
 import { Notify } from 'quasar'
 
@@ -39,6 +40,7 @@ export default defineRouter(function (/* { store, ssrContext } */) {
       ...configuration,
       ...management,
       ...clients,
+      ...services,
       ...billing,
       ...infrastructure,
     ],

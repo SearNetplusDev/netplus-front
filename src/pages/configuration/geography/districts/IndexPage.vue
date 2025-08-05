@@ -1,8 +1,11 @@
 <script setup>
+import { onMounted } from 'vue'
+import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import BasePage from 'pages/baseComponents/BasePage.vue'
 import BaseFilters from 'pages/baseComponents/BaseFilters.vue'
 import DataTable from 'pages/configuration/geography/districts/DataTable.vue'
 
+const dataViewer = useDataviewerStore()
 const filter = {
   title: 'Filtrar',
   url: '/configuration/geography/districts/',
@@ -19,6 +22,12 @@ const filter = {
     },
   ],
 }
+onMounted(() => {
+  dataViewer.setDataViewer({
+    ...dataViewer.dataViewer,
+    allowCreate: false,
+  })
+})
 </script>
 
 <template>
