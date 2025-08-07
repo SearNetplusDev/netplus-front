@@ -3,7 +3,8 @@ import { ref, watch, computed } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
-// import BaseDialog from 'components/base/BaseDialog.vue'
+import BaseDialog from 'components/base/BaseDialog.vue'
+import MainDialog from 'components/services/MainDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -77,9 +78,9 @@ watch(showForm, (newVal) => {
 </script>
 <template>
   <div>
-    <!--    <template v-if="showForm !== 0">-->
-    <!--      <BaseDialog :id="currentItem" :content="CountryDialog" />-->
-    <!--    </template>-->
+    <template v-if="showForm !== 0">
+      <BaseDialog :id="currentItem" :content="MainDialog" />
+    </template>
 
     <BaseDataTable :columns="columns">
       <template v-slot:body="{ props }">
@@ -150,7 +151,7 @@ watch(showForm, (newVal) => {
 
           <!--    Total Services    -->
           <q-td key="services" :props="props" class="copy-text">
-            {{ props.row?.services.length }}
+            {{ props.row?.services_count }}
           </q-td>
 
           <!--    Actions    -->
