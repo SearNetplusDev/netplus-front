@@ -1,5 +1,6 @@
 <script setup>
 import { useClipboard } from 'src/utils/clipboard.js'
+// import { ref } from 'vue'
 
 const props = defineProps({
   data: Object,
@@ -54,9 +55,11 @@ const columns = [
   },
   { name: 'actions', label: '', align: 'center' },
 ]
+// const service = ref([])
 const edit = (itm) => {
-  console.log(itm)
+  emit('view-service', itm)
 }
+const emit = defineEmits(['view-service'])
 </script>
 
 <template>
@@ -98,7 +101,7 @@ const edit = (itm) => {
           <template v-slot:body-cell-actions="props">
             <q-td key="actions" :props="props">
               <q-btn-group>
-                <q-btn color="indigo" icon="mdi-eye" size="sm" @click="edit(props.row?.id)">
+                <q-btn color="indigo" icon="mdi-eye" size="sm" @click="edit(props.row)">
                   <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-9">
                     Datos del servicio
                   </q-tooltip>
