@@ -1,7 +1,10 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
 import LocaleEs from 'src/utils/composables/localeEs.js'
+import { useNotifications } from 'src/utils/notification.js'
+import { getSupportData } from 'src/utils/composables/getData.js'
 
+const { showNotification } = useNotifications()
 const props = defineProps({
   service: {
     type: Object,
@@ -139,7 +142,132 @@ const fields = reactive({
   },
 })
 const locale = LocaleEs
+const external = reactive({
+  nodes: [],
+  equipment: [],
+  technicians: [],
+  states: [],
+  municipalities: [],
+  districts: [],
+})
+const getOptions = (key) => {
+  return (
+    {
+      node: external.nodes,
+      equipment: external.equipment,
+      technician: external.technicians,
+      state: external.states,
+      municipality: external.municipalities,
+      district: external.districts,
+    }[key] || []
+  )
+}
+const onSelectChange = (name, value) => {
+  switch (name) {
+    case 'node':
+      handleNodeChange(value)
+      break
+    case 'equipment':
+      handleEquipmentChange(value)
+      break
+    case 'technician':
+      handleTechnicianChange(value)
+      break
+    case 'state':
+      handleStateChange(value)
+      break
+    case 'municipality':
+      handleMunicipalityChange(value)
+      break
+    case 'district':
+      handleDistrictChange(value)
+      break
+  }
+}
+const handleNodeChange = (val) => {
+  console.log('Nodo seleccionado: ', val)
+  fields.node.data = val
+  onNodeChange(true)
+}
+const handleEquipmentChange = (val) => {
+  console.log('Equipo seleccionado: ', val)
+  fields.equipment.data = val
+}
+const handleTechnicianChange = (val) => {
+  console.log('Técnico seleccionado: ', val)
+  fields.technician.data = val
+}
+const handleStateChange = (val) => {
+  console.log(`Departamento seleccionado: ${val}`)
+  fields.state.data = val
+  onStateChange(true)
+}
+const handleMunicipalityChange = (val) => {
+  console.log(`Municipio seleccionado: ${val}`)
+  fields.municipality.data = val
+  onMunicipalityChange(true)
+}
+const handleDistrictChange = (val) => {
+  console.log(`Distrito seleccionado: ${val}`)
+  fields.district.data = val
+}
+const onNodeChange = async (reload) => {
+  if (!fields.node.data) return
 
+  if (reload) {
+    fields.equipment.data = null
+    external.equipment = []
+  }
+
+  try {
+    external.equipment = await getSupportData(
+      `api/v1/general/infrastructure/node/${fields.node.data}/equipment`,
+    )
+  } catch (err) {
+    console.error('Error cargando equipos ', err)
+    showNotification('Error', 'Error al cargar los equipos', 'red-10')
+  }
+}
+const onStateChange = async (reload) => {
+  if (!fields.state.data) return
+
+  if (reload) {
+    // Resetear a null en lugar de objetos
+    fields.municipality.data = null
+    fields.district.data = null
+    external.municipalities = []
+    external.districts = []
+  }
+
+  try {
+    external.municipalities = await getSupportData(
+      `api/v1/general/state/${fields.state.data}/municipalities`,
+    )
+  } catch (error) {
+    console.error('Error cargando municipios:', error)
+    showNotification('Error', 'Error al cargar municipios', 'red-10')
+  }
+}
+
+const onMunicipalityChange = async (reload) => {
+  // Condiciones simplificadas
+  if (!fields.municipality.data) return
+
+  if (reload) {
+    // Resetear a null
+    fields.district.data = null
+    external.districts = []
+  }
+
+  try {
+    external.districts = await getSupportData(
+      `api/v1/general/municipality/${fields.municipality.data}/districts`,
+    )
+  } catch (error) {
+    console.error('Error cargando distritos:', error)
+    showNotification('Error', 'Error al cargar distritos', 'red-10')
+  }
+}
 //  Mapeando valores de la prop a los campos
 const mapServiceToFields = (service) => {
   if (!service?.id) {
@@ -162,6 +290,9 @@ const mapServiceToFields = (service) => {
   fields.status.data = Boolean(service.status_id)
   fields.address.data = service.address || null
   fields.comments.data = service.comments || null
+  onNodeChange(false)
+  onStateChange(false)
+  onMunicipalityChange(false)
 }
 const clearFields = () => {
   Object.keys(fields).forEach((key) => {
@@ -195,6 +326,9 @@ const sendData = () => {}
 
 onMounted(async () => {
   console.log('Componente montado con servicio:', props.service?.id || 'nuevo')
+  external.nodes = await getSupportData('/api/v1/general/infrastructure/nodes')
+  external.states = await getSupportData('/api/v1/general/states')
+  external.technicians = await getSupportData('/api/v1/general/management/users/technicians')
 })
 </script>
 
@@ -243,6 +377,10 @@ onMounted(async () => {
               :rules="field.rules"
               :error="field.error"
               :error-message="field['error-message']"
+              :options="getOptions(index)"
+              :option-value="(opt) => opt.id"
+              :option-label="(opt) => opt.name"
+              @update:model-value="onSelectChange(index, $event)"
             />
           </div>
 
@@ -321,6 +459,20 @@ onMounted(async () => {
             <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
           </div>
         </div>
+      </div>
+      <div class="full-width row wrap justify-end">
+        <q-btn
+          icon="save"
+          :loading="loading"
+          :label="props.service?.id ? 'actualizar datos' : 'almacenar'"
+          type="submit"
+          color="primary"
+        >
+          <template v-slot:loading>
+            <q-spinner-gears class="on-left" />
+            Loading...
+          </template>
+        </q-btn>
       </div>
     </q-form>
   </div>
