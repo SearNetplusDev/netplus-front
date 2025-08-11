@@ -390,9 +390,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="full-width">
-    <q-form greedy @submit="sendData">
-      <div class="fit row">
+  <div class="row wrap full-width justify-start items-start content-start">
+    <q-form class="full-width" greedy @submit="sendData">
+      <div class="row">
         <div
           class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
           v-for="(field, index) in fields"

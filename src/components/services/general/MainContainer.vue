@@ -79,13 +79,14 @@ onMounted(() => {
         </q-list>
       </q-scroll-area>
     </q-drawer>
-
-    <q-card-section v-if="menu[0].state === true">
-      <GeneralitiesForm :service="props.data" @record-created="showDrawerOnCreate" />
-    </q-card-section>
-    <q-card-section v-if="menu[1].state === true">Credenciales internet</q-card-section>
-    <q-card-section v-if="menu[2].state === true">Equipos instalados</q-card-section>
-    <q-card-section v-if="menu[3].state === true">Nuevo servicio</q-card-section>
+    <q-card class="custom-cards full-width" flat style="border: 0">
+      <q-card-section v-if="menu[0].state === true">
+        <GeneralitiesForm :service="props.data" @record-created="showDrawerOnCreate" />
+      </q-card-section>
+      <q-card-section v-if="menu[1].state === true">Credenciales internet</q-card-section>
+      <q-card-section v-if="menu[2].state === true">Equipos instalados</q-card-section>
+      <q-card-section v-if="menu[3].state === true">Nuevo servicio</q-card-section>
+    </q-card>
   </div>
 </template>
 
