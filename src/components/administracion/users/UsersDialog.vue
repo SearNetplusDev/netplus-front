@@ -193,7 +193,9 @@ const selectOrRemove = () => {
   if (fields.permissions.data.length > 0) {
     fields.permissions.data = []
   } else {
-    fields.permissions.data = external.permissions.map((p) => p.value)
+    fields.permissions.data = external.permissions.flatMap((cat) =>
+      cat.permissions.map((p) => p.value),
+    )
   }
 }
 onMounted(async () => {
@@ -366,15 +368,35 @@ onMounted(async () => {
                   </div>
                 </q-card-section>
                 <q-card-section class="q-pa-md">
-                  <q-option-group
-                    v-if="!loading"
-                    :options="external.permissions"
-                    :disable="fields.permissions.disabled"
-                    type="checkbox"
-                    v-model="fields.permissions.data"
-                    inline
-                  />
-                  <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
+                  <q-card
+                    class="custom-cards full-width q-my-sm"
+                    dark
+                    flat
+                    v-for="(item, index) in external.permissions"
+                    :key="index"
+                  >
+                    <q-card-section class="q-header row no-wrap items-center">
+                      {{ item.category }}
+                    </q-card-section>
+
+                    <q-card-section>
+                      <q-option-group
+                        v-if="!loading"
+                        :options="item.permissions"
+                        :disable="fields.permissions.disabled"
+                        type="checkbox"
+                        v-model="fields.permissions.data"
+                        inline
+                      />
+                    </q-card-section>
+                    <q-skeleton
+                      class="q-my-xs"
+                      dark
+                      type="QInput"
+                      animation="fade"
+                      v-if="loading"
+                    />
+                  </q-card>
                 </q-card-section>
               </q-card>
             </q-card-section>

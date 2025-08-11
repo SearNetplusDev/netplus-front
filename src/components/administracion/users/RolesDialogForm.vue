@@ -105,7 +105,9 @@ const selectOrRemove = () => {
   if (fields.role_permissions.data.length > 0) {
     fields.role_permissions.data = []
   } else {
-    fields.role_permissions.data = permissions.value.map((p) => p.value)
+    fields.role_permissions.data = permissions.value.flatMap((cat) =>
+      cat.permissions.map((p) => p.value),
+    )
   }
 }
 onMounted(async () => {
@@ -216,14 +218,27 @@ onMounted(async () => {
                   </div>
                 </q-card-section>
                 <q-card-section class="q-pa-md">
-                  <q-option-group
-                    v-if="!loading"
-                    :options="permissions"
-                    type="checkbox"
-                    v-model="fields.role_permissions.data"
-                    inline
-                    :disable="fields.role_permissions.disabled"
-                  />
+                  <q-card
+                    class="custom-cards full-width q-my-sm"
+                    dark
+                    flat
+                    v-for="(item, index) in permissions"
+                    :key="index"
+                  >
+                    <q-card-section class="q-header row no-wrap items-center">
+                      {{ item.category }}
+                    </q-card-section>
+                    <q-card-section>
+                      <q-option-group
+                        v-if="!loading"
+                        :options="item.permissions"
+                        type="checkbox"
+                        v-model="fields.role_permissions.data"
+                        inline
+                        :disable="fields.role_permissions.disabled"
+                      />
+                    </q-card-section>
+                  </q-card>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </q-card-section>
               </q-card>

@@ -165,6 +165,39 @@ onMounted(() => {
 
 <template>
   <div class="q-pa-xs filter-component" style="border-radius: 20px">
+    <div class="q-pa-sm fit row justify-end items-start content-start">
+      <div class="col-auto">
+        <q-btn-group flat>
+          <q-btn flat color="white" @click="addFilter" icon="add">
+            <q-tooltip
+              class="bg-grey-10"
+              anchor="center left"
+              self="center right"
+              :offset="[10, 10]"
+            >
+              Añadir filtro a la búsqueda
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            flat
+            color="white"
+            icon="replay"
+            @click="resetFilter"
+            v-if="appliedFilters.length > 0"
+          />
+          <q-btn flat color="white" icon="mdi-filter-check" @click="applyFilter">
+            <q-tooltip
+              class="bg-grey-10"
+              anchor="bottom middle"
+              self="top middle"
+              :offset="[10, 10]"
+            >
+              Aplicar filtros
+            </q-tooltip>
+          </q-btn>
+        </q-btn-group>
+      </div>
+    </div>
     <div
       class="q-ma-xs-sm q-ma-sm-sm q-ma-md q-ma-lg-md"
       v-for="(f, i) in filterCandidates"
@@ -332,22 +365,6 @@ onMounted(() => {
           </q-field>
         </div>
         <!--  Fin remover filtro    -->
-      </div>
-    </div>
-
-    <div class="q-pa-sm fit row justify-end items-start content-start">
-      <div class="col-auto">
-        <q-btn-group>
-          <q-btn flat color="white" @click="addFilter" icon="add" />
-          <q-btn
-            flat
-            color="white"
-            icon="replay"
-            @click="resetFilter"
-            v-if="appliedFilters.length > 0"
-          />
-          <q-btn flat color="white" icon="filter_alt" @click="applyFilter" />
-        </q-btn-group>
       </div>
     </div>
   </div>

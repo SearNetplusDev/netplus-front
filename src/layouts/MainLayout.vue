@@ -21,7 +21,16 @@
             color="white"
             icon="add"
             @click="create"
-          />
+          >
+            <q-tooltip
+              class="bg-grey-10"
+              anchor="bottom middle"
+              self="top middle"
+              :offset="[10, 10]"
+            >
+              Crear registro
+            </q-tooltip>
+          </q-btn>
         </template>
         <!--   End dataViewer filter template     -->
 
