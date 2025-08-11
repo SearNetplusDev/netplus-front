@@ -27,6 +27,13 @@ const setMenu = (itm) => {
     itm === el.id ? (el.state = true) : (el.state = false)
   })
 }
+const service = ref(props.data.id)
+const client = ref(props.data.client_id)
+const showDrawerOnCreate = (payload) => {
+  drawer.value = true
+  service.value = payload.id
+  client.value = payload.client_id
+}
 watch(
   () => props.showDrawer,
   (newVal) => {
@@ -74,7 +81,7 @@ onMounted(() => {
     </q-drawer>
 
     <q-card-section v-if="menu[0].state === true">
-      <GeneralitiesForm :service="props.data" />
+      <GeneralitiesForm :service="props.data" @record-created="showDrawerOnCreate" />
     </q-card-section>
     <q-card-section v-if="menu[1].state === true">Credenciales internet</q-card-section>
     <q-card-section v-if="menu[2].state === true">Equipos instalados</q-card-section>

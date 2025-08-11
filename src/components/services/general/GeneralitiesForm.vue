@@ -1,16 +1,21 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
+import { api } from 'boot/axios.js'
 import LocaleEs from 'src/utils/composables/localeEs.js'
 import { useNotifications } from 'src/utils/notification.js'
+import { useLoading } from 'src/utils/loader.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
+import { handleSubmissionError, resetFieldErrors } from 'src/utils/composables/useFormHandler.js'
 
 const { showNotification } = useNotifications()
+const { showLoading, hideLoading } = useLoading()
 const props = defineProps({
   service: {
     type: Object,
     required: true,
   },
 })
+const url = '/api/v1/services/'
 const loading = ref(false)
 const fields = reactive({
   code: {
@@ -54,6 +59,7 @@ const fields = reactive({
     rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
   },
   technician: {
+    data: null,
     error: false,
     'error-message': '',
     label: 'Instalador',
@@ -275,6 +281,7 @@ const mapServiceToFields = (service) => {
     return
   }
   console.log('Cargado datos del servicio: ', service.id)
+  showLoading()
   fields.code.data = service.code || null
   fields.name.data = service.name || null
   fields.node.data = service.node_id || null
@@ -293,6 +300,7 @@ const mapServiceToFields = (service) => {
   onNodeChange(false)
   onStateChange(false)
   onMunicipalityChange(false)
+  hideLoading()
 }
 const clearFields = () => {
   Object.keys(fields).forEach((key) => {
@@ -322,7 +330,56 @@ watch(
     deep: true, // Observar cambios profundos en el objeto
   },
 )
-const sendData = () => {}
+const emit = defineEmits(['record-created'])
+const sendData = () => {
+  let status = fields.status.data ? 1 : 0
+  let independent = fields.separation.data ? 1 : 0
+  let params = new FormData()
+  loading.value = true
+  showLoading()
+  resetFieldErrors(fields)
+  params.append('client', props.service.client_id)
+  if (fields.code.data) params.append('code', fields.code.data ?? null)
+  if (fields.name.data) params.append('name', fields.name.data ?? null)
+  params.append('node', fields.node.data)
+  params.append('equipment', fields.equipment.data)
+  params.append('installation_date', fields.installation_date.data)
+  params.append('technician', fields.technician.data)
+  params.append('lat', fields.lat.data)
+  params.append('long', fields.long.data)
+  params.append('state', fields.state.data)
+  params.append('municipality', fields.municipality.data)
+  params.append('district', fields.district.data)
+  params.append('address', fields.address.data)
+  params.append('separation', independent)
+  params.append('status', status)
+  if (fields.comments.data) params.append('comments', fields.comments.data)
+  props.service.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
+  let request = props.service.id > 0 ? `${url}${props.service.id}` : url
+  api
+    .post(request, params)
+    .then((res) => {
+      if (res.data.saved) {
+        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+        emit('record-created', {
+          id: res.data.service?.id,
+          client_id: res.data.service?.client_id,
+        })
+      } else {
+        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
+      }
+    })
+    .catch((err) => {
+      handleSubmissionError(err, fields)
+      showNotification('Error', err, 'red-10')
+    })
+    .finally(() => {
+      setTimeout(() => {
+        loading.value = false
+        hideLoading()
+      }, 1000)
+    })
+}
 
 onMounted(async () => {
   console.log('Componente montado con servicio:', props.service?.id || 'nuevo')
