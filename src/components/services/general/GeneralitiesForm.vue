@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted /*, watch*/ } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { api } from 'boot/axios.js'
 import LocaleEs from 'src/utils/composables/localeEs.js'
 import { useNotifications } from 'src/utils/notification.js'
