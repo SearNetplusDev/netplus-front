@@ -31,12 +31,15 @@ const getServices = () => {
       title.value = `Servicio(s) de ${res.data.client?.name} ${res.data.client?.surname}`
 
       const count = services.value.length
-      if (count === 1) {
+      if (count === 0) {
+        drawer.value = false
+        selectedService.value = { id: null, client_id: res.data.client?.id }
+      } else if (count === 1) {
         selectedService.value = services.value[0]
         drawer.value = true
       } else {
         drawer.value = false
-        selectedService.value = { client_id: res.data.client?.id }
+        // selectedService.value = { client_id: res.data.client?.id }
         showServiceDetails.value = false
       }
     })
@@ -98,6 +101,7 @@ onMounted(() => {
             <template v-if="servicesCount === 0">
               <main-container :data="selectedService" :show-drawer="false" />
             </template>
+
             <template v-else-if="servicesCount === 1 || showServiceDetails">
               <main-container :data="selectedService" :show-drawer="drawer" />
             </template>

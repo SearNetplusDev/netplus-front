@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted /*, watch*/ } from 'vue'
 import { api } from 'boot/axios.js'
 import LocaleEs from 'src/utils/composables/localeEs.js'
 import { useNotifications } from 'src/utils/notification.js'
@@ -254,7 +254,6 @@ const onStateChange = async (reload) => {
     showNotification('Error', 'Error al cargar municipios', 'red-10')
   }
 }
-
 const onMunicipalityChange = async (reload) => {
   // Condiciones simplificadas
   if (!fields.municipality.data) return
@@ -274,63 +273,46 @@ const onMunicipalityChange = async (reload) => {
     showNotification('Error', 'Error al cargar distritos', 'red-10')
   }
 }
-//  Mapeando valores de la prop a los campos
-const mapServiceToFields = (service) => {
-  if (!service?.id) {
-    console.log('Nuevo Servicio - Campos en Blanco')
-    return
-  }
-  console.log('Cargado datos del servicio: ', service.id)
-  showLoading()
-  fields.code.data = service.code || null
-  fields.name.data = service.name || null
-  fields.node.data = service.node_id || null
-  fields.equipment.data = service.equipment_id || null
-  fields.technician.data = service.technician_id || null
-  fields.state.data = service.state_id || null
-  fields.municipality.data = service.municipality_id || null
-  fields.district.data = service.district_id || null
-  fields.installation_date.data = service.installation_date || null
-  fields.lat.data = service.latitude || null
-  fields.long.data = service.longitude || null
-  fields.separation.data = Boolean(service.separate_billing)
-  fields.status.data = Boolean(service.status_id)
-  fields.address.data = service.address || null
-  fields.comments.data = service.comments || null
-  onNodeChange(false)
-  onStateChange(false)
-  onMunicipalityChange(false)
-  hideLoading()
-}
-const clearFields = () => {
-  Object.keys(fields).forEach((key) => {
-    if (fields[key].type === 'toggle') {
-      fields[key].data = false
-    } else {
-      fields[key].data = null
-    }
-    // Limpiar errores
-    fields[key].error = false
-    fields[key]['error-message'] = ''
-  })
-}
-watch(
-  () => props.service,
-  (newService) => {
-    if (newService?.id) {
-      // Si hay un servicio con ID, cargar sus datos
-      mapServiceToFields(newService)
-    } else {
-      // Si no hay ID, limpiar campos para nuevo servicio
-      clearFields()
-    }
-  },
-  {
-    immediate: true, // Ejecutar inmediatamente al montar
-    deep: true, // Observar cambios profundos en el objeto
-  },
-)
 const emit = defineEmits(['record-created'])
+const getServiceData = () => {
+  loading.value = true
+  showLoading()
+  let params = new FormData()
+  params.append('id', props.service.id)
+  api
+    .post(`${url}edit`, params)
+    .then((res) => {
+      let item = res.data.service
+      fields.code.data = item.code || null
+      fields.name.data = item.name || null
+      fields.node.data = item.node_id
+      fields.equipment.data = item.equipment_id
+      fields.installation_date.data = item.installation_date
+      fields.technician.data = item.technician_id
+      fields.lat.data = item.latitude
+      fields.long.data = item.longitude
+      fields.state.data = item.state_id
+      fields.municipality.data = item.municipality_id
+      fields.district.data = item.district_id
+      fields.separation.data = item.separate_billing
+      fields.status.data = item.status_id
+      fields.address.data = item.address
+      fields.comments.data = item.comments || null
+      onNodeChange(false)
+      onStateChange(false)
+      onMunicipalityChange(false)
+    })
+    .catch((err) => {
+      console.error(err)
+      // showNotification('Error', err, 'red-10')
+    })
+    .finally(() => {
+      setTimeout(() => {
+        loading.value = false
+        hideLoading()
+      }, 300)
+    })
+}
 const sendData = () => {
   let status = fields.status.data ? 1 : 0
   let independent = fields.separation.data ? 1 : 0
@@ -338,7 +320,17 @@ const sendData = () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  params.append('client', props.service.client_id)
+
+  //  Asegurar que siempre haya un client_id válido
+  const clientId = props.service.client_id
+  if (!clientId) {
+    showNotification('Error', 'No se puede identificar el cliente', 'red-10')
+    loading.value = false
+    hideLoading()
+    return
+  }
+  // params.append('client', props.service.client_id)
+  params.append('client', clientId)
   if (fields.code.data) params.append('code', fields.code.data ?? null)
   if (fields.name.data) params.append('name', fields.name.data ?? null)
   params.append('node', fields.node.data)
@@ -354,16 +346,20 @@ const sendData = () => {
   params.append('separation', independent)
   params.append('status', status)
   if (fields.comments.data) params.append('comments', fields.comments.data)
-  props.service.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  let request = props.service.id > 0 ? `${url}${props.service.id}` : url
+
+  //  Determinar si es creación o actualización
+  let isUpdate = props.service.id && props.service.id > 0
+  params.append('_method', isUpdate ? 'PUT' : 'POST')
+  let request = isUpdate ? `${url}${props.service.id}` : url
   api
     .post(request, params)
     .then((res) => {
       if (res.data.saved) {
         showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+        let item = res.data.service
         emit('record-created', {
-          id: res.data.service?.id,
-          client_id: res.data.service?.client_id,
+          id: item?.id,
+          client_id: item?.client_id,
         })
       } else {
         showNotification('Error', 'Verifica la información ingresada', 'teal-10')
@@ -382,6 +378,7 @@ const sendData = () => {
 }
 
 onMounted(async () => {
+  if (props.service?.id && Number(props.service.id) > 0) getServiceData()
   console.log('Componente montado con servicio:', props.service?.id || 'nuevo')
   external.nodes = await getSupportData('/api/v1/general/infrastructure/nodes')
   external.states = await getSupportData('/api/v1/general/states')
