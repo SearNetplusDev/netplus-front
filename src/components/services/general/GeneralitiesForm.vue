@@ -191,30 +191,24 @@ const onSelectChange = (name, value) => {
   }
 }
 const handleNodeChange = (val) => {
-  console.log('Nodo seleccionado: ', val)
   fields.node.data = val
   onNodeChange(true)
 }
 const handleEquipmentChange = (val) => {
-  console.log('Equipo seleccionado: ', val)
   fields.equipment.data = val
 }
 const handleTechnicianChange = (val) => {
-  console.log('Técnico seleccionado: ', val)
   fields.technician.data = val
 }
 const handleStateChange = (val) => {
-  console.log(`Departamento seleccionado: ${val}`)
   fields.state.data = val
   onStateChange(true)
 }
 const handleMunicipalityChange = (val) => {
-  console.log(`Municipio seleccionado: ${val}`)
   fields.municipality.data = val
   onMunicipalityChange(true)
 }
 const handleDistrictChange = (val) => {
-  console.log(`Distrito seleccionado: ${val}`)
   fields.district.data = val
 }
 const onNodeChange = async (reload) => {
@@ -379,7 +373,6 @@ const sendData = () => {
 
 onMounted(async () => {
   if (props.service?.id && Number(props.service.id) > 0) getServiceData()
-  console.log('Componente montado con servicio:', props.service?.id || 'nuevo')
   external.nodes = await getSupportData('/api/v1/general/infrastructure/nodes')
   external.states = await getSupportData('/api/v1/general/states')
   external.technicians = await getSupportData('/api/v1/general/management/users/technicians')

@@ -99,11 +99,19 @@ onMounted(() => {
         <q-card class="custom-cards q-pa-sm" flat>
           <q-card-section>
             <template v-if="servicesCount === 0">
-              <main-container :data="selectedService" :show-drawer="false" />
+              <main-container
+                :data="selectedService"
+                :show-drawer="false"
+                @service-updated="selectedService = $event"
+              />
             </template>
 
             <template v-else-if="servicesCount === 1 || showServiceDetails">
-              <main-container :data="selectedService" :show-drawer="drawer" />
+              <main-container
+                :data="selectedService"
+                :show-drawer="drawer"
+                @service-updated="selectedService = $event"
+              />
             </template>
 
             <template v-else>

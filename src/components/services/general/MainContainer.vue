@@ -36,25 +36,19 @@ const createNewServiceObject = () => {
       (val) => typeof val === 'number' || (typeof val === 'string' && !isNaN(val)),
     )
   }
-  const newService = {
+  return {
     client_id: clientId,
   }
-
-  console.log('Props.data completo:', props.data)
-  console.log('Client ID detectado:', clientId)
-  console.log('Creando nuevo objeto servicio:', newService)
-  return newService
 }
+const emit = defineEmits(['service-updated'])
 const updateCurrentService = () => {
   if (isNewService.value) {
     currentService.value = createNewServiceObject()
   } else {
     if (props.data.id) {
       currentService.value = props.data
-      console.log('Cargando servicio existente: ', currentService.value)
     } else {
       currentService.value = createNewServiceObject()
-      console.log('No hay servicio existente, creando objeto nuevo: ', currentService.value)
     }
   }
 }
@@ -66,32 +60,18 @@ const setMenu = (itm) => {
   if (itm === 4) {
     isNewService.value = true
     currentService.value = createNewServiceObject()
-    console.log('Modo nuevo servicio activado, currentService:', currentService.value)
   } else {
     isNewService.value = false
     updateCurrentService()
   }
 }
 const handleRecordCreated = (payload) => {
-  console.log('Registro creado/actualizado: ', payload)
-  // currentService.value = {
-  //   id: payload.id,
-  //   client_id: payload.client_id,
-  // }
-  //
-  // if (isNewService.value) {
-  //   isNewService.value = false
-  //   setMenu(1)
-  // }
-  // drawer.value = true
-  let updatedService = {
+  currentService.value = {
     ...currentService.value,
     id: payload.id,
     client_id: payload.client_id,
   }
-  console.log('Actualizando currentService de:', currentService.value, 'a:', updatedService)
-  currentService.value = updatedService
-
+  emit('service-updated', currentService.value)
   if (isNewService.value) {
     isNewService.value = false
     setMenu(1)
@@ -116,9 +96,7 @@ watch(
 onMounted(() => {
   menu[0].state = true
   drawer.value = props.showDrawer
-  console.log('Componente montado con props.data: ', props.data)
   updateCurrentService()
-  console.log('Componente montado con currentService final:', currentService.value)
 })
 </script>
 
@@ -161,7 +139,7 @@ onMounted(() => {
       </q-card-section>
 
       <q-card-section v-if="menu[1].state === true">
-        <InternetCredentialsForm :service="props.data.id" />
+        <InternetCredentialsForm :service="currentService.id" />
       </q-card-section>
 
       <q-card-section v-if="menu[2].state === true">Equipos instalados</q-card-section>
