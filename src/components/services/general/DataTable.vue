@@ -18,6 +18,23 @@ const columns = [
     align: 'center',
   },
   {
+    name: 'profile',
+    label: 'Plan de internet',
+    align: 'center',
+    field: (row) => row.internet?.profile?.name,
+  },
+  {
+    name: 'price',
+    label: 'Precio (USD)',
+    align: 'center',
+    field: (row) => row.internet?.profile?.price,
+  },
+  {
+    name: 'user',
+    label: 'Usuario PPPoe',
+    align: 'center',
+  },
+  {
     name: 'install_date',
     label: 'Fecha de instalación',
     align: 'center',
@@ -94,6 +111,14 @@ const emit = defineEmits(['view-service'])
                   :color="props.row.status?.id ? 'primary' : 'red-10'"
                   :label="props.row.status?.name"
                 />
+              </div>
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-user="props">
+            <q-td key="user" :props="props" class="copy-text">
+              <div class="text-center" @click="copy(props.row?.internet?.user)">
+                {{ props.row?.internet?.user }}
               </div>
             </q-td>
           </template>

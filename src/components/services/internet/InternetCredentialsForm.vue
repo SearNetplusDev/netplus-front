@@ -4,6 +4,7 @@ import { api } from 'boot/axios.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { handleSubmissionError, resetFieldErrors } from 'src/utils/composables/useFormHandler.js'
+import { getSupportData } from 'src/utils/composables/getData.js'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
@@ -33,10 +34,10 @@ const createToggleField = (label) => ({
 })
 const VALIDATION_RULES = {
   input_required: (val) => (val !== null && val !== '' && val !== undefined) || 'Campo requerido',
-  select_required: (val) => (val && val.length > 0) || 'Campo requerido',
+  select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
 }
 const fields = reactive({
-  profile: createField('Perfil de internet', 'text', [VALIDATION_RULES.input_required]),
+  profile: createField('Perfil de internet', 'select', [VALIDATION_RULES.select_required]),
   user: createField('Usuario', 'text', [VALIDATION_RULES.input_required]),
   password: createField('Contraseña', 'text', [VALIDATION_RULES.input_required]),
   status: createToggleField('Estado'),
@@ -45,15 +46,18 @@ const getData = () => {
   loading.value = true
   showLoading()
   let params = new FormData()
-  params.append('id', props.service)
+  params.append('service', props.service)
   api
-    .post(url, params)
+    .post(url + 'read', params)
     .then((response) => {
       let item = response.data.internet
-      fields.profile.data = item.profile
-      fields.user.data = item.user
-      fields.password.data = item.password
-      fields.status.data = item.status_id
+      if (!response.data.can_create) {
+        internetId.value = item.id ?? 0
+        fields.profile.data = item.internet_profile_id ?? null
+        fields.user.data = item.user ?? null
+        fields.password.data = item.secret ?? null
+        fields.status.data = item.status_id ?? 0
+      }
     })
     .catch((err) => {
       console.error(err)
@@ -98,8 +102,30 @@ const sendData = () => {
       }, 300)
     })
 }
-onMounted(() => {
+const internet_profiles = ref([])
+const filtered_profiles = ref([])
+const filterProfiles = (val, update) => {
+  if (val === '') {
+    update(() => {
+      filtered_profiles.value = internet_profiles.value
+    })
+    return
+  }
+
+  update(() => {
+    const needle = val.toLowerCase()
+    filtered_profiles.value = internet_profiles.value.filter(
+      (model) => model.name.toLowerCase().indexOf(needle) > -1,
+    )
+  })
+}
+const clearFilters = () => {
+  filtered_profiles.value = internet_profiles.value
+}
+onMounted(async () => {
   getData()
+  internet_profiles.value = await getSupportData('/api/v1/general/profiles/internet')
+  filtered_profiles.value = internet_profiles.value
 })
 </script>
 
@@ -112,6 +138,35 @@ onMounted(() => {
           v-for="(field, index) in fields"
           :key="index"
         >
+          <!--    Input Select    -->
+          <div v-if="field.type === 'select'">
+            <q-select
+              v-model="field.data"
+              dark
+              outlined
+              dense
+              clearable
+              color="white"
+              emit-value
+              map-options
+              transition-show="flip-up"
+              transition-hide="flip-down"
+              lazy-rules
+              use-input
+              input-debounce="0"
+              v-if="!loading"
+              :label="field.label"
+              :rules="field.rules"
+              :error="field.error"
+              :error-message="field['error-message']"
+              :options="filtered_profiles"
+              :option-value="(opt) => opt.id"
+              :option-label="(opt) => opt.name"
+              @filter="filterProfiles"
+              @filter-abort="clearFilters"
+            />
+          </div>
+
           <!--    Input Text    -->
           <div v-if="field.type === 'text'">
             <q-input
