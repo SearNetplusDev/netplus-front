@@ -40,6 +40,12 @@ const infrastructure = [
         component: () => import('pages/infrastructure/equipment/models/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Modelos', permission: [16] },
       },
+      {
+        path: 'equipos/inventario',
+        name: 'infraestructura.equipos.inventario',
+        component: () => import('pages/infrastructure/equipment/inventory/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Inventario de equipos para clientes residenciales', permission: [43] },
+      },
     ],
   },
 ]

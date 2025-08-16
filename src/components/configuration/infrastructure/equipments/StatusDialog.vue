@@ -13,7 +13,7 @@ const { showNotification } = useNotifications()
 const props = defineProps({
   id: Number,
 })
-const url = 'api/v1/configuration/infrastructure/equipment/status/'
+const url = 'api/v1/configuration/infrastructure/equipments/status/'
 const fields = reactive({
   name: {
     data: null,
