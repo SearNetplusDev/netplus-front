@@ -10,6 +10,7 @@ import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 const { showLoading, hideLoading } = useLoading()
 const title = ref('')
 const loading = ref(false)
+const uploadedFile = ref(null)
 const { showNotification } = useNotifications()
 const props = defineProps({
   id: Number,
@@ -30,16 +31,27 @@ const createField = (label, type, rules = []) => ({
   type,
   rules,
 })
-const fields = reactive({
-  type: createField('Tipo de equipo', 'select', [validationRules.select_required]),
-  brand: createField('Marca', 'select', [validationRules.select_required]),
-  model: createField('Modelo', 'select-filter', [validationRules.select_required]),
-  branch: createField('Sucursal', 'select', [validationRules.select_required]),
-  mac: createField('Dirección MAC', 'text', [validationRules.text_required, validationRules.mac]),
-  serial: createField('Serial', 'text', [validationRules.text_required]),
-  status: createField('Estado', 'select', [validationRules.select_required]),
-  comments: createField('Comentarios', 'textarea'),
-})
+const createConditionalFields = () => {
+  const baseFields = {
+    type: createField('Tipo de equipo', 'select', [validationRules.select_required]),
+    brand: createField('Marca', 'select', [validationRules.select_required]),
+    model: createField('Modelo', 'select-filter', [validationRules.select_required]),
+    branch: createField('Sucursal', 'select', [validationRules.select_required]),
+    status: createField('Estado', 'select', [validationRules.select_required]),
+  }
+
+  if (props.id > 0) {
+    baseFields.mac = createField('Dirección MAC', 'text', [
+      validationRules.text_required,
+      validationRules.mac,
+    ])
+    baseFields.serial = createField('Serial', 'text', [validationRules.text_required])
+  }
+  baseFields.comments = createField('Comentarios', 'textarea')
+  return baseFields
+}
+const fields = reactive(createConditionalFields())
+
 const external = reactive({
   types: [],
   brands: [],
@@ -53,7 +65,6 @@ const selectOptions = (key) => {
     {
       type: external.types,
       brand: external.brands,
-      // model: external.models,
       branch: external.branches,
       status: external.status,
     }[key] || []
@@ -77,6 +88,14 @@ const filterModels = (val, update) => {
 const clearModelFilter = () => {
   external.filteredModels.value = external.models
 }
+const onFileAdded = (file) => {
+  uploadedFile.value = file[0]
+  console.log('Archivo seleccionado: ', file[0])
+}
+const onFileRemoved = () => {
+  uploadedFile.value = null
+  console.log('Archivo removido')
+}
 const getData = () => {
   showLoading()
   loading.value = true
@@ -86,8 +105,16 @@ const getData = () => {
   api
     .post(`${url}edit`, data)
     .then((res) => {
-      let itm = (res.data.fields.name.data = itm.name)
-      title.value = `Editar datos del  ${itm.name}`
+      let itm = res.data.equipment
+      fields.brand.data = itm.brand_id
+      fields.type.data = itm.type_id
+      fields.model.data = itm.model_id
+      fields.branch.data = itm.branch_id
+      fields.mac.data = itm.mac_address
+      fields.serial.data = itm.serial_number
+      fields.status.data = itm.status_id
+      fields.comments.data = itm.comments
+      title.value = `Editar datos del equipo  ${itm.mac_address}`
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -108,6 +135,15 @@ const sendData = () => {
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   let request = props.id > 0 ? `${url}${props.id}` : url
 
+  Object.keys(fields).forEach((key) => {
+    if (fields[key].data !== null && fields[key].data !== '') {
+      params.append(key, fields[key].data)
+    }
+  })
+
+  if (props.id === 0 && uploadedFile.value) {
+    params.append('file', uploadedFile.value)
+  }
   api
     .post(request, params)
     .then((res) => {
@@ -129,14 +165,14 @@ const sendData = () => {
     })
 }
 onMounted(async () => {
+  title.value = 'Registrar equipos'
   if (props.id > 0) getData()
   external.branches = await getSupportData('/api/v1/general/branches')
   external.brands = await getSupportData('api/v1/general/infrastructure/brands')
   external.models = await getSupportData('api/v1/general/infrastructure/models')
   external.types = await getSupportData('api/v1/general/infrastructure/types')
   external.status = await getSupportData('api/v1/general/infrastructure/status')
-  external.filteredModels= external.models
-  title.value = 'Registrar equipos'
+  external.filteredModels = external.models
 })
 </script>
 
@@ -197,76 +233,185 @@ onMounted(async () => {
                   v-for="(field, index) in fields"
                   :key="index"
                 >
-                  <!--    Input Text    -->
-                  <div v-if="field.type === 'text'">
-                    <q-input
-                      dense
-                      dark
-                      outlined
-                      clearable
-                      lazy-rules
-                      v-model="field.data"
-                      v-if="!loading"
-                      :label="field.label"
-                      :rules="field.rules"
-                      :error="field.error"
-                      :error-message="field['error-message']"
-                    />
-                  </div>
+                  <template v-if="index !== 'comments'">
+                    <!--    Input Text    -->
+                    <div v-if="field.type === 'text'">
+                      <q-input
+                        dense
+                        dark
+                        outlined
+                        clearable
+                        lazy-rules
+                        v-model="field.data"
+                        v-if="!loading"
+                        :label="field.label"
+                        :rules="field.rules"
+                        :error="field.error"
+                        :error-message="field['error-message']"
+                      />
+                    </div>
 
-                  <!--    Input Select    -->
-                  <div v-if="field.type === 'select'">
-                    <q-select
-                      v-model="field.data"
-                      dense
-                      dark
-                      outlined
-                      clearable
-                      color="white"
-                      emit-value
-                      map-options
-                      transition-show="flip-up"
-                      transition-hide="flip-down"
-                      lazy-rules
-                      v-if="!loading"
-                      :label="field.label"
-                      :rules="field.rules"
-                      :error="field.error"
-                      :error-message="field['error-message']"
-                      :options="selectOptions(index)"
-                      :option-value="(opt) => opt.id"
-                      :option-label="(opt) => opt.name"
-                    />
-                  </div>
+                    <!--    Input Select    -->
+                    <div v-if="field.type === 'select'">
+                      <q-select
+                        v-model="field.data"
+                        dense
+                        dark
+                        outlined
+                        clearable
+                        color="white"
+                        emit-value
+                        map-options
+                        transition-show="flip-up"
+                        transition-hide="flip-down"
+                        lazy-rules
+                        v-if="!loading"
+                        :label="field.label"
+                        :rules="field.rules"
+                        :error="field.error"
+                        :error-message="field['error-message']"
+                        :options="selectOptions(index)"
+                        :option-value="(opt) => opt.id"
+                        :option-label="(opt) => opt.name"
+                      />
+                    </div>
 
-                  <div v-if="field.type === 'select-filter'">
-                    <q-select
-                      v-model="field.data"
-                      dense
-                      dark
-                      outlined
-                      clearable
-                      color="white"
-                      emit-value
-                      map-options
-                      transition-show="flip-up"
-                      transition-hide="flip-down"
-                      lazy-rules
-                      use-input
-                      input-debounce="0"
-                      v-if="!loading"
-                      :label="field.label"
-                      :rules="field.rules"
-                      :error="field.error"
-                      :error-message="field['error-message']"
-                      :options="external.filteredModels"
-                      :option-value="(opt) => opt.id"
-                      :option-label="(opt) => opt.name"
-                      @filter="filterModels"
-                      @filter-abort="clearModelFilter"
-                    />
-                  </div>
+                    <div v-if="field.type === 'select-filter'">
+                      <q-select
+                        v-model="field.data"
+                        dense
+                        dark
+                        outlined
+                        clearable
+                        color="white"
+                        emit-value
+                        map-options
+                        transition-show="flip-up"
+                        transition-hide="flip-down"
+                        lazy-rules
+                        use-input
+                        input-debounce="0"
+                        v-if="!loading"
+                        :label="field.label"
+                        :rules="field.rules"
+                        :error="field.error"
+                        :error-message="field['error-message']"
+                        :options="external.filteredModels"
+                        :option-value="(opt) => opt.id"
+                        :option-label="(opt) => opt.name"
+                        @filter="filterModels"
+                        @filter-abort="clearModelFilter"
+                      />
+                    </div>
 
+                    <q-skeleton
+                      class="q-my-xs"
+                      dark
+                      type="QInput"
+                      animation="fade"
+                      v-if="loading"
+                    />
+                  </template>
+                </div>
+              </div>
+
+              <div v-if="props.id === 0" class="row wrap full-width items-start content-start">
+                <div class="col-12 col-xs-12 col-sm-12 col-md-4 q-pa-md">
+                  <q-uploader
+                    v-if="!loading"
+                    label="Subir archivo de inventario"
+                    dark
+                    flat
+                    color="blue-grey-8"
+                    text-color="white"
+                    accept=".xlsx, .xls, .csv"
+                    max-file-size="10485760"
+                    @added="onFileAdded"
+                    @removed="onFileRemoved"
+                    style="max-width: 100%; width: 100%"
+                    :auto-upload="false"
+                  >
+                    <template v-slot:header="scope">
+                      <div class="row no-wrap items-center q-pa-sm q-gutter-xs">
+                        <q-icon name="cloud_upload" class="q-mr-sm" />
+                        <div class="col">
+                          <div class="q-uploader__title">Subir archivo</div>
+                          <div class="q-uploader__subtitle">
+                            {{ scope.files.length }} archivo - {{ scope.uploadSizeLabel }}
+                          </div>
+                        </div>
+                        <q-btn
+                          v-if="scope.canAddFiles"
+                          type="a"
+                          icon="add_box"
+                          @click="scope.pickFiles"
+                          round
+                          dense
+                          flat
+                        >
+                          <q-uploader-add-trigger />
+                        </q-btn>
+                      </div>
+                    </template>
+
+                    <template v-slot:list="scope">
+                      <q-list separator>
+                        <q-item v-for="file in scope.files" :key="file.__key">
+                          <q-item-section>
+                            <q-item-label class="full-width ellipsis">
+                              {{ file.name }}
+                            </q-item-label>
+                            <q-item-label caption> Estado: {{ file.__status }}</q-item-label>
+                          </q-item-section>
+
+                          <q-item-section v-if="file.__img" thumbnail class="gt-xs">
+                            <img :src="file.__img.src" style="width: 48px; height: 48px" />
+                          </q-item-section>
+
+                          <q-item-section side>
+                            <q-btn
+                              class="gt-xs"
+                              size="12px"
+                              dense
+                              flat
+                              round
+                              icon="delete"
+                              @click="scope.removeFile(file)"
+                            />
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </template>
+                  </q-uploader>
+
+                  <q-skeleton
+                    class="q-my-xs"
+                    dark
+                    type="rect"
+                    height="150px"
+                    animation="fade"
+                    v-if="loading"
+                  />
+                </div>
+              </div>
+
+              <div class="row q-mt-md">
+                <div class="col-12 q-pa-md">
+                  <q-input
+                    v-model="fields.comments.data"
+                    dense
+                    dark
+                    clearable
+                    outlined
+                    lazy-rules
+                    rows="6"
+                    type="textarea"
+                    v-if="!loading"
+                    :label="fields.comments.label"
+                    :rules="fields.comments.rules"
+                    :error="fields.comments.error"
+                    :error-message="fields.comments['error-message']"
+                  />
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </div>
               </div>
