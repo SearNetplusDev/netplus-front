@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, ref, reactive, watch, computed } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
@@ -51,7 +51,53 @@ const createConditionalFields = () => {
   return baseFields
 }
 const fields = reactive(createConditionalFields())
+const fieldOrder = [
+  'type',
+  'brand',
+  'model',
+  'branch',
+  'status',
+  'mac',
+  'serial',
+  'technician',
+  'comments',
+]
+const orderedFields = computed(() => {
+  const ordered = {}
+  fieldOrder.forEach((key) => {
+    if (fields[key]) {
+      ordered[key] = fields[key]
+    }
+  })
 
+  Object.keys(fields).forEach((key) => {
+    if (!fieldOrder.includes(key)) {
+      ordered[key] = fields[key]
+    }
+  })
+
+  return ordered
+})
+const manageTechnicianField = () => {
+  if (props.id > 0 && fields.status.data === 2) {
+    if (!fields.technician) {
+      fields.technician = createField('Técnico en ruta', 'select', [
+        validationRules.select_required,
+      ])
+    }
+  } else {
+    if (fields.technician) {
+      delete fields.technician
+    }
+  }
+}
+watch(
+  () => fields.status.data,
+  (newVal) => {
+    console.log(newVal)
+    manageTechnicianField()
+  },
+)
 const external = reactive({
   types: [],
   brands: [],
@@ -59,6 +105,7 @@ const external = reactive({
   branches: [],
   status: [],
   filteredModels: [],
+  technicians: [],
 })
 const selectOptions = (key) => {
   return (
@@ -67,6 +114,7 @@ const selectOptions = (key) => {
       brand: external.brands,
       branch: external.branches,
       status: external.status,
+      technician: external.technicians,
     }[key] || []
   )
 }
@@ -114,6 +162,12 @@ const getData = () => {
       fields.serial.data = itm.serial_number
       fields.status.data = itm.status_id
       fields.comments.data = itm.comments
+
+      manageTechnicianField()
+
+      if (fields.technician && itm.technician_id) {
+        fields.technician.data = itm.technician_id
+      }
       title.value = `Editar datos del equipo  ${itm.mac_address}`
     })
     .catch((err) => {
@@ -147,11 +201,19 @@ const sendData = () => {
   api
     .post(request, params)
     .then((res) => {
+      const errors = res.data.results.errors
       if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+        if (errors.length > 0) {
+          for (let i = 0; i < errors.length; i++) {
+            showNotification('Error', `${errors[i]}`, 'red-10')
+          }
+        } else {
+          showNotification('Éxito', 'Información almacenada correctamente', 'blue-grey-10')
+        }
       } else {
         showNotification('Error', 'Verifica la información ingresada', 'teal-10')
       }
+      title.value = 'Registro de equipos'
     })
     .catch((err) => {
       handleSubmissionError(err, fields)
@@ -172,6 +234,7 @@ onMounted(async () => {
   external.models = await getSupportData('api/v1/general/infrastructure/models')
   external.types = await getSupportData('api/v1/general/infrastructure/types')
   external.status = await getSupportData('api/v1/general/infrastructure/status')
+  external.technicians = await getSupportData('api/v1/general/management/users/technicians')
   external.filteredModels = external.models
 })
 </script>
@@ -230,7 +293,7 @@ onMounted(async () => {
               <div class="row wrap full-width justify-start items-start content-start">
                 <div
                   class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-md"
-                  v-for="(field, index) in fields"
+                  v-for="(field, index) in orderedFields"
                   :key="index"
                 >
                   <template v-if="index !== 'comments'">
