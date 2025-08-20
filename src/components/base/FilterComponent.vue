@@ -31,15 +31,26 @@ const availableOperators = () => [
   { title: 'Entre', name: 'between', parent: ['date'], component: 'date_double' },
   { title: 'Igual a', name: 'equal_to', parent: ['options'], component: 'options' },
 ]
-
 watch(dateQuery, (newVal) => {
-  if (newVal) filterCandidates.value[0].query_1 = newVal
+  if (newVal && filterCandidates.value.length > 0) {
+    const activeFilterIndex = filterCandidates.value.findIndex(
+      (f) => f.operator?.component === 'date',
+    )
+    if (activeFilterIndex >= 0) {
+      filterCandidates.value[activeFilterIndex].query_1 = newVal
+    }
+  }
 })
 watch(dateBetween, (newVal) => {
-  if (newVal?.from && newVal?.to) {
-    filterCandidates.value[0].query_1 = newVal.from
-    filterCandidates.value[0].query_2 = newVal.to
-    dateBetweenText.value = `${newVal.from} - ${newVal.to}`
+  if (newVal?.from && newVal?.to && filterCandidates.value.length > 0) {
+    const activeFilterIndex = filterCandidates.value.findIndex(
+      (f) => f.operator?.component === 'date_double',
+    )
+    if (activeFilterIndex >= 0) {
+      filterCandidates.value[activeFilterIndex].query_1 = newVal.from
+      filterCandidates.value[activeFilterIndex].query_2 = newVal.to
+      dateBetweenText.value = `${newVal.from} - ${newVal.to}`
+    }
   }
 })
 watch(filterable, (newVal) => {
@@ -67,7 +78,11 @@ const applyChange = () => {
   fetch({ force: true })
 }
 const applyFilter = () => {
-  useDataViewer.setAppliedFilters(JSON.parse(JSON.stringify(filterCandidates.value)))
+  const validFilters = filterCandidates.value.filter(
+    (f) =>
+      f.column && f.operator && f.query_1 !== null && f.query_1 !== undefined && f.query_1 !== '',
+  )
+  useDataViewer.setAppliedFilters(JSON.parse(JSON.stringify(validFilters)))
   useDataViewer.setPagination({
     ...pagination.value,
     page: 1,
@@ -76,6 +91,7 @@ const applyFilter = () => {
 }
 const addFilter = () => {
   filterCandidates.value.push({
+    id: Date.now(),
     columnData: '',
     column: '',
     operatorData: '',
@@ -95,6 +111,9 @@ const removeFilter = (f, i) => {
 const resetFilter = () => {
   setAppliedFilters([])
   filterCandidates.value = []
+  dateQuery.value = ''
+  dateBetween.value = []
+  dateBetweenText.value = ''
   addFilter()
   setPagination({
     ...pagination.value,
@@ -121,15 +140,18 @@ const selectColumn = (i) => {
   const operators = availableOperators()
   const defaultOperators = {
     numeric: 4,
-    string: 6,
-    datetime: 9,
+    string: 5,
+    datetime: 6,
     counter: 14,
-    date: 18,
-    options: 20,
+    date: 8,
+    options: 10,
   }
 
   const op = operators[defaultOperators[type]]
-  filterCandidates.value[i].operator = op
+  if (op) {
+    filterCandidates.value[i].operator = op
+    filterCandidates.value[i].operatorData = JSON.stringify(op)
+  }
   filterCandidates.value[i].query_1 = null
   filterCandidates.value[i].query_2 = null
 }
@@ -139,7 +161,8 @@ const selectOperator = (i) => {
   filterCandidates.value[i].query_1 = null
   filterCandidates.value[i].query_2 = null
   dateQuery.value = null
-  dateBetween.value = null
+  dateBetween.value = []
+  dateBetweenText.value = ''
 
   switch (operatorObj.name) {
     case 'in_the_past':
@@ -165,17 +188,39 @@ onMounted(() => {
 
 <template>
   <div class="q-pa-xs filter-component" style="border-radius: 20px">
-    <div class="q-pa-sm fit row justify-end items-start content-start">
+    <div class="q-pa-sm fit row justify-end items-center">
+      <div class="col-auto" v-if="filterCandidates.length > 1">
+        <q-btn-toggle
+          v-model="pagination.filter_match"
+          toggle-color="primary"
+          :options="[
+            { label: 'Y (AND)', value: 'and' },
+            { label: 'O (OR)', value: 'or' },
+          ]"
+          @update:model-value="applyFilter"
+        />
+      </div>
+
       <div class="col-auto">
         <q-btn-group flat>
-          <q-btn flat color="white" @click="addFilter" icon="add">
+          <q-btn
+            flat
+            color="white"
+            @click="addFilter"
+            icon="add"
+            :disable="filterCandidates.length >= 3"
+          >
             <q-tooltip
               class="bg-grey-10"
               anchor="center left"
               self="center right"
               :offset="[10, 10]"
             >
-              Añadir filtro a la búsqueda
+              {{
+                filterCandidates.length >= 3
+                  ? 'Se permiten como máximo 3 filtros'
+                  : `Añadir filtro a la búsqueda ${filterCandidates.length}/3`
+              }}
             </q-tooltip>
           </q-btn>
           <q-btn
@@ -198,6 +243,7 @@ onMounted(() => {
         </q-btn-group>
       </div>
     </div>
+
     <div
       class="q-ma-xs-sm q-ma-sm-sm q-ma-md q-ma-lg-md"
       v-for="(f, i) in filterCandidates"

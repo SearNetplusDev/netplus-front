@@ -14,7 +14,7 @@ export const state = () => ({
   pagination: {
     sortBy: 'id',
     descending: false,
-    filterMatch: 'and',
+    filter_match: 'and',
     page: 1,
     rowsPerPage: 10,
     rowsNumber: 10,
