@@ -4,14 +4,13 @@ import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
-import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
 import InventoryFormDialog from 'components/infrastructure/equipment/InventoryFormDialog.vue'
+import InventoryLogDialog from 'components/infrastructure/equipment/InventoryLogDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const currentItem = ref(0)
-const showDeleteItem = ref(false)
-const deleteProps = ref([])
+const showHistoryDialog = ref(false)
 const columns = [
   { name: 'id', label: 'ID', sortable: true, align: 'center' },
   {
@@ -59,17 +58,13 @@ const edit = (itm) => {
   currentItem.value = itm
   dataViewer.changeShowForm(2)
 }
-const showDeleteDialog = (id, name) => {
-  showDeleteItem.value = true
-  deleteProps.value = {
-    title: 'Eliminar',
-    message: `¿Deseas eliminar el  ${name} de los registros?`,
-    id: id,
-    url: '/api/v1//',
-  }
+const logDialog = (itm) => {
+  showHistoryDialog.value = true
+  currentItem.value = itm
 }
-const resetShowDeleteItem = () => {
-  showDeleteItem.value = false
+const restartValues = () => {
+  currentItem.value = 0
+  showHistoryDialog.value = false
 }
 watch(showForm, (newVal) => {
   if (newVal === 1) {
@@ -81,16 +76,12 @@ watch(showForm, (newVal) => {
 </script>
 <template>
   <div>
-    <template v-if="showDeleteItem">
-      <DeleteItemDialog
-        :data="deleteProps"
-        :visible="showDeleteItem"
-        @hide-dialog="resetShowDeleteItem"
-      />
-    </template>
-
     <template v-if="showForm !== 0">
       <BaseDialog :id="currentItem" :content="InventoryFormDialog" />
+    </template>
+
+    <template v-if="showHistoryDialog">
+      <InventoryLogDialog :id="currentItem" :visible="showHistoryDialog" @hide="restartValues" />
     </template>
 
     <BaseDataTable :columns="columns">
@@ -149,13 +140,13 @@ watch(showForm, (newVal) => {
                 </q-tooltip>
               </q-btn>
               <q-btn
-                color="negative"
-                icon="delete_forever"
+                color="blue-grey-10"
+                icon="history"
                 size="sm"
-                @click="showDeleteDialog(props.row?.id, props.row?.name)"
+                @click="logDialog(props.row?.id)"
               >
                 <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
-                  Eliminar a {{ props.row?.name }}
+                  Historial del equipo {{ props.row?.mac_address }}
                 </q-tooltip>
               </q-btn>
             </q-btn-group>

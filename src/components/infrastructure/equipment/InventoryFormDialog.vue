@@ -165,8 +165,8 @@ const getData = () => {
 
       manageTechnicianField()
 
-      if (fields.technician && itm.technician_id) {
-        fields.technician.data = itm.technician_id
+      if (fields.technician && itm.last_technician) {
+        fields.technician.data = itm.last_technician?.technician_id
       }
       title.value = `Editar datos del equipo  ${itm.mac_address}`
     })
