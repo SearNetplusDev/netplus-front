@@ -189,17 +189,17 @@ onMounted(() => {
 <template>
   <div class="q-pa-xs filter-component" style="border-radius: 20px">
     <div class="q-pa-sm fit row justify-end items-center">
-      <div class="col-auto" v-if="filterCandidates.length > 1">
-        <q-btn-toggle
-          v-model="pagination.filter_match"
-          toggle-color="primary"
-          :options="[
-            { label: 'Y (AND)', value: 'and' },
-            { label: 'O (OR)', value: 'or' },
-          ]"
-          @update:model-value="applyFilter"
-        />
-      </div>
+      <!--      <div class="col-auto" v-if="filterCandidates.length > 1">-->
+      <!--        <q-btn-toggle-->
+      <!--          v-model="pagination.filter_match"-->
+      <!--          toggle-color="primary"-->
+      <!--          :options="[-->
+      <!--            { label: 'Y (AND)', value: 'and' },-->
+      <!--            { label: 'O (OR)', value: 'or' },-->
+      <!--          ]"-->
+      <!--          @update:model-value="applyFilter"-->
+      <!--        />-->
+      <!--      </div>-->
 
       <div class="col-auto">
         <q-btn-group flat>

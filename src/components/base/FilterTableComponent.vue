@@ -18,25 +18,46 @@ const getOptions = (url, index) => {
 }
 
 const filterChange = (key, model) => {
-  const item = { key, data: model }
-  let update = false
+  // const item = { key, data: model }
+  // let update = false
+  //
+  // for (let i = 0; i < useDataViewer.externalFilters.length; i++) {
+  //   if (useDataViewer.externalFilters[i].key === key) {
+  //     useDataViewer.setExternalFilters({ key: i, option: 'splice', value: null })
+  //   } else {
+  //     useDataViewer.setExternalFilters({ key: i, option: 'replace', value: null })
+  //   }
+  //   update = true
+  //   break
+  // }
+  //
+  // if (!update) {
+  //   useDataViewer.setExternalFilters({
+  //     key: useDataViewer.externalFilters.length,
+  //     option: 'push',
+  //     value: item,
+  //   })
+  // }
+  // useDataViewer.fetch({ force: true })
 
-  for (let i = 0; i < useDataViewer.externalFilters.length; i++) {
-    if (useDataViewer.externalFilters[i].key === key) {
-      useDataViewer.setExternalFilters({ key: i, option: 'splice', value: null })
-    } else {
-      useDataViewer.setExternalFilters({ key: i, option: 'replace', value: null })
+  if (!model || model.length === 0) {
+    const existingIndex = useDataViewer.externalFilters.findIndex((filter) => filter.key === key)
+    if (existingIndex !== -1) {
+      useDataViewer.setExternalFilters({ key: existingIndex, option: 'splice', value: null })
     }
-    update = true
-    break
-  }
+  } else {
+    const item = { key, data: model }
+    const existingIndex = useDataViewer.externalFilters.findIndex((filter) => filter.key === key)
 
-  if (!update) {
-    useDataViewer.setExternalFilters({
-      key: useDataViewer.externalFilters.length,
-      option: 'push',
-      value: item,
-    })
+    if (existingIndex !== -1) {
+      useDataViewer.setExternalFilters({ key: existingIndex, option: 'replace', value: item })
+    } else {
+      useDataViewer.setExternalFilters({
+        key: useDataViewer.externalFilters.length,
+        option: 'push',
+        value: item,
+      })
+    }
   }
   useDataViewer.fetch({ force: true })
 }

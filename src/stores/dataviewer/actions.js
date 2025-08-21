@@ -42,10 +42,12 @@ export const actions = {
     cancelSource.setSource()
     clearTimeout(timeoutReload)
   },
+
   fetch(data = {}) {
     return new Promise((resolve, reject) => {
       try {
         this.cancelRequest()
+
         const pag = this.pagination ?? {
           sortBy: 'id',
           descending: false,
@@ -54,6 +56,7 @@ export const actions = {
           rowsPerPage: 10,
           rowsNumber: 10,
         }
+
         const pagination = {
           order_column: pag.sortBy,
           order_direction: pag.descending ? 'desc' : 'asc',
@@ -63,12 +66,18 @@ export const actions = {
           total: pag.rowsNumber,
         }
 
-        //  External filters
         let f = {}
         let externalFilters = this.externalFilters || []
-        if (externalFilters.length > 0) {
-          externalFilters = externalFilters.filter((val) => val.data?.length > 0)
-        }
+
+        externalFilters = externalFilters.filter((filter) => {
+          return (
+            filter &&
+            filter.key &&
+            filter.data &&
+            Array.isArray(filter.data) &&
+            filter.data.length > 0
+          )
+        })
 
         externalFilters.forEach((filter, i) => {
           f[`e[${i}][column]`] = filter.key
@@ -112,15 +121,19 @@ export const actions = {
                 rowsNumber: response.data.collection.total,
               }
             }
-            resolve()
+            resolve(response.data)
           })
           .catch((err) => {
-            console.error(`Error en dataviewer store: ${err}`)
-            this.resetCollection()
+            if (err.name !== 'CanceledError') {
+              console.error(`Error en dataviewer store: ${err}`)
+              this.resetCollection()
+            }
             reject(err)
           })
           .finally(() => {
+            // if (!data?.skipAutoRefresh) {
             timeoutReload = setTimeout(() => this.fetch({ force: false }), 60000)
+            // }
           })
       } catch (err) {
         console.error(`Error detectado en fetch data: ${err}`)
