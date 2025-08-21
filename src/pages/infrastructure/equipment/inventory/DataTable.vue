@@ -23,6 +23,11 @@ const columns = [
     align: 'left',
   },
   {
+    name: 'client',
+    label: 'Asignado a',
+    align: 'left',
+  },
+  {
     name: 'type',
     label: 'Tipo de equipo',
     filterable: true,
@@ -99,6 +104,12 @@ watch(showForm, (newVal) => {
               :label="props.row?.status?.name"
               class="text-center text-weight-bold q-py-xs"
             />
+          </q-td>
+
+          <!--    Client    -->
+          <q-td key="client" class="text-left copy-text" :props="props">
+            {{ props.row.on_service?.service?.client?.name }}
+            {{ props.row.on_service?.service?.client?.surname }}
           </q-td>
 
           <!--    Type    -->

@@ -3,6 +3,7 @@ import { ref, onMounted, reactive, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import GeneralitiesForm from 'components/services/general/GeneralitiesForm.vue'
 import InternetCredentialsForm from 'components/services/internet/InternetCredentialsForm.vue'
+import EquipmentDataTable from 'components/services/equipments/EquipmentDataTable.vue'
 
 const props = defineProps({
   data: {
@@ -142,7 +143,9 @@ onMounted(() => {
         <InternetCredentialsForm :service="currentService.id" />
       </q-card-section>
 
-      <q-card-section v-if="menu[2].state === true">Equipos instalados</q-card-section>
+      <q-card-section v-if="menu[2].state === true">
+        <EquipmentDataTable :service="currentService.id" />
+      </q-card-section>
 
       <q-card-section v-if="menu[3].state === true">
         <GeneralitiesForm :service="currentService" @record-created="handleRecordCreated" />
