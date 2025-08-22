@@ -4,6 +4,8 @@ import { useLoading } from 'src/utils/loader.js'
 import { api } from 'boot/axios.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import { useNotifications } from 'src/utils/notification.js'
+import EquipmentFormDialog from 'components/services/equipments/EquipmentFormDialog.vue'
+import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
 
 const props = defineProps({
   service: {
@@ -16,6 +18,21 @@ const { copy } = useClipboard()
 const { showNotification } = useNotifications()
 const loading = ref(false)
 const url = '/api/v1/services/equipment/'
+const showDeleteItem = ref(false)
+const deleteProps = ref([])
+const showDeleteDialog = (id, type, brand, model, mac) => {
+  showDeleteItem.value = true
+  deleteProps.value = {
+    title: 'Desvincular equipo',
+    message: `¿Deseas desvincular el equipo tipo: ${type} ${brand} ${model} con MAC ${mac} de este servicio?`,
+    id: id,
+    url: url,
+  }
+}
+const resetShowDeleteItem = () => {
+  showDeleteItem.value = false
+  getEquipment()
+}
 const equipment = ref([])
 const columns = [
   {
@@ -78,6 +95,10 @@ const getEquipment = () => {
       }, 300)
     })
 }
+const refreshComponent = () => {
+  isVisible.value = false
+  getEquipment()
+}
 onMounted(() => {
   getEquipment()
 })
@@ -137,9 +158,22 @@ onMounted(() => {
           <template v-slot:body-cell-actions="props">
             <q-td key="actions" :props="props">
               <q-btn-group>
-                <q-btn color="primary" icon="edit" size="sm" @click="edit(props.row?.id)">
-                  <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-9">
-                    Editar info. del equipo con mac {{ props.row?.mac_address }}
+                <q-btn
+                  color="negative"
+                  icon="mdi-access-point-remove"
+                  size="sm"
+                  @click="
+                    showDeleteDialog(
+                      props.row?.id,
+                      props.row.equipment?.type?.name,
+                      props.row?.equipment?.brand?.name,
+                      props.row?.equipment?.model?.name,
+                      props.row?.equipment?.mac_address,
+                    )
+                  "
+                >
+                  <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
+                    Retirar equipo con mac {{ props.row?.equipment?.mac_address }}
                   </q-tooltip>
                 </q-btn>
               </q-btn-group>
@@ -148,6 +182,18 @@ onMounted(() => {
         </q-table>
       </div>
     </div>
+
+    <template v-if="isVisible">
+      <EquipmentFormDialog :service="props.service" :visible="isVisible" @hide="refreshComponent" />
+    </template>
+
+    <template v-if="showDeleteItem">
+      <DeleteItemDialog
+        :data="deleteProps"
+        :visible="showDeleteItem"
+        @hide-dialog="resetShowDeleteItem"
+      />
+    </template>
   </div>
 </template>
 
