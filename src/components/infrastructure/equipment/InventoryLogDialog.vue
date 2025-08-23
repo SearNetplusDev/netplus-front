@@ -83,6 +83,7 @@ onMounted(() => {
     transition-show="slide-up"
     transition-hide="jump-down"
     backdrop-filter="blur(4px) saturate(150%)"
+    full-width
   >
     <q-card dark flat style="width: 1000px; max-width: 100vw" class="custom-cards">
       <q-card-section class="row items-center q-pb-none">
