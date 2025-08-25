@@ -49,6 +49,7 @@ const onRequest = (prop) => {
       :columns="props.columns"
       @request="onRequest"
       v-model:pagination="paginate"
+      no-data-label="Sin resultados"
     >
       <template v-slot:header="props">
         <FilterTableComponent :props="props" />
