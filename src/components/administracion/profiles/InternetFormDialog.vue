@@ -15,98 +15,49 @@ const props = defineProps({
   id: Number,
 })
 const url = 'api/v1/management/profiles/internet/'
-const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  alias: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Alias',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  mk_profile: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Perfil Principal',
-    // type: 'select',
-    // rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  debt_profile: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Perfil Deuda',
-    // type: 'select',
-    type: 'text',
-    rules: [],
-  },
-  net_value: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Valor Neto',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-    disabled: true,
-  },
-  iva: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'IVA',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-    disabled: true,
-  },
-  price: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Precio',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) =>
-        /^\d{1,4}(\.\d{8})?$/.test(val) ||
-        'Formato inválido (debe contener de 1 a 4 cifras y 8 decimales)',
-    ],
-  },
-  expiration: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Fecha de vencimiento',
-    type: 'date',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    type: 'toggle',
-    label: 'Estado',
-  },
-  description: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Descripción',
-    type: 'text-area',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-})
 const locale = LocaleEs
+const validationRules = {
+  text_required: (val) => !!val || 'Campo requerido',
+  number_format: (val) =>
+    /^\d{1,4}\.\d{8}$/.test(val) ||
+    'Formato inválido (debe contener de 1 a 4 cifras y 8 decimales)',
+  number_stb: (val) => /^[0-9]$/.test(val) || 'Solo se admiten números del 0 al 9',
+}
+const createField = (label, type, rules = [], disabled = false) => ({
+  data: null,
+  error: false,
+  label,
+  type,
+  rules,
+  disabled: disabled,
+})
+const createToggleField = (label, type) => ({
+  data: false,
+  error: false,
+  label,
+  type,
+})
+const fields = reactive({
+  name: createField('Nombre del perfil', 'text', [validationRules.text_required]),
+  alias: createField('Alias del perfil', 'text', [validationRules.text_required]),
+  mk_profile: createField('Perfil principal', 'text', [validationRules.text_required]),
+  debt_profile: createField('Perfil deuda', 'text'),
+  net_value: createField('Valor neto', 'text', [validationRules.text_required], true),
+  iva: createField('IVA', 'text', [validationRules.text_required], true),
+  price: createField('Precio', 'text-price', [
+    validationRules.text_required,
+    validationRules.number_format,
+  ]),
+  expiration: createField('Fecha de vencimiento', 'date', [validationRules.text_required]),
+  iptv: createToggleField('Tiene IPTV', 'toggle'),
+  ftth: createToggleField('Fibra óptica', 'toggle'),
+  status: createToggleField('Estado', 'toggle'),
+  stb: createField('STB permitidas', 'text', [
+    validationRules.text_required,
+    validationRules.number_stb,
+  ]),
+  description: createField('Descripcion', 'text-area', [validationRules.text_required]),
+})
 const getData = () => {
   showLoading()
   loading.value = true
@@ -127,6 +78,9 @@ const getData = () => {
       fields.price.data = itm.price
       fields.expiration.data = itm.expiration_date
       fields.status.data = itm.status_id
+      fields.iptv.data = itm.iptv
+      fields.ftth.data = itm.ftth
+      fields.stb.data = itm.allowed_stb
       title.value = `Editar datos del perfil ${itm.name}`
     })
     .catch((err) => {
@@ -142,6 +96,8 @@ const getData = () => {
 const sendData = () => {
   let request = ''
   let status = fields.status.data ? 1 : 0
+  let iptv = fields.iptv.data ? 1 : 0
+  let fiber = fields.ftth.data ? 1 : 0
   let params = new FormData()
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
@@ -150,13 +106,16 @@ const sendData = () => {
   params.append('name', fields.name.data)
   params.append('alias', fields.alias.data)
   params.append('description', fields.description.data)
-  params.append('main_profile', fields.mk_profile.data)
-  params.append('debt_profile', fields.debt_profile.data)
+  if (fields.mk_profile.data) params.append('main_profile', fields.mk_profile.data)
+  if (fields.debt_profile.data) params.append('debt_profile', fields.debt_profile.data)
   params.append('net_value', fields.net_value.data)
   params.append('iva', fields.iva.data)
   params.append('price', fields.price.data)
   params.append('expires', fields.expiration.data)
+  params.append('iptv', iptv)
+  params.append('ftth', fiber)
   params.append('status', status)
+  if (fields.stb.data) params.append('stb', fields.stb.data)
   props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
 
@@ -181,16 +140,53 @@ const sendData = () => {
       }, 1000)
     })
 }
+const formatPriceWith8Decimals = (value) => {
+  if (!value || value === '') return ''
+  const cleanValue = value.toString().replace(/[^\d.]/g, '')
+
+  if (!cleanValue.includes('.')) {
+    return cleanValue + '.00000000'
+  }
+
+  const parts = cleanValue.split('.')
+  const integerPart = parts[0]
+  const decimalPart = parts[1] || ''
+  const formattedDecimals = decimalPart.padEnd(8, '0'.substring(0, 8))
+  return `${integerPart}.${formattedDecimals}`
+}
+const handlePriceBlur = () => {
+  if (fields.price.data && fields.price.data !== '') {
+    fields.price.data = formatPriceWith8Decimals(fields.price.data)
+  }
+}
 watch(
   () => fields.price.data,
   (newPrice) => {
-    const price = parseFloat(newPrice)
-    if (!isNaN(price)) {
-      fields.net_value.data = (price / 1.13).toFixed(8)
-      fields.iva.data = ((price / 1.13) * 0.13).toFixed(8)
+    if (newPrice && newPrice !== '') {
+      const price = parseFloat(newPrice)
+      if (!isNaN(price)) {
+        fields.net_value.data = (price / 1.13).toFixed(8)
+        fields.iva.data = ((price / 1.13) * 0.13).toFixed(8)
+      }
     } else {
-      fields.iva.data = 0.0
-      fields.net_value.data = 0.0
+      fields.iva.data = '0.00000000'
+      fields.net_value.data = '0.00000000'
+    }
+  },
+)
+const isFieldDisabled = (fieldName, field) => {
+  if (fieldName === 'stb') {
+    return field.disabled || !fields.iptv.data
+  }
+  return field.disabled
+}
+watch(
+  () => fields.iptv.data,
+  (newIptvVal) => {
+    if (!newIptvVal) {
+      fields.stb.data = '0'
+      fields.stb.error = false
+      fields.stb['error-message'] = ''
     }
   },
 )
@@ -266,11 +262,29 @@ onMounted(() => {
                       lazy-rules
                       v-model="field.data"
                       v-if="!loading"
+                      :disable="isFieldDisabled(index, field)"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                    />
+                  </div>
+
+                  <div v-if="field.type === 'text-price'">
+                    <q-input
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      lazy-rules
+                      v-model="field.data"
+                      v-if="!loading"
                       :disable="field.disabled"
                       :label="field.label"
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
+                      @blur="handlePriceBlur"
                     />
                   </div>
 

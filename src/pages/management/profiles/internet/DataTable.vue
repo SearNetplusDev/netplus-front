@@ -4,14 +4,11 @@ import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
-import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
 import InternetFormDialog from 'components/administracion/profiles/InternetFormDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const currentItem = ref(0)
-const showDeleteItem = ref(false)
-const deleteProps = ref([])
 const columns = [
   { name: 'id', label: 'ID', sortable: true, align: 'center' },
   {
@@ -26,6 +23,29 @@ const columns = [
   { name: 'name', label: 'Nombre', align: 'left' },
   { name: 'alias', label: 'Alias', align: 'left' },
   { name: 'price', label: 'Precio', align: 'left' },
+  {
+    name: 'iptv',
+    label: 'IPTV',
+    filterable: true,
+    model: [],
+    options: [
+      { id: 0, name: 'Sin IPTV' },
+      { id: 1, name: 'Con IPTV' },
+    ],
+    align: 'left',
+  },
+  {
+    name: 'ftth',
+    label: 'Tipo',
+    filterable: true,
+    model: [],
+    options: [
+      { id: 0, name: 'Inalámbrico' },
+      { id: 1, name: 'FTTH' },
+    ],
+    align: 'left',
+  },
+  { name: 'stb', label: 'STB permitidas', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
@@ -33,17 +53,8 @@ const edit = (itm) => {
   currentItem.value = itm
   dataViewer.changeShowForm(2)
 }
-const showDeleteDialog = (id, name) => {
-  showDeleteItem.value = true
-  deleteProps.value = {
-    title: 'Eliminar Perfil',
-    message: `¿Deseas eliminar el perfil ${name} de los registros?`,
-    id: id,
-    url: '/api/v1/management/profiles/internet/',
-  }
-}
-const resetShowDeleteItem = () => {
-  showDeleteItem.value = false
+const formatPrice = (price) => {
+  return parseFloat(price || 0).toFixed(2)
 }
 watch(showForm, (newVal) => {
   if (newVal === 1) {
@@ -55,14 +66,6 @@ watch(showForm, (newVal) => {
 </script>
 <template>
   <div>
-    <template v-if="showDeleteItem">
-      <DeleteItemDialog
-        :data="deleteProps"
-        :visible="showDeleteItem"
-        @hide-dialog="resetShowDeleteItem"
-      />
-    </template>
-
     <template v-if="showForm !== 0">
       <BaseDialog :id="currentItem" :content="InternetFormDialog" />
     </template>
@@ -105,13 +108,31 @@ watch(showForm, (newVal) => {
           </q-td>
 
           <!--    Price     -->
-          <q-td
-            key="price"
-            class="text-left copy-text"
-            :props="props"
-            @click="copy(props.row?.price)"
-          >
-            $ {{ props.row?.price }}
+          <q-td key="price" class="text-left copy-text" :props="props">
+            $ {{ formatPrice(props.row?.price) }}
+          </q-td>
+
+          <!--    IPTV    -->
+          <q-td key="iptv" :props="props" class="copy-text">
+            <q-icon
+              :name="props.row.iptv ? 'mdi-television-box' : 'mdi-web'"
+              color="white"
+              size="sm"
+            />
+          </q-td>
+
+          <!--    FTTH    -->
+          <q-td key="ftth" :props="props" class="copy-text">
+            <q-icon
+              :name="props.row.ftth ? 'mdi-router-network' : 'mdi-access-point'"
+              color="white"
+              size="sm"
+            />
+          </q-td>
+
+          <!--    STB   -->
+          <q-td key="stb" :props="props" class="copy-text">
+            {{ props.row.allowed_stb }}
           </q-td>
 
           <!--    Actions    -->
@@ -120,16 +141,6 @@ watch(showForm, (newVal) => {
               <q-btn color="primary" icon="edit" size="sm" @click="edit(props.row?.id)">
                 <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
                   Editar info. de {{ props.row?.name }}
-                </q-tooltip>
-              </q-btn>
-              <q-btn
-                color="negative"
-                icon="delete_forever"
-                size="sm"
-                @click="showDeleteDialog(props.row?.id, props.row?.name)"
-              >
-                <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
-                  Eliminar a {{ props.row?.name }}
                 </q-tooltip>
               </q-btn>
             </q-btn-group>
