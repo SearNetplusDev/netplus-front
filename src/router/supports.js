@@ -10,12 +10,12 @@ const supports = [
       //   component: () => import('pages/supports/status/IndexPage.vue'),
       //   meta: { requiresAuth: true, title: 'Soportes', permissions: [45] },
       // },
-      // {
-      //   path: 'tipos',
-      //   name: 'soportes.tipos',
-      //   component: () => import('pages/supports/status/IndexPage.vue'),
-      //   meta: { requiresAuth: true, title: 'Tipos de soportes', permissions: [46] },
-      // },
+      {
+        path: 'tipos',
+        name: 'soportes.tipos',
+        component: () => import('pages/supports/types/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Tipos de soportes', permissions: [46] },
+      },
       {
         path: 'estados',
         name: 'soportes.estados',
