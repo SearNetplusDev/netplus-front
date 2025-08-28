@@ -1,168 +1,83 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { api } from 'boot/axios.js'
-import LocaleEs from 'src/utils/composables/localeEs.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
+import {
+  handleSubmissionError,
+  resetFieldErrors,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
-import { handleSubmissionError, resetFieldErrors } from 'src/utils/composables/useFormHandler.js'
+import { useSupportDataStore } from 'stores/client_services/supportData.js'
+import LocaleEs from 'src/utils/composables/localeEs.js'
 
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const supportStore = useSupportDataStore()
 const props = defineProps({
   service: {
     type: Object,
     required: true,
   },
 })
+const emit = defineEmits(['record-created'])
 const url = '/api/v1/services/'
 const loading = ref(false)
-const fields = reactive({
-  code: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Código',
-    type: 'text',
-    rules: [],
-  },
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [],
-  },
-  node: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nodo',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  equipment: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Equipo',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  installation_date: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Fecha de instalación',
-    type: 'date',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  technician: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Instalador',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  lat: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Latitud',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) =>
-        /^([-+]?(90(\.0{6,})?|[0-8]?\d(\.\d{6,})?))$/.test(val) ||
-        'Formato incorrecto para latitud',
-    ],
-  },
-  long: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Longitud',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) =>
-        /^([-+]?(180(\.0{6,})?|1[0-7]\d(\.\d{6,})?|[0-9]?\d(\.\d{6,})?))$/.test(val) ||
-        'Formato incorrecto para longitud',
-    ],
-  },
-  state: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Departamento',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  municipality: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Municipio',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  district: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Distrito',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  separation: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'Factura independiente',
-    type: 'toggle',
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'Estado',
-    type: 'toggle',
-  },
-  address: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Dirección',
-    type: 'textarea',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  comments: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Observaciones',
-    type: 'textarea',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-})
 const locale = LocaleEs
+const validationRules = {
+  text_required: (val) => (val && val.length > 0) || 'Campo requerido',
+  select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
+  latitude: (val) =>
+    /^([-+]?(90(\.0{6,})?|[0-8]?\d(\.\d{6,})?))$/.test(val) || 'Formato incorrecto para latitud',
+  longitude: (val) =>
+    /^([-+]?(180(\.0{6,})?|1[0-7]\d(\.\d{6,})?|[0-9]?\d(\.\d{6,})?))$/.test(val) ||
+    'Formato incorrecto para longitud',
+}
+const createField = (label, type, rules = []) => ({
+  data: null,
+  error: false,
+  'error-message': '',
+  label,
+  type,
+  rules,
+})
+const createToggleField = (label) => ({
+  data: false,
+  error: false,
+  'error-message': '',
+  label,
+  type: 'toggle',
+})
+const fields = reactive({
+  code: createField('Código', 'text'),
+  name: createField('Nombre', 'text'),
+  node: createField('Nodo', 'select', [validationRules.select_required]),
+  equipment: createField('Equipo', 'select', [validationRules.select_required]),
+  installation_date: createField('Fecha de instalación', 'date', [validationRules.text_required]),
+  technician: createField('Instalador', 'select', [validationRules.select_required]),
+  lat: createField('Latitud', 'text', [validationRules.text_required, validationRules.latitude]),
+  long: createField('Longitud', 'text', [validationRules.text_required, validationRules.longitude]),
+  state: createField('Departamento', 'select', [validationRules.select_required]),
+  municipality: createField('Municipio', 'select', [validationRules.select_required]),
+  district: createField('Distrito', 'select', [validationRules.select_required]),
+  separation: createToggleField('Factura independiente', 'toggle'),
+  status: createToggleField('Estado', 'toggle'),
+  address: createField('Dirección', 'text-area', [validationRules.text_required]),
+  comments: createField('Observaciones', 'text-area'),
+})
 const external = reactive({
-  nodes: [],
   equipment: [],
-  technicians: [],
-  states: [],
   municipalities: [],
   districts: [],
 })
 const getOptions = (key) => {
   return (
     {
-      node: external.nodes,
+      node: supportStore.nodes,
       equipment: external.equipment,
-      technician: external.technicians,
-      state: external.states,
+      technician: supportStore.technicians,
+      state: supportStore.states,
       municipality: external.municipalities,
       district: external.districts,
     }[key] || []
@@ -267,118 +182,76 @@ const onMunicipalityChange = async (reload) => {
     showNotification('Error', 'Error al cargar distritos', 'red-10')
   }
 }
-const emit = defineEmits(['record-created'])
-const getServiceData = () => {
+const getServiceData = async () => {
+  if (!props.service?.id) return
   loading.value = true
   showLoading()
-  let params = new FormData()
-  params.append('id', props.service.id)
-  api
-    .post(`${url}edit`, params)
-    .then((res) => {
-      let item = res.data.service
-      fields.code.data = item.code || null
-      fields.name.data = item.name || null
-      fields.node.data = item.node_id
-      fields.equipment.data = item.equipment_id
-      fields.installation_date.data = item.installation_date
-      fields.technician.data = item.technician_id
-      fields.lat.data = item.latitude
-      fields.long.data = item.longitude
-      fields.state.data = item.state_id
-      fields.municipality.data = item.municipality_id
-      fields.district.data = item.district_id
-      fields.separation.data = item.separate_billing
-      fields.status.data = item.status_id
-      fields.address.data = item.address
-      fields.comments.data = item.comments || null
-      onNodeChange(false)
-      onStateChange(false)
-      onMunicipalityChange(false)
-    })
-    .catch((err) => {
-      console.error(err)
-      // showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 300)
-    })
-}
-const sendData = () => {
-  let status = fields.status.data ? 1 : 0
-  let independent = fields.separation.data ? 1 : 0
-  let params = new FormData()
-  loading.value = true
-  showLoading()
-  resetFieldErrors(fields)
-
-  //  Asegurar que siempre haya un client_id válido
-  const clientId = props.service.client_id
-  if (!clientId) {
-    showNotification('Error', 'No se puede identificar el cliente', 'red-10')
-    loading.value = false
+  try {
+    let params = new FormData()
+    params.append('id', props.service?.id)
+    const { data } = await api.post(`${url}edit`, params)
+    let item = data.service
+    fields.code.data = item.code
+    fields.name.data = item.name
+    fields.node.data = item.node_id
+    fields.equipment.data = item.equipment_id
+    fields.installation_date.data = item.installation_date
+    fields.technician.data = item.technician_id
+    fields.lat.data = item.latitude
+    fields.long.data = item.longitude
+    fields.state.data = item.state_id
+    fields.municipality.data = item.municipality_id
+    fields.district.data = item.district_id
+    fields.separation.data = !!item.separate_billing
+    fields.status.data = !!item.status_id
+    fields.address.data = item.address
+    fields.comments.data = item.comments
+    await onNodeChange(false)
+    await onStateChange(false)
+    await onMunicipalityChange(false)
+  } catch (err) {
+    console.error(err)
+    showNotification('Error', err, 'red-10')
+  } finally {
     hideLoading()
-    return
+    loading.value = false
   }
-  // params.append('client', props.service.client_id)
-  params.append('client', clientId)
-  if (fields.code.data) params.append('code', fields.code.data ?? null)
-  if (fields.name.data) params.append('name', fields.name.data ?? null)
-  params.append('node', fields.node.data)
-  params.append('equipment', fields.equipment.data)
-  params.append('installation_date', fields.installation_date.data)
-  params.append('technician', fields.technician.data)
-  params.append('lat', fields.lat.data)
-  params.append('long', fields.long.data)
-  params.append('state', fields.state.data)
-  params.append('municipality', fields.municipality.data)
-  params.append('district', fields.district.data)
-  params.append('address', fields.address.data)
-  params.append('separation', independent)
-  params.append('status', status)
-  if (fields.comments.data) params.append('comments', fields.comments.data)
-
-  //  Determinar si es creación o actualización
-  let isUpdate = props.service.id && props.service.id > 0
-  params.append('_method', isUpdate ? 'PUT' : 'POST')
-  let request = isUpdate ? `${url}${props.service.id}` : url
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        let item = res.data.service
-        emit('record-created', {
-          id: item?.id,
-          client_id: item?.client_id,
-        })
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 1000)
-    })
 }
-
+const sendData = async () => {
+  let clientId = props.service?.client_id
+  if (!clientId) {
+    showNotification('Error', 'Cliente no identificado.', 'red-10')
+    // return
+  }
+  resetFieldErrors(fields)
+  Object.assign(fields, { client: { data: clientId } })
+  let isUpdate = props.service?.id && props.service?.id > 0
+  let params = buildFormData(fields, { _method: isUpdate ? 'PUT' : 'POST' })
+  const request = isUpdate ? `${url}${props.service?.id}` : url
+  loading.value = true
+  showLoading()
+  try {
+    let { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Éxito', 'Registro almacenado correctamente', 'blue-grey-10')
+      emit('record-created', { id: data.service?.id, client_id: data.service?.client_id })
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'teal-10')
+    }
+  } catch (err) {
+    console.error(err)
+    handleSubmissionError(err, fields)
+    showNotification('Error', err, 'red-10')
+  } finally {
+    hideLoading()
+    loading.value = false
+  }
+}
 onMounted(async () => {
-  if (props.service?.id && Number(props.service.id) > 0) getServiceData()
-  external.nodes = await getSupportData('/api/v1/general/infrastructure/nodes')
-  external.states = await getSupportData('/api/v1/general/states')
-  external.technicians = await getSupportData('/api/v1/general/management/users/technicians')
+  await supportStore.load()
+  if (props.service?.id) await getServiceData()
 })
 </script>
-
 <template>
   <div class="row wrap full-width justify-start items-start content-start">
     <q-form class="full-width" greedy @submit="sendData">
@@ -474,39 +347,41 @@ onMounted(async () => {
           </div>
           <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
         </div>
-
-        <div class="row col-12">
-          <div class="col-12 q-pa-sm">
-            <q-input
-              v-model="fields.address.data"
-              outlined
-              dark
-              dense
-              type="textarea"
-              label="Dirección"
-              v-if="!loading"
-              :error="fields.address.error"
-              :error-message="fields.address['error-message']"
-            />
-            <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
-          </div>
-
-          <div class="col-12 q-pa-sm">
-            <q-input
-              v-model="fields.comments.data"
-              outlined
-              dark
-              dense
-              type="textarea"
-              label="Observaciones"
-              v-if="!loading"
-              :error="fields.comments.error"
-              :error-message="fields.comments['error-message']"
-            />
-            <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
-          </div>
+      </div>
+      <div class="row col-12">
+        <div class="col-12 q-pa-sm">
+          <q-input
+            v-model="fields.address.data"
+            outlined
+            dark
+            dense
+            clearable
+            type="textarea"
+            label="Dirección"
+            v-if="!loading"
+            :error="fields.address.error"
+            :error-message="fields.address['error-message']"
+          />
+          <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
         </div>
       </div>
+
+      <div class="col-12 q-pa-sm">
+        <q-input
+          v-model="fields.comments.data"
+          outlined
+          dark
+          dense
+          clearable
+          type="textarea"
+          label="Observaciones"
+          v-if="!loading"
+          :error="fields.comments.error"
+          :error-message="fields.comments['error-message']"
+        />
+        <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
+      </div>
+
       <div class="full-width row wrap justify-end">
         <q-btn
           icon="save"
@@ -524,5 +399,4 @@ onMounted(async () => {
     </q-form>
   </div>
 </template>
-
-<style scoped></style>
+<style lang="sass" scoped></style>

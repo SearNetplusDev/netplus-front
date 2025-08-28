@@ -12,15 +12,23 @@ export function buildFormData(fields, extras = {}) {
   for (const [key, field] of Object.entries(fields)) {
     if ('data' in field) {
       // If it's boolean converting to numeric
-      let value = typeof field.data === 'boolean' ? Number(field.data) : field.data
-      if (key === 'pwd' && !value) continue // avoid empty passwords
-      form.append(key, value)
+      //     let value = typeof field.data === 'boolean' ? Number(field.data) : field.data
+      //     if (key === 'pwd' && !value) continue // avoid empty passwords
+      //     form.append(key, value)
+      const val = convertValue(field.data)
+      if (val === '') continue
+      if (key === 'pwd' && !val) continue
+      form.append(key, val)
     }
   }
-
   //  Extras like permissions or _method
-  Object.entries(extras).forEach(([key, val]) => form.append(key, val))
-
+  // Object.entries(extras).forEach(([key, val]) => form.append(key, val))
+  //
+  Object.entries(extras).forEach(([key, val]) => {
+    if (val !== '' && val !== null && val !== undefined) {
+      form.append(key, val)
+    }
+  })
   return form
 }
 
@@ -35,7 +43,17 @@ export function handleSubmissionError(error, fields) {
         field['error-message'] = messages ? messages[0] : ''
       }
     }
-  }else{
+  } else {
     console.error('La regamos')
   }
+}
+
+function convertValue(val) {
+  if (typeof val === 'boolean') {
+    return val ? '1' : '0'
+  }
+  if (val === null || val === undefined) {
+    return ''
+  }
+  return String(val)
 }

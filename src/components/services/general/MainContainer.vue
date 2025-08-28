@@ -1,63 +1,43 @@
 <script setup>
-import { ref, onMounted, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useQuasar } from 'quasar'
 import GeneralitiesForm from 'components/services/general/GeneralitiesForm.vue'
-import InternetCredentialsForm from 'components/services/internet/InternetCredentialsForm.vue'
-import EquipmentDataTable from 'components/services/equipments/EquipmentDataTable.vue'
 
+const InternetCredentialsForm = defineAsyncComponent(
+  () => import('components/services/internet/InternetCredentialsForm.vue'),
+)
+const EquipmentDataTable = defineAsyncComponent(
+  () => import('components/services/equipments/EquipmentDataTable.vue'),
+)
 const props = defineProps({
-  data: {
-    type: Object,
-    required: true,
-    default: () => {},
-  },
-  showDrawer: {
-    type: Boolean,
-    default: true,
-  },
+  data: Object,
+  showDrawer: { type: Boolean, default: true },
 })
 const $q = useQuasar()
 const drawer = ref(false)
+const currentService = ref({})
+const isNewService = ref(false)
 const menu = reactive([
-  { id: 1, icon: 'mdi-clipboard-outline', label: 'Datos generales', state: false },
+  { id: 1, icon: 'mdi-clipboard-outline', label: 'Datos generales', state: true },
   { id: 2, icon: 'mdi-cloud-key', label: 'Credenciales de internet', state: false },
   { id: 3, icon: 'mdi-router-wireless', label: 'Equipos instalados', state: false },
   { id: 4, icon: 'add', label: 'Nuevo servicio', state: false },
 ])
-const currentService = ref({})
-const isNewService = ref(false)
-const createNewServiceObject = () => {
-  let clientId = null
-  if (props.data.client_id) {
-    clientId = props.data.client_id
-  } else if (props.data.id) {
-    clientId = props.data.id
-  } else if (typeof props.data === Object && Object.keys(props.data).length > 0) {
-    clientId = Object.values(props.data).find(
-      (val) => typeof val === 'number' || (typeof val === 'string' && !isNaN(val)),
-    )
-  }
-  return {
-    client_id: clientId,
-  }
-}
 const emit = defineEmits(['service-updated'])
+const createNewServiceObject = () => ({
+  client_id: props.data?.client_id ?? props.data?.id ?? null,
+})
 const updateCurrentService = () => {
   if (isNewService.value) {
     currentService.value = createNewServiceObject()
+  } else if (props.data?.id) {
+    currentService.value = props.data
   } else {
-    if (props.data.id) {
-      currentService.value = props.data
-    } else {
-      currentService.value = createNewServiceObject()
-    }
+    currentService.value = createNewServiceObject()
   }
 }
 const setMenu = (itm) => {
-  menu.forEach((el) => {
-    itm === el.id ? (el.state = true) : (el.state = false)
-  })
-
+  menu.forEach((el) => (el.state = el.id === itm))
   if (itm === 4) {
     isNewService.value = true
     currentService.value = createNewServiceObject()
@@ -67,11 +47,7 @@ const setMenu = (itm) => {
   }
 }
 const handleRecordCreated = (payload) => {
-  currentService.value = {
-    ...currentService.value,
-    id: payload.id,
-    client_id: payload.client_id,
-  }
+  currentService.value = { ...currentService.value, ...payload }
   emit('service-updated', currentService.value)
   if (isNewService.value) {
     isNewService.value = false
@@ -81,26 +57,20 @@ const handleRecordCreated = (payload) => {
 }
 watch(
   () => props.showDrawer,
-  (newVal) => {
-    drawer.value = newVal
-  },
+  (val) => (drawer.value = val),
   { immediate: true },
 )
 watch(
-  () => props.data,
-  (newData, oldData) => {
-    console.log('props.data cambió de: ', oldData, 'a: ', newData)
-    updateCurrentService()
+  () => props.data?.id,
+  (newId, oldId) => {
+    if (newId !== oldId) updateCurrentService()
   },
-  { deep: true, immediate: false },
 )
 onMounted(() => {
-  menu[0].state = true
   drawer.value = props.showDrawer
   updateCurrentService()
 })
 </script>
-
 <template>
   <div class="row">
     <q-drawer
@@ -134,24 +104,23 @@ onMounted(() => {
       </q-scroll-area>
     </q-drawer>
 
-    <q-card class="custom-cards full-width" flat style="border: 0">
-      <q-card-section v-if="menu[0].state === true">
+    <q-card class="custom-cards full-width" flat style="border: none !important">
+      <q-card-section v-if="menu[0].state">
         <GeneralitiesForm :service="currentService" @record-created="handleRecordCreated" />
       </q-card-section>
 
-      <q-card-section v-if="menu[1].state === true">
+      <q-card-section v-if="menu[1].state">
         <InternetCredentialsForm :service="currentService.id" />
       </q-card-section>
 
-      <q-card-section v-if="menu[2].state === true">
+      <q-card-section v-if="menu[2].state">
         <EquipmentDataTable :service="currentService.id" />
       </q-card-section>
 
-      <q-card-section v-if="menu[3].state === true">
+      <q-card-section v-if="menu[3].state">
         <GeneralitiesForm :service="currentService" @record-created="handleRecordCreated" />
       </q-card-section>
     </q-card>
   </div>
 </template>
-
-<style scoped></style>
+<style lang="sass" scoped></style>
