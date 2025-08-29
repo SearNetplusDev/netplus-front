@@ -56,6 +56,17 @@ const columns = [
   },
   { name: 'mac', label: 'Dirección MAC', align: 'left' },
   { name: 'branch', label: 'Sucursal', align: 'left' },
+  {
+    name: 'company',
+    label: 'Empresa',
+    filterable: true,
+    model: [],
+    options: [
+      { id: 1, name: 'Netplus' },
+      { id: 2, name: 'Cable Color' },
+    ],
+    align: 'left',
+  },
   { name: 'actions', label: '', align: 'center' },
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
@@ -140,6 +151,11 @@ watch(showForm, (newVal) => {
           <!--    Branch     -->
           <q-td key="branch" class="text-left copy-text" :props="props">
             {{ props.row?.branch?.name }}
+          </q-td>
+
+          <!--    Company     -->
+          <q-td key="company" class="text-left copy-text" :props="props">
+            {{ props.row?.company?.name }}
           </q-td>
 
           <!--    Actions    -->

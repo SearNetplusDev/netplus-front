@@ -38,6 +38,7 @@ const createConditionalFields = () => {
     model: createField('Modelo', 'select-filter', [validationRules.select_required]),
     branch: createField('Sucursal', 'select', [validationRules.select_required]),
     status: createField('Estado', 'select', [validationRules.select_required]),
+    company: createField('Empresa', 'select', [validationRules.select_required]),
   }
 
   if (props.id > 0) {
@@ -57,6 +58,7 @@ const fieldOrder = [
   'model',
   'branch',
   'status',
+  'company',
   'mac',
   'serial',
   'technician',
@@ -106,6 +108,7 @@ const external = reactive({
   status: [],
   filteredModels: [],
   technicians: [],
+  companies: [],
 })
 const selectOptions = (key) => {
   return (
@@ -115,8 +118,55 @@ const selectOptions = (key) => {
       branch: external.branches,
       status: external.status,
       technician: external.technicians,
+      company: external.companies,
     }[key] || []
   )
+}
+const onSelectChange = (name, val) => {
+  switch (name) {
+    case 'type':
+      console.log('Tipo seleccionado: ', val)
+      fields.type.data = val
+      break
+    case 'brand':
+      fields.brand.data = val
+      onBrandChange(true)
+      break
+    case 'model':
+      console.log('Modelo seleccionado: ', val)
+      fields.model.data = val
+      break
+    case 'branch':
+      console.log('Sucursal seleccionada: ', val)
+      fields.branch.data = val
+      break
+    case 'status':
+      console.log('Estado seleccionado: ', val)
+      fields.status.data = val
+      break
+    case 'technician':
+      console.log('Técnico seleccionado: ', val)
+      fields.technician.data = val
+      break
+    case 'company':
+      console.log('Empresa seleccionada: ', val)
+      fields.company.data = val
+      break
+  }
+}
+const onBrandChange = async (reload) => {
+  if (!fields.brand.data) return
+  if (reload) {
+    fields.model.data = null
+    external.models = []
+  }
+  try {
+    external.models = await getSupportData(
+      `api/v1/general/infrastructure/brand/${fields.brand.data}/models`,
+    )
+  } catch (err) {
+    showNotification('Error', err, 'red-10')
+  }
 }
 const filterModels = (val, update) => {
   if (val === '') {
@@ -162,6 +212,7 @@ const getData = () => {
       fields.serial.data = itm.serial_number
       fields.status.data = itm.status_id
       fields.comments.data = itm.comments
+      fields.company.data = itm.company_id
 
       manageTechnicianField()
 
@@ -229,13 +280,29 @@ const sendData = () => {
 onMounted(async () => {
   title.value = 'Registrar equipos'
   if (props.id > 0) getData()
-  external.branches = await getSupportData('/api/v1/general/branches')
-  external.brands = await getSupportData('api/v1/general/infrastructure/brands')
-  external.models = await getSupportData('api/v1/general/infrastructure/models')
-  external.types = await getSupportData('api/v1/general/infrastructure/types')
-  external.status = await getSupportData('api/v1/general/infrastructure/status')
-  external.technicians = await getSupportData('api/v1/general/management/users/technicians')
-  external.filteredModels = external.models
+
+  try {
+    const [branches, brands, types, status, technicians] = await Promise.all([
+      getSupportData('/api/v1/general/branches'),
+      getSupportData('api/v1/general/infrastructure/brands'),
+      getSupportData('api/v1/general/infrastructure/types'),
+      getSupportData('api/v1/general/infrastructure/status'),
+      getSupportData('api/v1/general/management/users/technicians'),
+    ])
+    external.branches = branches
+    external.brands = brands
+    external.types = types
+    external.status = status
+    external.technicians = technicians
+    external.companies = [
+      { id: 1, name: 'Netplus' },
+      { id: 2, name: 'Cable Color' },
+    ]
+    external.filteredModels = external.models
+  } catch (err) {
+    console.error(err)
+    showNotification('Error', err, 'red-10')
+  }
 })
 </script>
 
@@ -336,6 +403,7 @@ onMounted(async () => {
                         :options="selectOptions(index)"
                         :option-value="(opt) => opt.id"
                         :option-label="(opt) => opt.name"
+                        @update:model-value="onSelectChange(index, $event)"
                       />
                     </div>
 

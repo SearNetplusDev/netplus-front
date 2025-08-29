@@ -21,7 +21,8 @@ const menu = reactive([
   { id: 1, icon: 'mdi-clipboard-outline', label: 'Datos generales', state: true },
   { id: 2, icon: 'mdi-cloud-key', label: 'Credenciales de internet', state: false },
   { id: 3, icon: 'mdi-router-wireless', label: 'Equipos instalados', state: false },
-  { id: 4, icon: 'add', label: 'Nuevo servicio', state: false },
+  { id: 4, icon: 'mdi-set-top-box', label: 'Información STB', state: false },
+  { id: 5, icon: 'add', label: 'Nuevo servicio', state: false },
 ])
 const emit = defineEmits(['service-updated'])
 const createNewServiceObject = () => ({
@@ -38,7 +39,7 @@ const updateCurrentService = () => {
 }
 const setMenu = (itm) => {
   menu.forEach((el) => (el.state = el.id === itm))
-  if (itm === 4) {
+  if (itm === 5) {
     isNewService.value = true
     currentService.value = createNewServiceObject()
   } else {
@@ -118,6 +119,10 @@ onMounted(() => {
       </q-card-section>
 
       <q-card-section v-if="menu[3].state">
+        Información STB
+      </q-card-section>
+
+      <q-card-section v-if="menu[4].state">
         <GeneralitiesForm :service="currentService" @record-created="handleRecordCreated" />
       </q-card-section>
     </q-card>
