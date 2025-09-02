@@ -18,7 +18,7 @@ const props = defineProps({
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
 const isVisible = ref(props.visible)
-const uri = 'api/v1/infrastructure/equipment/inventory/search/'
+const uri = 'api/v1/infrastructure/equipment/inventory/internet/search/'
 const loading = ref(false)
 const createField = (label, type, rules = []) => ({
   data: null,
@@ -69,7 +69,7 @@ const sendData = () => {
   showLoading()
   resetFieldErrors(fields)
   let params = new FormData()
-  let uri = 'api/v1/services/equipment/'
+  let uri = 'api/v1/services/equipment/internet/'
   params.append('equipment', fields.equipment.data)
   params.append('service', props.service)
   api
@@ -142,7 +142,15 @@ const sendData = () => {
                   :option-label="(opt) => opt.name"
                   @filter="filterEquipment"
                   @filter-abort="clearFilters"
-                />
+                >
+                  <template v-slot:no-option>
+                    <q-item>
+                      <q-item-section class="text-italic text-grey">
+                        Sin resultados
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
               </div>
 
               <q-skeleton v-if="loading" class="q-my-xs" dark animation="fade" type="QInput" />

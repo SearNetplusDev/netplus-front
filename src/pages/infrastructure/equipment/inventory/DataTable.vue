@@ -109,7 +109,7 @@ watch(showForm, (newVal) => {
           </q-td>
 
           <!--    Status    -->
-          <q-td key="status" :props="props">
+          <q-td key="client" class="text-left copy-text" :props="props">
             <q-badge
               :color="props.row?.status?.badge_color"
               :label="props.row?.status?.name"
@@ -118,9 +118,16 @@ watch(showForm, (newVal) => {
           </q-td>
 
           <!--    Client    -->
-          <q-td key="client" class="text-left copy-text" :props="props">
-            {{ props.row.on_service?.service?.client?.name }}
-            {{ props.row.on_service?.service?.client?.surname }}
+          <q-td key="status" :props="props">
+            <template v-if="props.row.on_internet_service">
+              {{ props.row.on_internet_service?.service?.client?.name }}
+              {{ props.row.on_internet_service?.service?.client?.surname }}
+            </template>
+
+            <template v-if="props.row.on_iptv_service">
+              {{ props.row.on_iptv_service?.service?.client?.name }}
+              {{ props.row.on_iptv_service?.service?.client?.surname }}
+            </template>
           </q-td>
 
           <!--    Type    -->

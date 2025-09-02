@@ -17,7 +17,7 @@ const { showLoading, hideLoading } = useLoading()
 const { copy } = useClipboard()
 const { showNotification } = useNotifications()
 const loading = ref(false)
-const url = '/api/v1/services/equipment/'
+const url = '/api/v1/services/equipment/internet/'
 const showDeleteItem = ref(false)
 const deleteProps = ref([])
 const showDeleteDialog = (id, type, brand, model, mac) => {

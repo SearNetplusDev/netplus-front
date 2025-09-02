@@ -9,6 +9,7 @@ const InternetCredentialsForm = defineAsyncComponent(
 const EquipmentDataTable = defineAsyncComponent(
   () => import('components/services/equipments/EquipmentDataTable.vue'),
 )
+const IPTVDataTable = defineAsyncComponent(() => import('components/services/iptv/DataTable.vue'))
 const props = defineProps({
   data: Object,
   showDrawer: { type: Boolean, default: true },
@@ -119,7 +120,7 @@ onMounted(() => {
       </q-card-section>
 
       <q-card-section v-if="menu[3].state">
-        Información STB
+        <IPTVDataTable :service="currentService.id" />
       </q-card-section>
 
       <q-card-section v-if="menu[4].state">
