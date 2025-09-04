@@ -21,6 +21,7 @@ const columns = [
     align: 'left',
   },
   { name: 'name', label: 'Tipo de soporte', align: 'left' },
+  { name: 'price', label: 'Precio', align: 'left' },
   { name: 'color', label: 'Color', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ]
@@ -63,6 +64,11 @@ watch(showForm, (newVal) => {
           <!--    Name    -->
           <q-td key="name" class="text-left copy-text" :props="props">
             {{ props.row?.name }}
+          </q-td>
+
+          <!--    Price   -->
+          <q-td key="price" class="text-left copy-text" :props="props">
+            $ {{ props.row.price }}
           </q-td>
 
           <!--    Color     -->

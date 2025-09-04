@@ -3,7 +3,11 @@ import { onMounted, reactive, ref } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { handleSubmissionError, resetFieldErrors } from 'src/utils/composables/useFormHandler.js'
+import {
+  handleSubmissionError,
+  resetFieldErrors,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const props = defineProps({
@@ -19,6 +23,7 @@ const loading = ref(false)
 const uri = '/api/v1/supports/types/'
 const validationRules = {
   text_required: (val) => !!val || 'Campo requerido',
+  decimal: (val) => /^\d{1,4}\.\d{2}$/.test(val) || 'Solo se admiten decimales',
 }
 const createField = (label, type, rules = []) => ({
   data: null,
@@ -36,6 +41,7 @@ const createToggleField = (label, type, rules = []) => ({
 })
 const fields = reactive({
   name: createField('Nombre', 'text', [validationRules.text_required]),
+  price: createField('Precio', 'numeric', [validationRules.text_required, validationRules.decimal]),
   badge: createField('Color', 'text'),
   status: createToggleField('Estado', 'toggle'),
 })
@@ -51,6 +57,7 @@ const getData = () => {
       let item = res.data.type
       fields.name.data = item.name
       fields.badge.data = item.badge_color
+      fields.price.data = item.price
       fields.status.data = item.status_id
       title.value = 'Modificar información del soporte tipo: ' + item.name
     })
@@ -64,40 +71,51 @@ const getData = () => {
       }, 300)
     })
 }
-const sendData = () => {
+const sendData = async () => {
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
   let method = props.id > 0 ? 'PUT' : 'POST'
   let request = props.id > 0 ? `${uri}${props.id}` : uri
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
-  params.append('_method', method)
-  params.append('name', fields.name.data)
-  if (fields.badge.data) params.append('badge', fields.badge.data)
-  params.append('status', status)
+  let params = buildFormData(fields, { _method: method })
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      title.value = `Modificar información del tipo: ${data.type?.name}`
+      showNotification('Éxito', 'Registro almacenado correctamente', 'blue-grey-10')
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'teal-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    const message = err.response?.data?.message || err.message || 'Error inesperado'
+    showNotification('Error', message, 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 300)
+  }
+}
+const formatPriceWith2Decimals = (value) => {
+  if (!value || value === '') return ''
+  const cleanValue = value.toString().replace(/[^\d.]/g, '')
 
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Éxito', 'Registro almacenado correctamente', 'blue-grey-10')
-        title.value = `Modificar información del soporte tipo: ${res.data.type?.name}`
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 300)
-    })
+  if (!cleanValue.includes('.')) {
+    return cleanValue + '.00'
+  }
+
+  const parts = cleanValue.split('.')
+  const integerPart = parts[0]
+  const decimalPart = parts[1] || ''
+  const formattedDecimals = decimalPart.padEnd(2, '0'.substring(0, 2))
+  return `${integerPart}.${formattedDecimals}`
+}
+const handlePriceBlur = () => {
+  if (fields.price.data && fields.price.data !== '') {
+    fields.price.data = formatPriceWith2Decimals(fields.price.data)
+  }
 }
 onMounted(() => {
   if (props.id > 0) getData()
@@ -160,7 +178,7 @@ onMounted(() => {
                   v-for="(field, index) in fields"
                   :key="index"
                 >
-                  <div v-if="field.type === 'text'">
+                  <template v-if="field.type === 'text'">
                     <q-input
                       dense
                       dark
@@ -174,9 +192,30 @@ onMounted(() => {
                       :error="field.error"
                       :error-message="field['error-message']"
                     />
-                  </div>
+                  </template>
 
-                  <div v-if="field.type === 'toggle'">
+                  <template v-if="field.type === 'numeric'">
+                    <q-input
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      lazy-rules
+                      v-model="field.data"
+                      v-if="!loading"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      @blur="handlePriceBlur"
+                    >
+                      <template v-slot:prepend>
+                        <q-icon name="mdi-currency-usd" />
+                      </template>
+                    </q-input>
+                  </template>
+
+                  <template v-if="field.type === 'toggle'">
                     <q-toggle
                       v-model="field.data"
                       :label="field.label"
@@ -188,7 +227,7 @@ onMounted(() => {
                       :error="fields.status.error"
                       :error-message="fields.status['error-message']"
                     />
-                  </div>
+                  </template>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </div>
               </div>
