@@ -1,10 +1,13 @@
 <script setup>
 import { reactive, onMounted } from 'vue'
+import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
+import LocaleEs from 'src/utils/composables/localeEs.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showNotification } = useNotifications()
+const locale = LocaleEs
 const props = defineProps({
   id: {
     type: Number,
@@ -27,22 +30,62 @@ const createField = (label, type, rules = []) => ({
   type,
   rules,
 })
-const fields = reactive({
+const createBaseFields = () => ({
   type: createField('Tipo de soporte', 'select', [validationRules.select_required]),
+  client: createField('Cliente', 'select-filter', [validationRules.select_required]),
+  profile: createField('Perfil', 'select', [validationRules.select_required]),
+  initial_date: createField('Fecha de inicio del contrato', 'date', [
+    validationRules.text_required,
+  ]),
+  final_date: createField('Fecha finalización del contrato', 'date', [
+    validationRules.text_required,
+  ]),
+  node: createField('Nodo', 'select', [validationRules.select_required]),
+  equipment: createField('Equipo', 'select', [validationRules.select_required]),
+  branch: createField('Sucursal', 'select', [validationRules.select_required]),
+  status: createField('Estado', 'select', [validationRules.select_required]),
 })
+const fields = reactive(createBaseFields())
 const external = reactive({
   branches: [],
   statuses: [],
   technicians: [],
   types: [],
+  client: [],
+  filtered_client: [],
 })
 const selectOptions = (key) => {
   return (
     {
       type: external.types,
+      branch: external.branches,
+      status: external.statuses,
     }[key] || []
   )
 }
+const selectClient = (val, update) => {
+  const uri = '/api/v1/clients/search/'
+
+  if (!val || val.length < 4) {
+    update(() => {
+      external.filtered_client = external.client
+    })
+    return
+  }
+
+  update(async () => {
+    try {
+      const { data } = await api.post(uri, { client: val })
+      // const searchResults = data.clients ?? []
+      external.filtered_client = data.clients ?? []
+    } catch (err) {
+      console.error(err)
+      const message = err.response?.data?.message || err.message || 'Error inesperado'
+      showNotification('Error', message, 'red-10')
+    }
+  })
+}
+const clearFilter = () => {}
 const getData = () => {}
 const sendData = async () => {}
 
@@ -145,6 +188,68 @@ onMounted(async () => {
                       :option-label="(opt) => opt.name"
                     />
                   </template>
+
+                  <!--    Render Select Filter   -->
+                  <template v-if="field.type === 'select-filter'">
+                    <q-select
+                      v-model="field.data"
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                      lazy-rules
+                      use-input
+                      input-debounce="0"
+                      v-if="!uiStates.loading"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :options="external.filtered_client"
+                      :option-value="(opt) => opt.id"
+                      :option-label="(opt) => opt.name"
+                      @filter="selectClient"
+                      @filter-abort="clearFilter"
+                    />
+                  </template>
+
+                  <!--    Render Input Date   -->
+                  <div v-if="field.type === 'date'">
+                    <q-input
+                      dark
+                      dense
+                      outlined
+                      clearable
+                      v-model="field.data"
+                      v-if="!uiStates.loading"
+                      :rules="field.rules"
+                      :label="field.label"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                    >
+                      <template v-slot:append>
+                        <q-icon name="event" class="cursor-pointer">
+                          <q-popup-proxy cover transiton-show="scale" transition-hide="scale">
+                            <q-date
+                              v-model="field.data"
+                              mask="YYYY-MM-DD"
+                              :locale="locale"
+                              color="blue-10"
+                            >
+                              <div class="row items-center justify-end">
+                                <q-btn v-close-popup label="Cerrar" color="white" flat />
+                              </div>
+                            </q-date>
+                          </q-popup-proxy>
+                        </q-icon>
+                      </template>
+                    </q-input>
+                  </div>
 
                   <q-skeleton
                     class="q-my-xs"
