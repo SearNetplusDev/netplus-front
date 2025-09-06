@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
+import LocaleEs from 'src/utils/composables/localeEs.js'
 
 const useDataViewer = useDataviewerStore()
 const filterCandidates = ref([])
@@ -178,6 +179,7 @@ const selectOperator = (i) => {
 const validateF = (f) => {
   return f.operator.component === 'single'
 }
+const locale = LocaleEs
 onMounted(() => {
   if (filterable.value?.filterGroups?.length > 0) {
     filterGroups.value = filterable.value.filterGroups
@@ -341,7 +343,7 @@ onMounted(() => {
                   transition-show="flip-down"
                   transition-hide="flip-up"
                 >
-                  <q-date minimal dark v-model="dateQuery" mask="YYYY-MM-DD">
+                  <q-date minimal dark v-model="dateQuery" mask="YYYY-MM-DD" :locale="locale">
                     <div class="row items-center justify-end">
                       <q-btn flat v-close-popup label="Cerrar" />
                     </div>
@@ -359,7 +361,7 @@ onMounted(() => {
                   transition-show="flip-up"
                   transition-hide="flip-down"
                 >
-                  <q-date minimal dark v-model="dateBetween" range>
+                  <q-date minimal dark v-model="dateBetween" range :locale="locale">
                     <div class="row items-center justify-end">
                       <q-btn v-close-popup label="Cerrar" flat />
                     </div>

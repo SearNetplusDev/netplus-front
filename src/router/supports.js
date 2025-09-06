@@ -4,12 +4,12 @@ const supports = [
     component: () => import('layouts/MainLayout.vue'),
     meta: { requiresAuth: true, permissions: [44] },
     children: [
-      // {
-      //   path: '',
-      //   name: 'soportes.listado',
-      //   component: () => import('pages/supports/status/IndexPage.vue'),
-      //   meta: { requiresAuth: true, title: 'Soportes', permissions: [45] },
-      // },
+      {
+        path: '',
+        name: 'soportes',
+        component: () => import('pages/supports/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Soportes', permissions: [44] },
+      },
       {
         path: 'tipos',
         name: 'soportes.tipos',
