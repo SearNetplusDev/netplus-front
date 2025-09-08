@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, onMounted } from 'vue'
+import { reactive, onMounted, computed } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
@@ -19,6 +19,17 @@ const uiStates = reactive({
   loading: false,
 })
 // const url = '/api/v1/supports/'
+const SUPPORT_TYPES = {
+  INTERNET_INSTALLATION: 1,
+  IPTV_INSTALLATION: 2,
+  INTERNET_SUPPORT: 3,
+  IPTV_SUPPORT: 4,
+  CHANGE_ADDRESS: 5,
+  INTERNET_RENEWAL: 6,
+  IPTV_RENEWAL: 7,
+  UNINSTALLATION: 8,
+  EQUIPMENT_SALE: 9,
+}
 const validationRules = {
   text_required: (val) => (val && val.length > 0) || 'Campo requerido',
   select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
@@ -33,26 +44,197 @@ const createField = (label, type, rules = []) => ({
 const createBaseFields = () => ({
   type: createField('Tipo de soporte', 'select', [validationRules.select_required]),
   client: createField('Cliente', 'select-filter', [validationRules.select_required]),
-  profile: createField('Perfil', 'select', [validationRules.select_required]),
+  service: createField('Servicio', 'select', [validationRules.select_required]),
+  profile: createField('Perfil de navegación', 'select', [validationRules.select_required]),
   initial_date: createField('Fecha de inicio del contrato', 'date', [
     validationRules.text_required,
   ]),
-  final_date: createField('Fecha finalización del contrato', 'date', [
-    validationRules.text_required,
-  ]),
+  final_date: createField('Fecha caducidad del contrato', 'date', [validationRules.text_required]),
   node: createField('Nodo', 'select', [validationRules.select_required]),
   equipment: createField('Equipo', 'select', [validationRules.select_required]),
+  description: createField('Descripción del soporte', 'textarea-md', [
+    validationRules.text_required,
+  ]),
   branch: createField('Sucursal', 'select', [validationRules.select_required]),
+  technician: createField('Técnico', 'select', [validationRules.select_required]),
+  state: createField('Departamento', 'select', [validationRules.select_required]),
+  municipality: createField('Municipio', 'select', [validationRules.select_required]),
+  district: createField('Distrito', 'select', [validationRules.select_required]),
   status: createField('Estado', 'select', [validationRules.select_required]),
+  address: createField('Dirección', 'textarea-md', [validationRules.text_required]),
+  solution: createField('Solución', 'textarea-md'),
+  comments: createField('Observaciones', 'textarea-md'),
 })
 const fields = reactive(createBaseFields())
+const FIELDS_BY_TYPE = {
+  [SUPPORT_TYPES.INTERNET_INSTALLATION]: [
+    'type',
+    'client',
+    'profile',
+    'initial_date',
+    'final_date',
+    'node',
+    'equipment',
+    'branch',
+    'technician',
+    'state',
+    'municipality',
+    'district',
+    'status',
+    'description',
+    'address',
+    'solution',
+    'comments',
+  ],
+  [SUPPORT_TYPES.IPTV_INSTALLATION]: [
+    'type',
+    'client',
+    'profile',
+    'initial_date',
+    'final_date',
+    'node',
+    'equipment',
+    'branch',
+    'technician',
+    'state',
+    'municipality',
+    'district',
+    'status',
+    'description',
+    'address',
+    'solution',
+    'comments',
+  ],
+  [SUPPORT_TYPES.INTERNET_SUPPORT]: [
+    'type',
+    'client',
+    'service',
+    'branch',
+    'technician',
+    'state',
+    'municipality',
+    'district',
+    'status',
+    'description',
+    'address',
+    'solution',
+    'comments',
+  ],
+  [SUPPORT_TYPES.IPTV_SUPPORT]: [
+    'type',
+    'client',
+    'service',
+    'branch',
+    'technician',
+    'state',
+    'municipality',
+    'district',
+    'status',
+    'description',
+    'address',
+    'solution',
+    'comments',
+  ],
+  [SUPPORT_TYPES.INTERNET_RENEWAL]: [
+    'type',
+    'client',
+    'service',
+    'profile',
+    'initial_date',
+    'final_date',
+    'node',
+    'equipment',
+    'branch',
+    'technician',
+    'state',
+    'municipality',
+    'district',
+    'status',
+    'description',
+    'address',
+    'solution',
+    'comments',
+  ],
+  [SUPPORT_TYPES.IPTV_RENEWAL]: [
+    'type',
+    'client',
+    'service',
+    'profile',
+    'initial_date',
+    'final_date',
+    'node',
+    'equipment',
+    'branch',
+    'technician',
+    'state',
+    'municipality',
+    'district',
+    'status',
+    'description',
+    'address',
+    'solution',
+    'comments',
+  ],
+  [SUPPORT_TYPES.CHANGE_ADDRESS]: [
+    'type',
+    'client',
+    'service',
+    'node',
+    'equipment',
+    'branch',
+    'technician',
+    'state',
+    'municipality',
+    'district',
+    'status',
+    'description',
+    'address',
+    'solution',
+    'comments',
+  ],
+  [SUPPORT_TYPES.EQUIPMENT_SALE]: [
+    'type',
+    'client',
+    'service',
+    'branch',
+    'technician',
+    'state',
+    'municipality',
+    'district',
+    'status',
+    'description',
+    'address',
+    'solution',
+    'comments',
+  ],
+}
+const visibleFields = computed(() => {
+  const type = fields.type.data
+  if (!type) return ['type'] // Inicialmente solo mostrar "type"
+  return FIELDS_BY_TYPE[type] || ['type']
+})
+const regularFields = computed(() => {
+  return Object.entries(fields).filter(([key, field]) => {
+    return visibleFields.value.includes(key) && !['textarea', 'textarea-md'].includes(field.type)
+  })
+})
+const textAreaFields = computed(() => {
+  return Object.entries(fields).filter(([key, field]) => {
+    return visibleFields.value.includes(key) && ['textarea', 'textarea-md'].includes(field.type)
+  })
+})
 const external = reactive({
   branches: [],
   statuses: [],
   technicians: [],
   types: [],
-  client: [],
   filtered_client: [],
+  profiles: [],
+  nodes: [],
+  equipments: [],
+  states: [],
+  municipalities: [],
+  districts: [],
 })
 const selectOptions = (key) => {
   return (
@@ -60,6 +242,13 @@ const selectOptions = (key) => {
       type: external.types,
       branch: external.branches,
       status: external.statuses,
+      profile: external.profiles,
+      node: external.nodes,
+      equipment: external.equipments,
+      technician: external.technicians,
+      state: external.states,
+      municipality: external.municipalities,
+      district: external.districts,
     }[key] || []
   )
 }
@@ -76,7 +265,6 @@ const selectClient = (val, update) => {
   update(async () => {
     try {
       const { data } = await api.post(uri, { client: val })
-      // const searchResults = data.clients ?? []
       external.filtered_client = data.clients ?? []
     } catch (err) {
       console.error(err)
@@ -88,7 +276,6 @@ const selectClient = (val, update) => {
 const clearFilter = () => {}
 const getData = () => {}
 const sendData = async () => {}
-
 onMounted(async () => {
   if (props.id > 0) getData()
 
@@ -158,10 +345,10 @@ onMounted(async () => {
 
             <!--    Input Content   -->
             <q-card-section>
-              <div class="row wrap full-width justify-start items-start content-start">
+              <div class="row wrap full-width justify-start items-center content-start">
                 <div
-                  class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-md"
-                  v-for="(field, index) in fields"
+                  class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
+                  v-for="[index, field] in regularFields"
                   :key="index"
                 >
                   <!-- Render Select Inputs   -->
@@ -219,7 +406,7 @@ onMounted(async () => {
                   </template>
 
                   <!--    Render Input Date   -->
-                  <div v-if="field.type === 'date'">
+                  <template v-if="field.type === 'date'">
                     <q-input
                       dark
                       dense
@@ -249,7 +436,7 @@ onMounted(async () => {
                         </q-icon>
                       </template>
                     </q-input>
-                  </div>
+                  </template>
 
                   <q-skeleton
                     class="q-my-xs"
@@ -257,6 +444,31 @@ onMounted(async () => {
                     type="QInput"
                     animation="fade"
                     v-if="uiStates.loading"
+                  />
+                </div>
+              </div>
+
+              <!-- Render Text Areas -->
+              <div class="row wrap full-width justify-start items-center content-start">
+                <div
+                  class="col-xs-12 col-sm-12 col-md-6 col-lg-6 q-pa-sm"
+                  v-for="[index, field] in textAreaFields"
+                  :key="`textarea-${index}`"
+                >
+                  <q-input
+                    v-model="field.data"
+                    dark
+                    dense
+                    outlined
+                    clearable
+                    type="textarea"
+                    rows="4"
+                    color="white"
+                    v-if="!uiStates.loading"
+                    :label="field.label"
+                    :rules="field.rules"
+                    :error="field.error"
+                    :error-message="field['error-message']"
                   />
                 </div>
               </div>
