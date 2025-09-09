@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, onMounted, computed } from 'vue'
+import { reactive, onMounted, computed, watch } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
@@ -18,7 +18,7 @@ const uiStates = reactive({
   title: 'Crear Soporte',
   loading: false,
 })
-// const url = '/api/v1/supports/'
+
 const SUPPORT_TYPES = {
   INTERNET_INSTALLATION: 1,
   IPTV_INSTALLATION: 2,
@@ -30,10 +30,12 @@ const SUPPORT_TYPES = {
   UNINSTALLATION: 8,
   EQUIPMENT_SALE: 9,
 }
+
 const validationRules = {
   text_required: (val) => (val && val.length > 0) || 'Campo requerido',
   select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
 }
+
 const createField = (label, type, rules = []) => ({
   data: null,
   error: false,
@@ -41,31 +43,32 @@ const createField = (label, type, rules = []) => ({
   type,
   rules,
 })
-const createBaseFields = () => ({
-  type: createField('Tipo de soporte', 'select', [validationRules.select_required]),
-  client: createField('Cliente', 'select-filter', [validationRules.select_required]),
-  service: createField('Servicio', 'select', [validationRules.select_required]),
-  profile: createField('Perfil de navegación', 'select', [validationRules.select_required]),
-  initial_date: createField('Fecha de inicio del contrato', 'date', [
-    validationRules.text_required,
-  ]),
-  final_date: createField('Fecha caducidad del contrato', 'date', [validationRules.text_required]),
-  node: createField('Nodo', 'select', [validationRules.select_required]),
-  equipment: createField('Equipo', 'select', [validationRules.select_required]),
-  description: createField('Descripción del soporte', 'textarea-md', [
-    validationRules.text_required,
-  ]),
-  branch: createField('Sucursal', 'select', [validationRules.select_required]),
-  technician: createField('Técnico', 'select', [validationRules.select_required]),
-  state: createField('Departamento', 'select', [validationRules.select_required]),
-  municipality: createField('Municipio', 'select', [validationRules.select_required]),
-  district: createField('Distrito', 'select', [validationRules.select_required]),
-  status: createField('Estado', 'select', [validationRules.select_required]),
-  address: createField('Dirección', 'textarea-md', [validationRules.text_required]),
-  solution: createField('Solución', 'textarea-md'),
-  comments: createField('Observaciones', 'textarea-md'),
-})
-const fields = reactive(createBaseFields())
+
+// Definición completa de todos los campos disponibles
+const allFieldDefinitions = {
+  type: () => createField('Tipo de soporte', 'select', [validationRules.select_required]),
+  client: () => createField('Cliente', 'select-filter', [validationRules.select_required]),
+  service: () => createField('Servicio', 'select', [validationRules.select_required]),
+  profile: () => createField('Perfil de navegación', 'select', [validationRules.select_required]),
+  initial_date: () =>
+    createField('Fecha de inicio del contrato', 'date', [validationRules.text_required]),
+  final_date: () =>
+    createField('Fecha caducidad del contrato', 'date', [validationRules.text_required]),
+  node: () => createField('Nodo', 'select', [validationRules.select_required]),
+  equipment: () => createField('Equipo', 'select', [validationRules.select_required]),
+  description: () =>
+    createField('Descripción del soporte', 'textarea-md', [validationRules.text_required]),
+  branch: () => createField('Sucursal', 'select', [validationRules.select_required]),
+  technician: () => createField('Técnico', 'select', [validationRules.select_required]),
+  state: () => createField('Departamento', 'select', [validationRules.select_required]),
+  municipality: () => createField('Municipio', 'select', [validationRules.select_required]),
+  district: () => createField('Distrito', 'select', [validationRules.select_required]),
+  status: () => createField('Estado', 'select', [validationRules.select_required]),
+  address: () => createField('Dirección', 'textarea-md', [validationRules.text_required]),
+  solution: () => createField('Solución', 'textarea-md'),
+  comments: () => createField('Observaciones', 'textarea-md'),
+}
+
 const FIELDS_BY_TYPE = {
   [SUPPORT_TYPES.INTERNET_INSTALLATION]: [
     'type',
@@ -207,22 +210,89 @@ const FIELDS_BY_TYPE = {
     'solution',
     'comments',
   ],
+  [SUPPORT_TYPES.UNINSTALLATION]: [
+    'type',
+    'client',
+    'service',
+    'branch',
+    'technician',
+    'state',
+    'municipality',
+    'district',
+    'status',
+    'description',
+    'address',
+    'solution',
+    'comments',
+  ],
 }
-const visibleFields = computed(() => {
-  const type = fields.type.data
-  if (!type) return ['type'] // Inicialmente solo mostrar "type"
-  return FIELDS_BY_TYPE[type] || ['type']
-})
+
+// Función para crear campos dinámicamente según el tipo
+const createFieldsForType = (supportType) => {
+  const fieldsToCreate = supportType ? FIELDS_BY_TYPE[supportType] || ['type'] : ['type']
+  const newFields = {}
+
+  fieldsToCreate.forEach((fieldName) => {
+    if (allFieldDefinitions[fieldName]) {
+      newFields[fieldName] = allFieldDefinitions[fieldName]()
+    }
+  })
+
+  return newFields
+}
+
+// Inicializar con solo el campo type
+const fields = reactive(createFieldsForType(null))
+
+// Watcher para recrear fields cuando cambie el tipo de soporte
+watch(
+  () => fields.type?.data,
+  (newType, oldType) => {
+    if (newType !== oldType) {
+      // Guardar el valor actual del tipo
+      const currentTypeValue = fields.type?.data
+      const currentTypeField = fields.type
+
+      // Crear nuevos campos para el tipo seleccionado
+      const newFields = createFieldsForType(newType)
+
+      // Limpiar fields actual
+      Object.keys(fields).forEach((key) => {
+        delete fields[key]
+      })
+
+      // Agregar los nuevos campos
+      Object.keys(newFields).forEach((key) => {
+        fields[key] = newFields[key]
+      })
+
+      // Restaurar el valor del tipo si existe
+      if (fields.type && currentTypeValue) {
+        fields.type.data = currentTypeValue
+        // Mantener las propiedades del campo type original
+        Object.keys(currentTypeField).forEach((prop) => {
+          if (prop !== 'data') {
+            fields.type[prop] = currentTypeField[prop]
+          }
+        })
+      }
+    }
+  },
+  { immediate: false },
+)
+
 const regularFields = computed(() => {
-  return Object.entries(fields).filter(([key, field]) => {
-    return visibleFields.value.includes(key) && !['textarea', 'textarea-md'].includes(field.type)
+  return Object.entries(fields).filter(([, field]) => {
+    return !['textarea', 'textarea-md'].includes(field.type)
   })
 })
+
 const textAreaFields = computed(() => {
-  return Object.entries(fields).filter(([key, field]) => {
-    return visibleFields.value.includes(key) && ['textarea', 'textarea-md'].includes(field.type)
+  return Object.entries(fields).filter(([, field]) => {
+    return ['textarea', 'textarea-md'].includes(field.type)
   })
 })
+
 const external = reactive({
   branches: [],
   statuses: [],
@@ -236,6 +306,7 @@ const external = reactive({
   municipalities: [],
   districts: [],
 })
+
 const selectOptions = (key) => {
   return (
     {
@@ -252,6 +323,7 @@ const selectOptions = (key) => {
     }[key] || []
   )
 }
+
 const selectClient = (val, update) => {
   const uri = '/api/v1/clients/search/'
 
@@ -273,9 +345,14 @@ const selectClient = (val, update) => {
     }
   })
 }
+
 const clearFilter = () => {}
 const getData = () => {}
-const sendData = async () => {}
+const sendData = async () => {
+  // Aquí tendrás solo los campos correspondientes al tipo de soporte seleccionado
+  console.log('Campos actuales:', fields)
+}
+
 onMounted(async () => {
   if (props.id > 0) getData()
 
