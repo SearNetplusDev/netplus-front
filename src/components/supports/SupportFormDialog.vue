@@ -18,17 +18,12 @@ const { showLoading, hideLoading } = useLoading()
 const { validationRules, createField } = useFields()
 const locale = LocaleEs
 const props = defineProps({
-  id: {
-    type: Number,
-    required: true,
-  },
+  id: { type: Number, required: true },
 })
 const uiStates = reactive({
   title: 'Crear Soporte',
   loading: false,
-  loadingData: false,
 })
-const url = '/api/v1/supports/'
 const SUPPORT_TYPES = {
   INTERNET_INSTALLATION: 1,
   IPTV_INSTALLATION: 2,
@@ -40,251 +35,86 @@ const SUPPORT_TYPES = {
   UNINSTALLATION: 8,
   EQUIPMENT_SALE: 9,
 }
-const allFieldDefinitions = {
-  type: () => createField('Tipo de soporte', 'select', [validationRules.select_required]),
-  client: () => createField('Cliente', 'select-filter', [validationRules.select_required]),
-  service: () => createField('Servicio', 'select', [validationRules.select_required]),
-  profile: () => createField('Perfil de navegación', 'select', [validationRules.select_required]),
-  initial_date: () =>
-    createField('Fecha de inicio del contrato', 'date', [validationRules.text_required]),
-  final_date: () =>
-    createField('Fecha caducidad del contrato', 'date', [validationRules.text_required]),
-  node: () => createField('Nodo', 'select', [validationRules.select_required]),
-  equipment: () => createField('Equipo', 'select', [validationRules.select_required]),
-  description: () =>
-    createField('Descripción del soporte', 'textarea-md', [validationRules.text_required]),
-  branch: () => createField('Sucursal', 'select', [validationRules.select_required]),
-  technician: () => createField('Técnico', 'select'),
-  state: () => createField('Departamento', 'select', [validationRules.select_required]),
-  municipality: () => createField('Municipio', 'select', [validationRules.select_required]),
-  district: () => createField('Distrito', 'select', [validationRules.select_required]),
-  status: () => createField('Estado', 'select', [validationRules.select_required]),
-  address: () => createField('Dirección', 'textarea-md', [validationRules.text_required]),
-  solution: () => createField('Solución', 'textarea-md'),
-  comments: () => createField('Observaciones', 'textarea-md'),
+// Configuración de campos por tipo
+const FIELD_CONFIG = {
+  base: [
+    'type',
+    'client',
+    'branch',
+    'technician',
+    'state',
+    'municipality',
+    'district',
+    'status',
+    'description',
+    'address',
+    'solution',
+    'comments',
+  ],
+  contract: ['profile', 'initial_date', 'final_date', 'node', 'equipment'],
+  service: ['service'],
 }
 const FIELDS_BY_TYPE = {
-  [SUPPORT_TYPES.INTERNET_INSTALLATION]: [
-    'type',
-    'client',
-    'profile',
-    'initial_date',
-    'final_date',
-    'node',
-    'equipment',
-    'branch',
-    'technician',
-    'state',
-    'municipality',
-    'district',
-    'status',
-    'description',
-    'address',
-    'solution',
-    'comments',
-  ],
-  [SUPPORT_TYPES.IPTV_INSTALLATION]: [
-    'type',
-    'client',
-    'profile',
-    'initial_date',
-    'final_date',
-    'node',
-    'equipment',
-    'branch',
-    'technician',
-    'state',
-    'municipality',
-    'district',
-    'status',
-    'description',
-    'address',
-    'solution',
-    'comments',
-  ],
-  [SUPPORT_TYPES.INTERNET_SUPPORT]: [
-    'type',
-    'client',
-    'service',
-    'branch',
-    'technician',
-    'state',
-    'municipality',
-    'district',
-    'status',
-    'description',
-    'address',
-    'solution',
-    'comments',
-  ],
-  [SUPPORT_TYPES.IPTV_SUPPORT]: [
-    'type',
-    'client',
-    'service',
-    'branch',
-    'technician',
-    'state',
-    'municipality',
-    'district',
-    'status',
-    'description',
-    'address',
-    'solution',
-    'comments',
-  ],
+  [SUPPORT_TYPES.INTERNET_INSTALLATION]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.contract],
+  [SUPPORT_TYPES.IPTV_INSTALLATION]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.contract],
+  [SUPPORT_TYPES.INTERNET_SUPPORT]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service],
+  [SUPPORT_TYPES.IPTV_SUPPORT]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service],
   [SUPPORT_TYPES.INTERNET_RENEWAL]: [
-    'type',
-    'client',
-    'service',
-    'profile',
-    'initial_date',
-    'final_date',
-    'node',
-    'equipment',
-    'branch',
-    'technician',
-    'state',
-    'municipality',
-    'district',
-    'status',
-    'description',
-    'address',
-    'solution',
-    'comments',
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.service,
+    ...FIELD_CONFIG.contract,
   ],
   [SUPPORT_TYPES.IPTV_RENEWAL]: [
-    'type',
-    'client',
-    'service',
-    'profile',
-    'initial_date',
-    'final_date',
-    'node',
-    'equipment',
-    'branch',
-    'technician',
-    'state',
-    'municipality',
-    'district',
-    'status',
-    'description',
-    'address',
-    'solution',
-    'comments',
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.service,
+    ...FIELD_CONFIG.contract,
   ],
   [SUPPORT_TYPES.CHANGE_ADDRESS]: [
-    'type',
-    'client',
-    'service',
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.service,
     'node',
     'equipment',
-    'branch',
-    'technician',
-    'state',
-    'municipality',
-    'district',
-    'status',
-    'description',
-    'address',
-    'solution',
-    'comments',
   ],
-  [SUPPORT_TYPES.EQUIPMENT_SALE]: [
-    'type',
-    'client',
-    'service',
-    'branch',
-    'technician',
-    'state',
-    'municipality',
-    'district',
-    'status',
-    'description',
-    'address',
-    'solution',
-    'comments',
-  ],
-  [SUPPORT_TYPES.UNINSTALLATION]: [
-    'type',
-    'client',
-    'service',
-    'branch',
-    'technician',
-    'state',
-    'municipality',
-    'district',
-    'status',
-    'description',
-    'address',
-    'solution',
-    'comments',
-  ],
+  [SUPPORT_TYPES.EQUIPMENT_SALE]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service],
+  [SUPPORT_TYPES.UNINSTALLATION]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service],
 }
-//  Creando campos dinámicamente según el tipo de soporte
+// Definición de campos usando un objeto más compacto
+const fieldDefs = {
+  type: ['Tipo de soporte', 'select', true],
+  client: ['Cliente', 'select-filter', true],
+  service: ['Servicio', 'select', true],
+  profile: ['Perfil de navegación', 'select', true],
+  initial_date: ['Fecha de inicio del contrato', 'date', true],
+  final_date: ['Fecha caducidad del contrato', 'date', true],
+  node: ['Nodo', 'select', true],
+  equipment: ['Equipo', 'select', true],
+  description: ['Descripción del soporte', 'textarea-md', true],
+  branch: ['Sucursal', 'select', true],
+  technician: ['Técnico', 'select', false],
+  state: ['Departamento', 'select', true],
+  municipality: ['Municipio', 'select', true],
+  district: ['Distrito', 'select', true],
+  status: ['Estado', 'select', true],
+  address: ['Dirección', 'textarea-md', true],
+  solution: ['Solución', 'textarea-md', false],
+  comments: ['Observaciones', 'textarea-md', false],
+}
 const createFieldsForType = (supportType) => {
   const fieldsToCreate = supportType ? FIELDS_BY_TYPE[supportType] || ['type'] : ['type']
   const newFields = {}
 
   fieldsToCreate.forEach((fieldName) => {
-    if (allFieldDefinitions[fieldName]) {
-      newFields[fieldName] = allFieldDefinitions[fieldName]()
-    }
+    const [label, type, required] = fieldDefs[fieldName] || ['', 'text', false]
+    newFields[fieldName] = createField(
+      label,
+      type,
+      required ? [validationRules.select_required] : [],
+    )
   })
+
   return newFields
 }
-//  Inicializar con solo el campo type
 const fields = reactive(createFieldsForType(null))
-
-//  Variable para controlar si se cargan datos existentes
-let isLoadingExistingData = false
-
-//  Watcher para recrear fields cuando cambie el tipo de soporte
-watch(
-  () => fields.type?.data,
-  (newType, oldType) => {
-    if (newType !== oldType && !isLoadingExistingData) {
-      //  Guardar el valor actual del tipo
-      const currentTypeValue = fields.type?.data
-      const currentTypeField = fields.type
-
-      //  Crear nuevos campos para el tipo seleccionado
-      const newFields = createFieldsForType(newType)
-
-      //  Limpiar fields actual
-      Object.keys(fields).forEach((key) => {
-        delete fields[key]
-      })
-
-      //  Agregar los nuevos campos
-      Object.keys(newFields).forEach((key) => {
-        fields[key] = newFields[key]
-      })
-
-      //  Restaurar el valor del tipo si existe
-      if (fields.type && currentTypeValue) {
-        fields.type.data = currentTypeValue
-
-        //  Mantener las propiedades del campo type original
-        Object.keys(currentTypeField).forEach((prop) => {
-          if (prop !== 'data') {
-            fields.type[prop] = currentTypeField[prop]
-          }
-        })
-      }
-    }
-  },
-  { immediate: false },
-)
-const regularFields = computed(() => {
-  return Object.entries(fields).filter(([, field]) => {
-    return !['textarea', 'textarea-md'].includes(field.type)
-  })
-})
-const textAreaFields = computed(() => {
-  return Object.entries(fields).filter(([, field]) => {
-    return ['textarea', 'textarea-md'].includes(field.type)
-  })
-})
 const external = reactive({
   branches: [],
   districts: [],
@@ -299,117 +129,161 @@ const external = reactive({
   technicians: [],
   types: [],
 })
-//  Funciones de carga de datos
-const loadStates = async () => {
-  try {
-    external.states = await getSupportData('/api/v1/general/states')
-  } catch (err) {
-    console.error('Error cargando departamentos: ', err)
-    showNotification('Error', 'Error al cargar los departamentos.', 'red-10')
-  }
-}
-const loadMunicipalities = async (state) => {
-  if (!state) {
-    external.municipalities = []
-    return
-  }
-  try {
-    external.municipalities = await getSupportData(`/api/v1/general/state/${state}/municipalities`)
-  } catch (err) {
-    console.error('Error cargando municipios: ', err)
-    showNotification('Error', 'Error al cargar los municipios.', 'red-10')
-  }
-}
-const loadDistricts = async (municipality) => {
-  if (!municipality) {
-    external.districts = []
-    return
-  }
-  try {
-    external.districts = await getSupportData(
-      `/api/v1/general/municipality/${municipality}/districts`,
-    )
-  } catch (err) {
-    console.error('Error cargando distritos: ', err)
-    showNotification('Error', 'Error al cargar los Distritos.', 'red-10')
-  }
-}
-const loadProfiles = async (supportType) => {
-  try {
-    let profileType = ''
-    if (
-      [SUPPORT_TYPES.INTERNET_INSTALLATION, SUPPORT_TYPES.INTERNET_RENEWAL].includes(supportType)
-    ) {
-      profileType = 'internet'
-    } else if (
-      [SUPPORT_TYPES.IPTV_INSTALLATION, SUPPORT_TYPES.IPTV_RENEWAL].includes(supportType)
-    ) {
-      profileType = 'iptv'
-    }
 
-    if (profileType) {
-      external.profiles = await getSupportData(`/api/v1/general/profiles/select/${profileType}`)
+let isLoadingExistingData = false
+// Función genérica para cargar datos con dependencias
+const loadData = async (endpoint, target, param = '') => {
+  try {
+    external[target] = await getSupportData(`/api/v1/general/${endpoint}${param}`)
+  } catch (err) {
+    console.error(`Error loading ${target}:`, err)
+    showNotification('Error', `Error al cargar ${target}.`, 'red-10')
+  }
+}
+// Funciones de carga simplificadas
+const loadStates = () => loadData('states', 'states')
+const loadMunicipalities = (state) =>
+  state
+    ? loadData(`state/${state}/municipalities`, 'municipalities')
+    : (external.municipalities = [])
+const loadDistricts = (municipality) =>
+  municipality
+    ? loadData(`municipality/${municipality}/districts`, 'districts')
+    : (external.districts = [])
+const loadNodes = () => loadData('infrastructure/nodes', 'nodes')
+const loadEquipments = (nodeId) =>
+  nodeId
+    ? loadData(`infrastructure/node/${nodeId}/equipment`, 'equipments')
+    : (external.equipments = [])
+const loadClientServices = (clientId) =>
+  clientId ? loadData(`../services/client/${clientId}`, 'services') : (external.services = [])
+const loadProfiles = async (supportType) => {
+  const profileType = [
+    SUPPORT_TYPES.INTERNET_INSTALLATION,
+    SUPPORT_TYPES.INTERNET_RENEWAL,
+  ].includes(supportType)
+    ? 'internet'
+    : [SUPPORT_TYPES.IPTV_INSTALLATION, SUPPORT_TYPES.IPTV_RENEWAL].includes(supportType)
+      ? 'iptv'
+      : ''
+
+  if (profileType) await loadData(`profiles/select/${profileType}`, 'profiles')
+}
+// Watcher principal para tipo de soporte
+watch(
+  () => fields.type?.data,
+  async (newType, oldType) => {
+    if (newType === oldType || isLoadingExistingData) return
+
+    // Recrear campos
+    const currentTypeValue = fields.type?.data
+    const newFields = createFieldsForType(newType)
+    Object.keys(fields).forEach((key) => delete fields[key])
+    Object.assign(fields, newFields)
+    if (fields.type) fields.type.data = currentTypeValue
+
+    // Cargar datos dependientes
+    external.profiles = external.nodes = external.equipments = external.services = []
+    await loadProfiles(newType)
+
+    const needsNodes = [1, 2, 5, 6, 7].includes(newType) // INSTALLATION, RENEWAL, CHANGE_ADDRESS
+    if (needsNodes) await loadNodes()
+  },
+  { immediate: false },
+)
+// Watchers simplificados
+const createWatcher = (fieldName, loadFn, clearFields = []) => {
+  watch(
+    () => fields[fieldName]?.data,
+    async (newVal, oldVal) => {
+      if (newVal === oldVal || isLoadingExistingData) return
+      if (newVal) await loadFn(newVal)
+      clearFields.forEach((field) => fields[field] && (fields[field].data = null))
+    },
+    { immediate: false },
+  )
+}
+createWatcher('node', loadEquipments, ['equipment'])
+createWatcher('state', loadMunicipalities, ['municipality', 'district'])
+createWatcher('municipality', loadDistricts, ['district'])
+// Watcher especial para cliente
+watch(
+  () => fields.client?.data,
+  async (newClient, oldClient) => {
+    if (newClient === oldClient || isLoadingExistingData) return
+
+    if (newClient && [3, 4, 5, 6, 7, 8, 9].includes(fields.type?.data)) {
+      await loadClientServices(newClient)
     }
-  } catch (err) {
-    console.error('Error loading profiles: ', err)
-    showNotification('Error', 'Error al cargar los perfiles correspondientes.', 'red-10')
-  }
-}
-const loadNodes = async () => {
-  try {
-    external.nodes = await getSupportData(`/api/v1/general/infrastructure/nodes`)
-  } catch (err) {
-    console.error('Error loading nodes : ', err)
-    showNotification('Error', 'Error al cargar los Nodos.', 'red-10')
-  }
-}
-const loadEquipments = async (nodeId) => {
-  if (!nodeId) {
-    external.equipments = []
+    if (fields.service) fields.service.data = null
+  },
+  { immediate: false },
+)
+// Computed simplificados
+const fieldOrder = [
+  'type',
+  'client',
+  'service',
+  'profile',
+  'initial_date',
+  'final_date',
+  'node',
+  'equipment',
+  'branch',
+  'technician',
+  'state',
+  'municipality',
+  'district',
+  'status',
+]
+const textOrder = ['description', 'address', 'solution', 'comments']
+const regularFields = computed(() =>
+  fieldOrder
+    .map((name) => [name, fields[name]])
+    .filter(([, field]) => field && !field.type.includes('textarea')),
+)
+const textAreaFields = computed(() =>
+  textOrder
+    .map((name) => [name, fields[name]])
+    .filter(([, field]) => field && field.type.includes('textarea')),
+)
+const selectOptions = (key) =>
+  external[
+    {
+      type: 'types',
+      branch: 'branches',
+      status: 'statuses',
+      profile: 'profiles',
+      node: 'nodes',
+      equipment: 'equipments',
+      technician: 'technicians',
+      state: 'states',
+      municipality: 'municipalities',
+      district: 'districts',
+      service: 'services',
+    }[key]
+  ] || []
+const selectClient = (val, update) => {
+  if (!val || val.length < 4) {
+    update(() => (external.filtered_client = []))
     return
   }
-  try {
-    external.equipments = await getSupportData(
-      `/api/v1/general/infrastructure/node/${nodeId}/equipment`,
-    )
-  } catch (err) {
-    console.error('Error loading equipments:', err)
-    showNotification('Error', 'Error al cargar equipos', 'red-10')
-  }
+
+  update(async () => {
+    try {
+      const { data } = await api.post('/api/v1/clients/search/', { client: val })
+      external.filtered_client = data.clients || []
+    } catch (err) {
+      showNotification('Error', err.response?.data?.message || 'Error inesperado', 'red-10')
+    }
+  })
 }
-const loadClientServices = async (clientId) => {
-  if (!clientId) {
-    external.services = []
-    return
-  }
-  try {
-    external.services = await getSupportData(`/api/v1/services/client/${clientId}`)
-  } catch (err) {
-    console.error('Error loading services: ', err)
-    showNotification('Error', 'Error al cargar los servicios del cliente.', 'red-10')
-  }
-}
-const clearDependentData = () => {
-  external.profiles = []
-  external.nodes = []
-  external.equipments = []
-  external.services = []
-}
-//  Función para poblar los campos con datos existentes
 const populateFields = (data) => {
   isLoadingExistingData = true
+  const newFields = createFieldsForType(data.type_id)
+  Object.keys(fields).forEach((key) => (fields[key] = newFields[key]))
 
-  //  Primero crear los campos según el tipo de soporte
-  const supportType = data.type_id
-  const newFields = createFieldsForType(supportType)
-
-  //  Limpiar campos actuales
-  Object.keys(fields).forEach((key) => {
-    fields[key] = newFields[key]
-  })
-
-  //  Mapear los datos a los campos
-  const fieldMappings = {
+  const mapping = {
     type: 'type_id',
     client: 'client_id',
     service: 'service_id',
@@ -418,7 +292,6 @@ const populateFields = (data) => {
     final_date: 'final_date',
     node: 'node_id',
     equipment: 'equipment_id',
-    description: 'description',
     branch: 'branch_id',
     technician: 'technician_id',
     state: 'state_id',
@@ -426,238 +299,69 @@ const populateFields = (data) => {
     district: 'district_id',
     status: 'status_id',
     address: 'address',
+    description: 'description',
     solution: 'solution',
     comments: 'comments',
   }
 
-  //  Poblar los campos con los datos
-  Object.keys(fieldMappings).forEach((fieldKey) => {
-    const dataKey = fieldMappings[fieldKey]
-    if (fields[fieldKey] && data[dataKey] !== undefined) {
-      fields[fieldKey].data = data[dataKey]
-    }
+  Object.entries(mapping).forEach(([fieldKey, dataKey]) => {
+    if (fields[fieldKey] && data[dataKey] !== undefined) fields[fieldKey].data = data[dataKey]
   })
+
   isLoadingExistingData = false
 }
-// Función para cargar datos específicos cuando editamos
-const loadDataForEdit = async (supportData) => {
-  try {
-    //  Cargar datos dependientes basados en los valores existentes
-    if (supportData.type_id) {
-      await loadProfiles(supportData.type_id)
+const loadDataForEdit = async (data) => {
+  const promises = []
 
-      const typesRequiringNodes = [
-        SUPPORT_TYPES.INTERNET_INSTALLATION,
-        SUPPORT_TYPES.INTERNET_RENEWAL,
-        SUPPORT_TYPES.IPTV_INSTALLATION,
-        SUPPORT_TYPES.IPTV_RENEWAL,
-        SUPPORT_TYPES.CHANGE_ADDRESS,
-      ]
-
-      if (typesRequiringNodes.includes(supportData.type_id)) {
-        await loadNodes()
-        if (supportData.node_id) {
-          await loadEquipments(supportData.node_id)
-        }
-      }
+  if (data.type_id) {
+    promises.push(loadProfiles(data.type_id))
+    if ([1, 2, 5, 6, 7].includes(data.type_id)) {
+      promises.push(loadNodes())
+      if (data.node_id) promises.push(loadEquipments(data.node_id))
     }
-
-    if (supportData.client_id) {
-      const typesRequiringServices = [
-        SUPPORT_TYPES.INTERNET_SUPPORT,
-        SUPPORT_TYPES.IPTV_SUPPORT,
-        SUPPORT_TYPES.INTERNET_RENEWAL,
-        SUPPORT_TYPES.IPTV_RENEWAL,
-        SUPPORT_TYPES.CHANGE_ADDRESS,
-        SUPPORT_TYPES.EQUIPMENT_SALE,
-        SUPPORT_TYPES.UNINSTALLATION,
-      ]
-      if (supportData.type_id && typesRequiringServices.includes(supportData.type_id)) {
-        await loadClientServices(supportData.client_id)
-      }
-    }
-
-    if (supportData.state_id) {
-      await loadMunicipalities(supportData.state_id)
-      if (supportData.municipality_id) {
-        await loadDistricts(supportData.municipality_id)
-      }
-    }
-  } catch (err) {
-    console.error('Error loading dependent data for edit: ', err)
-    showNotification('Error', 'Error al cargar datos dependientes.', 'red-10')
-  }
-}
-//    Watchers para manejo de dependencias
-watch(
-  () => fields.type?.data,
-  async (newType, oldType) => {
-    if (newType !== oldType && newType && !isLoadingExistingData) {
-      clearDependentData()
-      await loadProfiles(newType)
-      const typesRequiringNodes = [
-        SUPPORT_TYPES.INTERNET_INSTALLATION,
-        SUPPORT_TYPES.INTERNET_RENEWAL,
-        SUPPORT_TYPES.IPTV_INSTALLATION,
-        SUPPORT_TYPES.IPTV_RENEWAL,
-        SUPPORT_TYPES.CHANGE_ADDRESS,
-      ]
-
-      if (typesRequiringNodes.includes(newType)) {
-        await loadNodes()
-      }
-    }
-  },
-  { immediate: false },
-)
-watch(
-  () => fields.node?.data,
-  async (newNode, oldNode) => {
-    if (newNode !== oldNode && newNode && !isLoadingExistingData) {
-      await loadEquipments(newNode)
-    }
-
-    if (fields.equipment && !isLoadingExistingData) {
-      fields.equipment.data = null
-    }
-  },
-  { immediate: false },
-)
-watch(
-  () => fields.client?.data,
-  async (newClient, oldClient) => {
-    if (newClient !== oldClient && newClient && !isLoadingExistingData) {
-      const typesRequiringServices = [
-        SUPPORT_TYPES.INTERNET_SUPPORT,
-        SUPPORT_TYPES.IPTV_SUPPORT,
-        SUPPORT_TYPES.INTERNET_RENEWAL,
-        SUPPORT_TYPES.IPTV_RENEWAL,
-        SUPPORT_TYPES.CHANGE_ADDRESS,
-        SUPPORT_TYPES.EQUIPMENT_SALE,
-        SUPPORT_TYPES.UNINSTALLATION,
-      ]
-      const currentType = fields.type?.data
-      if (currentType && typesRequiringServices.includes(currentType)) {
-        await loadClientServices(newClient)
-      }
-    }
-
-    if (fields.service && !isLoadingExistingData) {
-      fields.service.data = null
-    }
-  },
-  { immediate: false },
-)
-//  Watcher para cambiar municipios cuando cambie el departamento
-watch(
-  () => fields.state?.data,
-  async (newState, oldState) => {
-    if (newState !== oldState && newState && !isLoadingExistingData) {
-      await loadMunicipalities(newState)
-    }
-
-    if (fields.municipality && !isLoadingExistingData) {
-      fields.municipality.data = null
-    }
-
-    if (fields.district && isLoadingExistingData) {
-      fields.district.data = null
-      external.districts = []
-    }
-  },
-  { immediate: false },
-)
-//  Watcher para cambiar distritos cuando cambie el municipio
-watch(
-  () => fields.municipality?.data,
-  async (newMunicipality, oldMunicipality) => {
-    if (newMunicipality !== oldMunicipality && newMunicipality && !isLoadingExistingData) {
-      await loadDistricts(newMunicipality)
-    }
-
-    if (fields.district && !isLoadingExistingData) {
-      fields.district.data = null
-    }
-  },
-  { immediate: false },
-)
-const selectOptions = (key) => {
-  return (
-    {
-      type: external.types,
-      branch: external.branches,
-      status: external.statuses,
-      profile: external.profiles,
-      node: external.nodes,
-      equipment: external.equipments,
-      technician: external.technicians,
-      state: external.states,
-      municipality: external.municipalities,
-      district: external.districts,
-      service: external.services,
-    }[key] || []
-  )
-}
-const selectClient = (val, update) => {
-  const uri = '/api/v1/clients/search/'
-
-  if (!val || val.length < 4) {
-    update(() => {
-      external.filtered_client = external.client
-    })
-    return
   }
 
-  update(async () => {
-    try {
-      const { data } = await api.post(uri, { client: val })
-      external.filtered_client = data.clients ?? []
-    } catch (err) {
-      console.error(err)
-      const message = err.response?.data?.message || err.message || 'Error inesperado'
-      showNotification('Error', message, 'red-10')
-    }
-  })
+  if (data.client_id && [3, 4, 5, 6, 7, 8, 9].includes(data.type_id)) {
+    promises.push(loadClientServices(data.client_id))
+  }
+
+  if (data.state_id) {
+    promises.push(loadMunicipalities(data.state_id))
+    if (data.municipality_id) promises.push(loadDistricts(data.municipality_id))
+  }
+
+  await Promise.all(promises)
 }
-const clearFilter = () => {}
+const toggleLoading = (loading, title) => {
+  uiStates.loading = loading
+  uiStates.title = title
+  loading ? showLoading() : setTimeout(hideLoading, 250)
+}
 const getData = async () => {
   if (props.id <= 0) return
+
+  toggleLoading(true, 'Obteniendo datos, espera un momento...')
   try {
-    uiStates.loading = true
-    uiStates.title = 'Obteniendo datos, espera un momento...'
-    showLoading()
-    const { data } = await api.post(`${url}edit`, { id: props.id })
-    //  Cargando datos dependientes primero
+    const { data } = await api.post('/api/v1/supports/edit', { id: props.id })
     await loadDataForEdit(data.support)
-    //  Poblando los campos
     populateFields(data.support)
-    //  Si el cliente está en los datos, agregarlo a la lista filtrada
-    if (data.support.client) {
-      external.filtered_client = [data.support.client]
-    }
+
+    if (data.support.client) external.filtered_client = [data.support.client]
     uiStates.title = 'Modificar Soporte'
   } catch (err) {
-    console.error('Error loading support data:', err)
-    const message =
-      err.response?.data?.message || err.message || 'Error al cargar los datos del soporte'
-    showNotification('Error', message, 'red-10')
+    showNotification('Error', err.response?.data?.message || 'Error al cargar datos', 'red-10')
   } finally {
-    setTimeout(() => {
-      uiStates.loading = false
-      hideLoading()
-    }, 250)
+    toggleLoading(false)
   }
 }
 const sendData = async () => {
+  toggleLoading(true, 'Procesando datos, espera un momento...')
   try {
-    uiStates.loading = true
-    uiStates.title = 'Procesando datos, espera un momento...'
-    showLoading()
     resetFieldErrors(fields)
     const isUpdate = props.id > 0
     const params = buildFormData(fields, { _method: isUpdate ? 'PUT' : 'POST' })
-    const request = props.id > 0 ? `${url}${props.id}` : url
-    const { data } = await api.post(request, params)
+    const { data } = await api.post(`/api/v1/supports/${isUpdate ? props.id : ''}`, params)
+
     if (data.saved) {
       showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
       uiStates.title = 'Modificar Soporte'
@@ -666,20 +370,14 @@ const sendData = async () => {
     }
   } catch (err) {
     handleSubmissionError(err, fields)
-    console.error('Error saving support:', err)
-    const message = err.response?.data?.message || err.message || 'Error al guardar el soporte'
-    showNotification('Error', message, 'red-10')
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
   } finally {
-    setTimeout(() => {
-      uiStates.loading = false
-      hideLoading()
-    }, 250)
+    toggleLoading(false)
   }
 }
 onMounted(async () => {
+  toggleLoading(true, 'Cargando...')
   try {
-    uiStates.loading = true
-    // Cargar datos básicos
     const [branches, statuses, technicians, types] = await Promise.all([
       getSupportData('/api/v1/general/branches'),
       getSupportData('/api/v1/general/supports/status'),
@@ -688,22 +386,14 @@ onMounted(async () => {
       loadStates(),
     ])
 
-    external.branches = branches
-    external.statuses = statuses
-    external.technicians = technicians
-    external.types = types
+    Object.assign(external, { branches, statuses, technicians, types })
 
-    // Si es edición, cargar los datos
-    if (props.id > 0) {
-      await getData()
-    }
+    if (props.id > 0) await getData()
   } catch (err) {
     console.error(err)
     showNotification('Error', 'Error al cargar datos iniciales', 'red-10')
   } finally {
-    setTimeout(() => {
-      uiStates.loading = false
-    }, 50)
+    toggleLoading(false)
   }
 })
 </script>
@@ -735,23 +425,6 @@ onMounted(async () => {
       <q-page-container>
         <q-page class="q-pa-md bg-dark">
           <q-card flat class="custom-cards q-pa-sm">
-            <!--    Breadcrumbs   -->
-            <q-card-section>
-              <div class="fit row">
-                <div class="col-12">
-                  <q-breadcrumbs class="text-white" active-color="white" gutter="md">
-                    <template v-slot:separator>
-                      <q-icon size="1.5em" name="chevron_right" color="white" />
-                    </template>
-                    <q-breadcrumbs-el label="Soportes" icon="mdi-face-agent" />
-                  </q-breadcrumbs>
-                </div>
-              </div>
-            </q-card-section>
-            <!--    End breadcrumbs   -->
-
-            <q-separator dark class="q-my-sm" />
-
             <!--    Input Content   -->
             <q-card-section>
               <div class="row wrap full-width justify-start items-center content-start">
@@ -810,7 +483,6 @@ onMounted(async () => {
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
                       @filter="selectClient"
-                      @filter-abort="clearFilter"
                     />
                   </template>
 
