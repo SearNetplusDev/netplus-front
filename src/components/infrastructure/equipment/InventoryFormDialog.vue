@@ -4,10 +4,12 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
+const { validationRules, createField } = useFields()
 const title = ref('')
 const loading = ref(false)
 const uploadedFile = ref(null)
@@ -16,26 +18,11 @@ const props = defineProps({
   id: Number,
 })
 const url = 'api/v1/infrastructure/equipment/inventory/'
-const validationRules = {
-  text_required: (val) => (val && val.length > 0) || 'Campo requerido',
-  select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
-  mac: (val) =>
-    /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$|^([0-9A-Fa-f]{4}[.]){2}([0-9A-Fa-f]{4})$|^[0-9A-Fa-f]{12}$/.test(
-      val,
-    ) || 'Formato inválido',
-}
-const createField = (label, type, rules = []) => ({
-  data: null,
-  error: false,
-  label,
-  type,
-  rules,
-})
 const createConditionalFields = () => {
   const baseFields = {
     type: createField('Tipo de equipo', 'select', [validationRules.select_required]),
     brand: createField('Marca', 'select', [validationRules.select_required]),
-    model: createField('Modelo', 'select-filter', [validationRules.select_required]),
+    model: createField('Modelo', 'select', [validationRules.select_required]),
     branch: createField('Sucursal', 'select', [validationRules.select_required]),
     status: createField('Estado', 'select', [validationRules.select_required]),
     company: createField('Empresa', 'select', [validationRules.select_required]),
@@ -119,6 +106,7 @@ const selectOptions = (key) => {
       status: external.status,
       technician: external.technicians,
       company: external.companies,
+      model: external.models,
     }[key] || []
   )
 }
@@ -215,6 +203,7 @@ const getData = () => {
       fields.company.data = itm.company_id
 
       manageTechnicianField()
+      onBrandChange(false)
 
       if (fields.technician && itm.last_technician) {
         fields.technician.data = itm.last_technician?.technician_id

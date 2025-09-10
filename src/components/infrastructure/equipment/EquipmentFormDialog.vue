@@ -3,117 +3,43 @@ import { onMounted, ref, reactive } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
-const title = ref('')
+const title = ref('Registrar equipo')
 const loading = ref(false)
 const { showNotification } = useNotifications()
+const { validationRules, createField } = useFields()
 const props = defineProps({
   id: Number,
 })
 const url = 'api/v1/infrastructure/equipment/'
 const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  type: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Tipo',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  brand: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Marca',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  model: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Modelo',
-    type: 'select-filter',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  mac: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Dirección MAC',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(val) || 'Formato incorrecto.',
-    ],
-  },
-  ip: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Dirección IP',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) =>
-        /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
-          val,
-        ) || 'Formato inválido',
-    ],
-  },
-  username: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Usuario',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  secret: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Contraseña',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  node: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nodo',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  status: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Estado',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  comments: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Observaciones',
-    type: 'textarea',
-  },
+  name: createField('Nombre', 'text', [validationRules.text_required]),
+  type: createField('Tipo', 'select', [validationRules.select_required]),
+  brand: createField('Marca', 'select', [validationRules.select_required]),
+  model: createField('Modelo', 'select', [validationRules.select_required]),
+  mac: createField('Dirección MAC', 'text', [
+    validationRules.text_required,
+    validationRules.valid_mac,
+  ]),
+  ip: createField('Dirección IP', 'text', [
+    validationRules.text_required,
+    validationRules.valid_ip,
+  ]),
+  username: createField('Usuario', 'text', [validationRules.text_required]),
+  secret: createField('Contraseña', 'text', [validationRules.text_required]),
+  node: createField('Nodo', 'select', [validationRules.select_required]),
+  status: createField('Estado', 'select', [validationRules.select_required]),
+  comments: createField('Observaciones', 'textarea'),
 })
-const filteredModels = ref([])
 const external = reactive({
   types: [],
   brands: [],
@@ -128,26 +54,43 @@ const options = (key) => {
       brand: external.brands,
       node: external.nodes,
       status: external.status,
+      model: external.models,
     }[key] || []
   )
 }
-const filterModels = (val, update) => {
-  if (val === '') {
-    update(() => {
-      filteredModels.value = external.models
-    })
-    return
+const onSelectChange = (name, val) => {
+  switch (name) {
+    case 'type':
+      fields.type.data = val
+      break
+    case 'brand':
+      fields.brand.data = val
+      onBrandChange(true)
+      break
+    case 'node':
+      fields.node.data = val
+      break
+    case 'status':
+      fields.status.data = val
+      break
+    case 'model':
+      fields.model.data = val
+      break
   }
-
-  update(() => {
-    const needle = val.toLowerCase()
-    filteredModels.value = external.models.filter(
-      (model) => model.name.toLowerCase().indexOf(needle) > -1,
-    )
-  })
 }
-const clearModelFilter = () => {
-  filteredModels.value = external.models
+const onBrandChange = async (reload) => {
+  if (!fields.brand.data) return
+  if (reload) {
+    fields.model.data = null
+    external.models = []
+  }
+  try {
+    external.models = await getSupportData(
+      `api/v1/general/infrastructure/brand/${fields.brand.data}/models`,
+    )
+  } catch (err) {
+    showNotification('Error', err, 'red-10')
+  }
 }
 const getData = () => {
   showLoading()
@@ -171,6 +114,7 @@ const getData = () => {
       fields.comments.data = itm.comments === 'null' ? null : itm.comments
       fields.status.data = itm.status_id
       title.value = `Editar datos del equipo: ${itm.name}`
+      onBrandChange(false)
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
@@ -182,27 +126,16 @@ const getData = () => {
       }, 1000)
     })
 }
-const sendData = () => {
-  let params = new FormData()
+const sendData = async () => {
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  params.append('name', fields.name.data)
-  params.append('type', fields.type.data)
-  params.append('brand', fields.brand.data)
-  params.append('model', fields.model.data)
-  params.append('mac', fields.mac.data)
-  params.append('ip', fields.ip.data)
-  params.append('username', fields.username.data)
-  params.append('secret', fields.secret.data)
-  params.append('node', fields.node.data)
-  params.append('comments', fields.comments.data)
-  params.append('status', fields.status.data)
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  let request = props.id > 0 ? `${url}${props.id}` : url
+  const isUpdate = props.id > 0
+  const params = buildFormData(fields, { _method: isUpdate ? 'PUT' : 'POST' })
+  const request = props.id > 0 ? `${url}${props.id}` : url
 
-  api
+  await api
     .post(request, params)
     .then((res) => {
       if (res.data.saved) {
@@ -225,13 +158,21 @@ const sendData = () => {
 }
 onMounted(async () => {
   if (props.id > 0) getData()
-  title.value = 'Registrar equipo'
-  external.types = await getSupportData('/api/v1/general/infrastructure/types')
-  external.brands = await getSupportData('/api/v1/general/infrastructure/brands')
-  external.nodes = await getSupportData('/api/v1/general/infrastructure/nodes')
-  external.status = await getSupportData('api/v1/general/infrastructure/status')
-  external.models = await getSupportData('api/v1/general/infrastructure/models')
-  filteredModels.value = external.models
+  try {
+    const [types, brands, nodes, status] = await Promise.all([
+      getSupportData('/api/v1/general/infrastructure/types'),
+      getSupportData('/api/v1/general/infrastructure/brands'),
+      getSupportData('/api/v1/general/infrastructure/nodes'),
+      getSupportData('api/v1/general/infrastructure/status'),
+    ])
+    external.types = types
+    external.brands = brands
+    external.nodes = nodes
+    external.status = status
+  } catch (err) {
+    console.error(err)
+    showNotification('Error', err, 'red-10')
+  }
 })
 </script>
 
@@ -290,7 +231,7 @@ onMounted(async () => {
                   v-for="(field, index) in fields"
                   :key="index"
                 >
-                  <div v-if="field.type === 'text'">
+                  <template v-if="field.type === 'text'">
                     <q-input
                       dense
                       dark
@@ -304,9 +245,9 @@ onMounted(async () => {
                       :error="field.error"
                       :error-message="field['error-message']"
                     />
-                  </div>
+                  </template>
 
-                  <div v-if="field.type === 'select'">
+                  <template v-if="field.type === 'select'">
                     <q-select
                       v-model="field.data"
                       dense
@@ -327,36 +268,10 @@ onMounted(async () => {
                       :options="options(index)"
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
+                      @update:model-value="onSelectChange(index, $event)"
                     />
-                  </div>
+                  </template>
 
-                  <div v-if="field.type === 'select-filter'">
-                    <q-select
-                      v-model="field.data"
-                      dense
-                      dark
-                      outlined
-                      clearable
-                      color="white"
-                      emit-value
-                      map-options
-                      transition-show="flip-up"
-                      transition-hide="flip-down"
-                      lazy-rules
-                      use-input
-                      input-debounce="0"
-                      v-if="!loading"
-                      :label="field.label"
-                      :rules="field.rules"
-                      :error="field.error"
-                      :error-message="field['error-message']"
-                      :options="filteredModels"
-                      :option-value="(opt) => opt.id"
-                      :option-label="(opt) => opt.name"
-                      @filter="filterModels"
-                      @filter-abort="clearModelFilter"
-                    />
-                  </div>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </div>
 

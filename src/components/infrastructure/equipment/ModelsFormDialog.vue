@@ -3,11 +3,17 @@ import { onMounted, ref, reactive } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
+const { validationRules, createField, createToggle } = useFields()
 const title = ref('')
 const loading = ref(false)
 const { showNotification } = useNotifications()
@@ -16,37 +22,10 @@ const props = defineProps({
 })
 const url = 'api/v1/infrastructure/equipment/models/'
 const fields = reactive({
-  type: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Tipo',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  brand: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Marca',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    type: 'toggle',
-    label: 'Estado',
-  },
+  type: createField('Tipo', 'select', [validationRules.select_required]),
+  brand: createField('Marca', 'select', [validationRules.select_required]),
+  name: createField('Nombre', 'text', [validationRules.text_required]),
+  status: createToggle('Estado'),
 })
 const external = reactive({
   types: [],
@@ -86,21 +65,16 @@ const getData = () => {
       }, 1000)
     })
 }
-const sendData = () => {
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
+const sendData = async () => {
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  params.append('name', fields.name.data)
-  params.append('type', fields.type.data)
-  params.append('brand', fields.brand.data)
-  params.append('status', status)
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
+  const isUpdate = props.id > 0
+  const params = buildFormData(fields, { _method: isUpdate ? 'PUT' : 'POST' })
   let request = props.id > 0 ? `${url}${props.id}` : url
 
-  api
+  await api
     .post(request, params)
     .then((res) => {
       if (res.data.saved) {

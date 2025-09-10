@@ -59,7 +59,7 @@ const allFieldDefinitions = {
   description: () =>
     createField('Descripción del soporte', 'textarea-md', [validationRules.text_required]),
   branch: () => createField('Sucursal', 'select', [validationRules.select_required]),
-  technician: () => createField('Técnico', 'select', [validationRules.select_required]),
+  technician: () => createField('Técnico', 'select'),
   state: () => createField('Departamento', 'select', [validationRules.select_required]),
   municipality: () => createField('Municipio', 'select', [validationRules.select_required]),
   district: () => createField('Distrito', 'select', [validationRules.select_required]),
@@ -305,8 +305,132 @@ const external = reactive({
   states: [],
   municipalities: [],
   districts: [],
+  services: [],
 })
+const loadProfiles = async (supportType) => {
+  try {
+    let profileType = ''
+    if (
+      [SUPPORT_TYPES.INTERNET_INSTALLATION, SUPPORT_TYPES.INTERNET_RENEWAL].includes(supportType)
+    ) {
+      profileType = 'internet'
+    } else if (
+      [SUPPORT_TYPES.IPTV_INSTALLATION, SUPPORT_TYPES.IPTV_RENEWAL].includes(supportType)
+    ) {
+      profileType = 'iptv'
+    }
 
+    if (profileType) {
+      external.profiles = await getSupportData(`/api/v1/general/profiles/select/${profileType}`)
+    }
+  } catch (err) {
+    console.error('Error loading profiles: ', err)
+    showNotification('Error', 'Error al cargar los perfiles correspondientes.', 'red-10')
+  }
+}
+const loadNodes = async () => {
+  try {
+    external.nodes = await getSupportData(`/api/v1/general/infrastructure/nodes`)
+  } catch (err) {
+    console.error('Error loading nodes : ', err)
+    showNotification('Error', 'Error al cargar los Nodos.', 'red-10')
+  }
+}
+const loadEquipments = async (nodeId) => {
+  if (!nodeId) {
+    external.equipments = []
+    return
+  }
+  try {
+    external.equipments = await getSupportData(
+      `/api/v1/general/infrastructure/node/${nodeId}/equipment`,
+    )
+  } catch (err) {
+    console.error('Error loading equipments:', err)
+    showNotification('Error', 'Error al cargar equipos', 'red-10')
+  }
+}
+const loadClientServices = async (clientId) => {
+  if (!clientId) {
+    external.services = []
+    return
+  }
+  try {
+    external.services = await getSupportData(`/api/v1/general/services/client/${clientId}`)
+  } catch (err) {
+    console.error('Error loading services: ', err)
+    showNotification('Error', 'Error al cargar los servicios del cliente.', 'red-10')
+  }
+}
+const clearDependentData = () => {
+  external.profiles = []
+  external.nodes = []
+  external.equipments = []
+  external.services = []
+}
+//  Watcher para cargar datos cuando cambie el tipo de soporte
+watch(
+  () => fields.type?.data,
+  async (newType, oldType) => {
+    if (newType !== oldType && newType) {
+      clearDependentData()
+      await loadProfiles(newType)
+      const typesRequiringNodes = [
+        SUPPORT_TYPES.INTERNET_INSTALLATION,
+        SUPPORT_TYPES.IPTV_INSTALLATION,
+        SUPPORT_TYPES.INTERNET_RENEWAL,
+        SUPPORT_TYPES.IPTV_RENEWAL,
+        SUPPORT_TYPES.CHANGE_ADDRESS,
+      ]
+
+      if (typesRequiringNodes.includes(newType)) {
+        await loadNodes()
+      }
+    }
+  },
+  { immediate: false },
+)
+//  Watcher para cargar equipos cuando cambie el nodo
+watch(
+  () => fields.node?.data,
+  async (newNode, oldNode) => {
+    if (newNode !== oldNode && newNode) {
+      await loadEquipments(newNode)
+    }
+
+    if (fields.equipment) {
+      fields.equipment.data = null
+    }
+  },
+  { immediate: false },
+)
+//  Watcher para cargar servicios cuando cambie el cliente
+watch(
+  () => fields.client?.data,
+  async (newClient, oldClient) => {
+    if (newClient !== oldClient && newClient) {
+      const typesRequiringServices = [
+        SUPPORT_TYPES.INTERNET_SUPPORT,
+        SUPPORT_TYPES.IPTV_SUPPORT,
+        SUPPORT_TYPES.INTERNET_RENEWAL,
+        SUPPORT_TYPES.IPTV_RENEWAL,
+        SUPPORT_TYPES.CHANGE_ADDRESS,
+        SUPPORT_TYPES.EQUIPMENT_SALE,
+        SUPPORT_TYPES.UNINSTALLATION,
+      ]
+      const currentType = fields.type?.data
+
+      if (currentType && typesRequiringServices.includes(currentType)) {
+        await loadClientServices(newClient)
+      }
+    }
+
+    if (fields.service) {
+      fields.service.data = null
+    }
+  },
+  { immediate: false },
+)
 const selectOptions = (key) => {
   return (
     {
