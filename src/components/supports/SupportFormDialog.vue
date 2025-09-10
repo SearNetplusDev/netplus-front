@@ -1,12 +1,21 @@
 <script setup>
-import { reactive, onMounted, computed, watch } from 'vue'
+import { reactive, computed, watch, onMounted } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
+import { useLoading } from 'src/utils/loader.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  handleSubmissionError,
+  resetFieldErrors,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import LocaleEs from 'src/utils/composables/localeEs.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showNotification } = useNotifications()
+const { showLoading, hideLoading } = useLoading()
+const { validationRules, createField } = useFields()
 const locale = LocaleEs
 const props = defineProps({
   id: {
@@ -17,8 +26,9 @@ const props = defineProps({
 const uiStates = reactive({
   title: 'Crear Soporte',
   loading: false,
+  loadingData: false,
 })
-
+const url = '/api/v1/supports/'
 const SUPPORT_TYPES = {
   INTERNET_INSTALLATION: 1,
   IPTV_INSTALLATION: 2,
@@ -30,21 +40,6 @@ const SUPPORT_TYPES = {
   UNINSTALLATION: 8,
   EQUIPMENT_SALE: 9,
 }
-
-const validationRules = {
-  text_required: (val) => (val && val.length > 0) || 'Campo requerido',
-  select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
-}
-
-const createField = (label, type, rules = []) => ({
-  data: null,
-  error: false,
-  label,
-  type,
-  rules,
-})
-
-// Definición completa de todos los campos disponibles
 const allFieldDefinitions = {
   type: () => createField('Tipo de soporte', 'select', [validationRules.select_required]),
   client: () => createField('Cliente', 'select-filter', [validationRules.select_required]),
@@ -68,7 +63,6 @@ const allFieldDefinitions = {
   solution: () => createField('Solución', 'textarea-md'),
   comments: () => createField('Observaciones', 'textarea-md'),
 }
-
 const FIELDS_BY_TYPE = {
   [SUPPORT_TYPES.INTERNET_INSTALLATION]: [
     'type',
@@ -226,8 +220,7 @@ const FIELDS_BY_TYPE = {
     'comments',
   ],
 }
-
-// Función para crear campos dinámicamente según el tipo
+//  Creando campos dinámicamente según el tipo de soporte
 const createFieldsForType = (supportType) => {
   const fieldsToCreate = supportType ? FIELDS_BY_TYPE[supportType] || ['type'] : ['type']
   const newFields = {}
@@ -237,39 +230,41 @@ const createFieldsForType = (supportType) => {
       newFields[fieldName] = allFieldDefinitions[fieldName]()
     }
   })
-
   return newFields
 }
-
-// Inicializar con solo el campo type
+//  Inicializar con solo el campo type
 const fields = reactive(createFieldsForType(null))
 
-// Watcher para recrear fields cuando cambie el tipo de soporte
+//  Variable para controlar si se cargan datos existentes
+let isLoadingExistingData = false
+
+//  Watcher para recrear fields cuando cambie el tipo de soporte
 watch(
   () => fields.type?.data,
   (newType, oldType) => {
-    if (newType !== oldType) {
-      // Guardar el valor actual del tipo
+    if (newType !== oldType && !isLoadingExistingData) {
+      //  Guardar el valor actual del tipo
       const currentTypeValue = fields.type?.data
       const currentTypeField = fields.type
 
-      // Crear nuevos campos para el tipo seleccionado
+      //  Crear nuevos campos para el tipo seleccionado
       const newFields = createFieldsForType(newType)
 
-      // Limpiar fields actual
+      //  Limpiar fields actual
       Object.keys(fields).forEach((key) => {
         delete fields[key]
       })
 
-      // Agregar los nuevos campos
+      //  Agregar los nuevos campos
       Object.keys(newFields).forEach((key) => {
         fields[key] = newFields[key]
       })
 
-      // Restaurar el valor del tipo si existe
+      //  Restaurar el valor del tipo si existe
       if (fields.type && currentTypeValue) {
         fields.type.data = currentTypeValue
-        // Mantener las propiedades del campo type original
+
+        //  Mantener las propiedades del campo type original
         Object.keys(currentTypeField).forEach((prop) => {
           if (prop !== 'data') {
             fields.type[prop] = currentTypeField[prop]
@@ -280,33 +275,65 @@ watch(
   },
   { immediate: false },
 )
-
 const regularFields = computed(() => {
   return Object.entries(fields).filter(([, field]) => {
     return !['textarea', 'textarea-md'].includes(field.type)
   })
 })
-
 const textAreaFields = computed(() => {
   return Object.entries(fields).filter(([, field]) => {
     return ['textarea', 'textarea-md'].includes(field.type)
   })
 })
-
 const external = reactive({
   branches: [],
+  districts: [],
+  equipments: [],
+  filtered_client: [],
+  municipalities: [],
+  nodes: [],
+  profiles: [],
+  services: [],
+  states: [],
   statuses: [],
   technicians: [],
   types: [],
-  filtered_client: [],
-  profiles: [],
-  nodes: [],
-  equipments: [],
-  states: [],
-  municipalities: [],
-  districts: [],
-  services: [],
 })
+//  Funciones de carga de datos
+const loadStates = async () => {
+  try {
+    external.states = await getSupportData('/api/v1/general/states')
+  } catch (err) {
+    console.error('Error cargando departamentos: ', err)
+    showNotification('Error', 'Error al cargar los departamentos.', 'red-10')
+  }
+}
+const loadMunicipalities = async (state) => {
+  if (!state) {
+    external.municipalities = []
+    return
+  }
+  try {
+    external.municipalities = await getSupportData(`/api/v1/general/state/${state}/municipalities`)
+  } catch (err) {
+    console.error('Error cargando municipios: ', err)
+    showNotification('Error', 'Error al cargar los municipios.', 'red-10')
+  }
+}
+const loadDistricts = async (municipality) => {
+  if (!municipality) {
+    external.districts = []
+    return
+  }
+  try {
+    external.districts = await getSupportData(
+      `/api/v1/general/municipality/${municipality}/districts`,
+    )
+  } catch (err) {
+    console.error('Error cargando distritos: ', err)
+    showNotification('Error', 'Error al cargar los Distritos.', 'red-10')
+  }
+}
 const loadProfiles = async (supportType) => {
   try {
     let profileType = ''
@@ -356,7 +383,7 @@ const loadClientServices = async (clientId) => {
     return
   }
   try {
-    external.services = await getSupportData(`/api/v1/general/services/client/${clientId}`)
+    external.services = await getSupportData(`/api/v1/services/client/${clientId}`)
   } catch (err) {
     console.error('Error loading services: ', err)
     showNotification('Error', 'Error al cargar los servicios del cliente.', 'red-10')
@@ -368,17 +395,110 @@ const clearDependentData = () => {
   external.equipments = []
   external.services = []
 }
-//  Watcher para cargar datos cuando cambie el tipo de soporte
+//  Función para poblar los campos con datos existentes
+const populateFields = (data) => {
+  isLoadingExistingData = true
+
+  //  Primero crear los campos según el tipo de soporte
+  const supportType = data.type_id
+  const newFields = createFieldsForType(supportType)
+
+  //  Limpiar campos actuales
+  Object.keys(fields).forEach((key) => {
+    fields[key] = newFields[key]
+  })
+
+  //  Mapear los datos a los campos
+  const fieldMappings = {
+    type: 'type_id',
+    client: 'client_id',
+    service: 'service_id',
+    profile: 'profile_id',
+    initial_date: 'initial_date',
+    final_date: 'final_date',
+    node: 'node_id',
+    equipment: 'equipment_id',
+    description: 'description',
+    branch: 'branch_id',
+    technician: 'technician_id',
+    state: 'state_id',
+    municipality: 'municipality_id',
+    district: 'district_id',
+    status: 'status_id',
+    address: 'address',
+    solution: 'solution',
+    comments: 'comments',
+  }
+
+  //  Poblar los campos con los datos
+  Object.keys(fieldMappings).forEach((fieldKey) => {
+    const dataKey = fieldMappings[fieldKey]
+    if (fields[fieldKey] && data[dataKey] !== undefined) {
+      fields[fieldKey].data = data[dataKey]
+    }
+  })
+  isLoadingExistingData = false
+}
+// Función para cargar datos específicos cuando editamos
+const loadDataForEdit = async (supportData) => {
+  try {
+    //  Cargar datos dependientes basados en los valores existentes
+    if (supportData.type_id) {
+      await loadProfiles(supportData.type_id)
+
+      const typesRequiringNodes = [
+        SUPPORT_TYPES.INTERNET_INSTALLATION,
+        SUPPORT_TYPES.INTERNET_RENEWAL,
+        SUPPORT_TYPES.IPTV_INSTALLATION,
+        SUPPORT_TYPES.IPTV_RENEWAL,
+        SUPPORT_TYPES.CHANGE_ADDRESS,
+      ]
+
+      if (typesRequiringNodes.includes(supportData.type_id)) {
+        await loadNodes()
+        if (supportData.node_id) {
+          await loadEquipments(supportData.node_id)
+        }
+      }
+    }
+
+    if (supportData.client_id) {
+      const typesRequiringServices = [
+        SUPPORT_TYPES.INTERNET_SUPPORT,
+        SUPPORT_TYPES.IPTV_SUPPORT,
+        SUPPORT_TYPES.INTERNET_RENEWAL,
+        SUPPORT_TYPES.IPTV_RENEWAL,
+        SUPPORT_TYPES.CHANGE_ADDRESS,
+        SUPPORT_TYPES.EQUIPMENT_SALE,
+        SUPPORT_TYPES.UNINSTALLATION,
+      ]
+      if (supportData.type_id && typesRequiringServices.includes(supportData.type_id)) {
+        await loadClientServices(supportData.client_id)
+      }
+    }
+
+    if (supportData.state_id) {
+      await loadMunicipalities(supportData.state_id)
+      if (supportData.municipality_id) {
+        await loadDistricts(supportData.municipality_id)
+      }
+    }
+  } catch (err) {
+    console.error('Error loading dependent data for edit: ', err)
+    showNotification('Error', 'Error al cargar datos dependientes.', 'red-10')
+  }
+}
+//    Watchers para manejo de dependencias
 watch(
   () => fields.type?.data,
   async (newType, oldType) => {
-    if (newType !== oldType && newType) {
+    if (newType !== oldType && newType && !isLoadingExistingData) {
       clearDependentData()
       await loadProfiles(newType)
       const typesRequiringNodes = [
         SUPPORT_TYPES.INTERNET_INSTALLATION,
-        SUPPORT_TYPES.IPTV_INSTALLATION,
         SUPPORT_TYPES.INTERNET_RENEWAL,
+        SUPPORT_TYPES.IPTV_INSTALLATION,
         SUPPORT_TYPES.IPTV_RENEWAL,
         SUPPORT_TYPES.CHANGE_ADDRESS,
       ]
@@ -390,25 +510,23 @@ watch(
   },
   { immediate: false },
 )
-//  Watcher para cargar equipos cuando cambie el nodo
 watch(
   () => fields.node?.data,
   async (newNode, oldNode) => {
-    if (newNode !== oldNode && newNode) {
+    if (newNode !== oldNode && newNode && !isLoadingExistingData) {
       await loadEquipments(newNode)
     }
 
-    if (fields.equipment) {
+    if (fields.equipment && !isLoadingExistingData) {
       fields.equipment.data = null
     }
   },
   { immediate: false },
 )
-//  Watcher para cargar servicios cuando cambie el cliente
 watch(
   () => fields.client?.data,
   async (newClient, oldClient) => {
-    if (newClient !== oldClient && newClient) {
+    if (newClient !== oldClient && newClient && !isLoadingExistingData) {
       const typesRequiringServices = [
         SUPPORT_TYPES.INTERNET_SUPPORT,
         SUPPORT_TYPES.IPTV_SUPPORT,
@@ -419,14 +537,46 @@ watch(
         SUPPORT_TYPES.UNINSTALLATION,
       ]
       const currentType = fields.type?.data
-
       if (currentType && typesRequiringServices.includes(currentType)) {
         await loadClientServices(newClient)
       }
     }
 
-    if (fields.service) {
+    if (fields.service && !isLoadingExistingData) {
       fields.service.data = null
+    }
+  },
+  { immediate: false },
+)
+//  Watcher para cambiar municipios cuando cambie el departamento
+watch(
+  () => fields.state?.data,
+  async (newState, oldState) => {
+    if (newState !== oldState && newState && !isLoadingExistingData) {
+      await loadMunicipalities(newState)
+    }
+
+    if (fields.municipality && !isLoadingExistingData) {
+      fields.municipality.data = null
+    }
+
+    if (fields.district && isLoadingExistingData) {
+      fields.district.data = null
+      external.districts = []
+    }
+  },
+  { immediate: false },
+)
+//  Watcher para cambiar distritos cuando cambie el municipio
+watch(
+  () => fields.municipality?.data,
+  async (newMunicipality, oldMunicipality) => {
+    if (newMunicipality !== oldMunicipality && newMunicipality && !isLoadingExistingData) {
+      await loadDistricts(newMunicipality)
+    }
+
+    if (fields.district && !isLoadingExistingData) {
+      fields.district.data = null
     }
   },
   { immediate: false },
@@ -444,10 +594,10 @@ const selectOptions = (key) => {
       state: external.states,
       municipality: external.municipalities,
       district: external.districts,
+      service: external.services,
     }[key] || []
   )
 }
-
 const selectClient = (val, update) => {
   const uri = '/api/v1/clients/search/'
 
@@ -469,42 +619,100 @@ const selectClient = (val, update) => {
     }
   })
 }
-
 const clearFilter = () => {}
-const getData = () => {}
-const sendData = async () => {
-  // Aquí tendrás solo los campos correspondientes al tipo de soporte seleccionado
-  console.log('Campos actuales:', fields)
-}
-
-onMounted(async () => {
-  if (props.id > 0) getData()
-
+const getData = async () => {
+  if (props.id <= 0) return
   try {
+    uiStates.loading = true
+    uiStates.title = 'Obteniendo datos, espera un momento...'
+    showLoading()
+    const { data } = await api.post(`${url}edit`, { id: props.id })
+    //  Cargando datos dependientes primero
+    await loadDataForEdit(data.support)
+    //  Poblando los campos
+    populateFields(data.support)
+    //  Si el cliente está en los datos, agregarlo a la lista filtrada
+    if (data.support.client) {
+      external.filtered_client = [data.support.client]
+    }
+    uiStates.title = 'Modificar Soporte'
+  } catch (err) {
+    console.error('Error loading support data:', err)
+    const message =
+      err.response?.data?.message || err.message || 'Error al cargar los datos del soporte'
+    showNotification('Error', message, 'red-10')
+  } finally {
+    setTimeout(() => {
+      uiStates.loading = false
+      hideLoading()
+    }, 250)
+  }
+}
+const sendData = async () => {
+  try {
+    uiStates.loading = true
+    uiStates.title = 'Procesando datos, espera un momento...'
+    showLoading()
+    resetFieldErrors(fields)
+    const isUpdate = props.id > 0
+    const params = buildFormData(fields, { _method: isUpdate ? 'PUT' : 'POST' })
+    const request = props.id > 0 ? `${url}${props.id}` : url
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      uiStates.title = 'Modificar Soporte'
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'teal-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    console.error('Error saving support:', err)
+    const message = err.response?.data?.message || err.message || 'Error al guardar el soporte'
+    showNotification('Error', message, 'red-10')
+  } finally {
+    setTimeout(() => {
+      uiStates.loading = false
+      hideLoading()
+    }, 250)
+  }
+}
+onMounted(async () => {
+  try {
+    uiStates.loading = true
+    // Cargar datos básicos
     const [branches, statuses, technicians, types] = await Promise.all([
       getSupportData('/api/v1/general/branches'),
       getSupportData('/api/v1/general/supports/status'),
       getSupportData('/api/v1/general/management/users/technicians'),
       getSupportData('/api/v1/general/supports/types'),
+      loadStates(),
     ])
+
     external.branches = branches
     external.statuses = statuses
     external.technicians = technicians
     external.types = types
+
+    // Si es edición, cargar los datos
+    if (props.id > 0) {
+      await getData()
+    }
   } catch (err) {
     console.error(err)
-    showNotification('Error', err, 'red-10')
+    showNotification('Error', 'Error al cargar datos iniciales', 'red-10')
+  } finally {
+    setTimeout(() => {
+      uiStates.loading = false
+    }, 50)
   }
 })
 </script>
-
 <template>
   <q-layout view="hHh LpR fFF" container>
     <q-form greedy @submit="sendData">
       <q-header class="q-header">
         <q-toolbar>
           <q-toolbar-title>{{ uiStates.title }}</q-toolbar-title>
-
           <q-btn
             flat
             icon="mdi-content-save"
@@ -681,5 +889,4 @@ onMounted(async () => {
     </q-form>
   </q-layout>
 </template>
-
-<style scoped></style>
+<style lang="sass" scoped></style>
