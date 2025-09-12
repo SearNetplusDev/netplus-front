@@ -161,6 +161,19 @@ export const useSupportForm = (fields, uiStates, props) => {
     }
   }
 
+  //  Función para cargar la sucursal del cliente
+  const loadClientBranch = async (clientId) => {
+    try {
+      const { data } = await api.get(`/api/v1/clients/${clientId}/branch`)
+
+      if (data.branch && fields.branch) {
+        fields.branch.data = data.branch.id
+      }
+    } catch (err) {
+      console.error('Error cargando la sucursal: ', err)
+    }
+  }
+
   // Configurar watchers
   const setupWatchers = () => {
     // Watcher principal para tipo de soporte
@@ -209,15 +222,21 @@ export const useSupportForm = (fields, uiStates, props) => {
       async (newClient, oldClient) => {
         if (newClient === oldClient || isLoadingExistingData || isLoadingServiceAddress) return
 
-        if (newClient && [3, 4, 5, 6, 7, 8, 9].includes(fields.type?.data)) {
-          await loaders.loadClientServices(newClient)
+        if (newClient) {
+          // Cargar sucursal del cliente
+          await loadClientBranch(newClient)
+
+          // Cargar servicios si el tipo de soporte lo requiere
+          if ([3, 4, 5, 6, 7, 8, 9].includes(fields.type?.data)) {
+            await loaders.loadClientServices(newClient)
+          }
         }
         if (fields.service) fields.service.data = null
       },
       { immediate: false },
     )
 
-    // Nuevo watcher para servicio - cargar dirección automáticamente
+    // Watcher para servicio - cargar dirección automáticamente
     watch(
       () => fields.service?.data,
       async (newService, oldService) => {
@@ -250,5 +269,6 @@ export const useSupportForm = (fields, uiStates, props) => {
     toggleLoading,
     populateFields,
     loadServiceAddress,
+    loadClientBranch,
   }
 }
