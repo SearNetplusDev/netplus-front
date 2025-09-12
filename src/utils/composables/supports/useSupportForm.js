@@ -1,4 +1,4 @@
-import { watch } from 'vue'
+import { watch, nextTick } from 'vue'
 import { api } from 'boot/axios.js'
 import {
   handleSubmissionError,
@@ -8,13 +8,14 @@ import {
 import { useNotify } from 'src/utils/composables/outsideNotification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { external, loaders, loadDataForEdit } from './useSupportLoaders.js'
-import { createFieldsForType /*, SUPPORT_TYPES*/ } from './useSupportFields.js'
+import { createFieldsForType, SUPPORT_TYPES } from './useSupportFields.js'
 
 const { showNotification } = useNotify()
 const { showLoading, hideLoading } = useLoading()
 
 export const useSupportForm = (fields, uiStates, props) => {
   let isLoadingExistingData = false
+  let isLoadingServiceAddress = false
 
   const toggleLoading = (loading, title) => {
     uiStates.loading = loading
@@ -111,6 +112,55 @@ export const useSupportForm = (fields, uiStates, props) => {
     })
   }
 
+  // Nueva función para cargar la dirección del servicio
+  const loadServiceAddress = async (serviceId) => {
+    try {
+      isLoadingServiceAddress = true
+      const { data } = await api.get(`/api/v1/services/${serviceId}/address`)
+
+      if (data.address) {
+        // Primero cargar las dependencias de ubicación
+        if (data.address.state_id && fields.state) {
+          // Cargar municipios para el estado
+          await loaders.loadMunicipalities(data.address.state_id)
+
+          if (data.address.municipality_id) {
+            // Cargar distritos para el municipio
+            await loaders.loadDistricts(data.address.municipality_id)
+          }
+        }
+
+        // Esperar a que Vue actualice el DOM antes de asignar valores
+        await nextTick()
+
+        // Asignar todos los valores
+        if (fields.state && data.address.state_id) {
+          fields.state.data = data.address.state_id
+        }
+        if (fields.municipality && data.address.municipality_id) {
+          fields.municipality.data = data.address.municipality_id
+        }
+        if (fields.district && data.address.district_id) {
+          fields.district.data = data.address.district_id
+        }
+        if (fields.address && data.address.address) {
+          fields.address.data = data.address.address
+        }
+
+        // Esperar otro tick para asegurar que todos los valores estén asignados
+        await nextTick()
+      }
+    } catch (err) {
+      console.error('Error loading service address:', err)
+      showNotification('Error', 'Error al cargar la dirección del servicio', 'red-10')
+    } finally {
+      // Pequeño delay antes de restaurar la bandera para evitar race conditions
+      setTimeout(() => {
+        isLoadingServiceAddress = false
+      }, 100)
+    }
+  }
+
   // Configurar watchers
   const setupWatchers = () => {
     // Watcher principal para tipo de soporte
@@ -141,7 +191,7 @@ export const useSupportForm = (fields, uiStates, props) => {
       watch(
         () => fields[fieldName]?.data,
         async (newVal, oldVal) => {
-          if (newVal === oldVal || isLoadingExistingData) return
+          if (newVal === oldVal || isLoadingExistingData || isLoadingServiceAddress) return
           if (newVal) await loadFn(newVal)
           clearFields.forEach((field) => fields[field] && (fields[field].data = null))
         },
@@ -157,12 +207,36 @@ export const useSupportForm = (fields, uiStates, props) => {
     watch(
       () => fields.client?.data,
       async (newClient, oldClient) => {
-        if (newClient === oldClient || isLoadingExistingData) return
+        if (newClient === oldClient || isLoadingExistingData || isLoadingServiceAddress) return
 
         if (newClient && [3, 4, 5, 6, 7, 8, 9].includes(fields.type?.data)) {
           await loaders.loadClientServices(newClient)
         }
         if (fields.service) fields.service.data = null
+      },
+      { immediate: false },
+    )
+
+    // Nuevo watcher para servicio - cargar dirección automáticamente
+    watch(
+      () => fields.service?.data,
+      async (newService, oldService) => {
+        if (newService === oldService || isLoadingExistingData || isLoadingServiceAddress) return
+
+        // Solo cargar dirección para tipos de soporte que requieren servicio
+        const serviceRequiredTypes = [
+          SUPPORT_TYPES.INTERNET_SUPPORT, // 3
+          SUPPORT_TYPES.IPTV_SUPPORT, // 4
+          SUPPORT_TYPES.CHANGE_ADDRESS, // 5
+          SUPPORT_TYPES.INTERNET_RENEWAL, // 6
+          SUPPORT_TYPES.IPTV_RENEWAL, // 7
+          SUPPORT_TYPES.UNINSTALLATION, // 8
+          SUPPORT_TYPES.EQUIPMENT_SALE, // 9
+        ]
+
+        if (newService && serviceRequiredTypes.includes(fields.type?.data)) {
+          await loadServiceAddress(newService)
+        }
       },
       { immediate: false },
     )
@@ -175,5 +249,6 @@ export const useSupportForm = (fields, uiStates, props) => {
     setupWatchers,
     toggleLoading,
     populateFields,
+    loadServiceAddress,
   }
 }
