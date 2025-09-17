@@ -32,6 +32,7 @@ export const useSupportUtils = (fields) => {
         municipality: 'municipalities',
         district: 'districts',
         service: 'services',
+        client: 'filtered_client',
       }[key]
     ] || []
 

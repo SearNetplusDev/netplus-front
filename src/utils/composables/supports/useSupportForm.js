@@ -25,35 +25,65 @@ export const useSupportForm = (fields, uiStates, props) => {
 
   const populateFields = (data) => {
     isLoadingExistingData = true
-    const newFields = createFieldsForType(data.type_id)
-    Object.keys(fields).forEach((key) => (fields[key] = newFields[key]))
 
-    const mapping = {
-      type: 'type_id',
-      client: 'client_id',
-      service: 'service_id',
-      profile: 'profile_id',
-      initial_date: 'initial_date',
-      final_date: 'final_date',
-      node: 'node_id',
-      equipment: 'equipment_id',
-      branch: 'branch_id',
-      technician: 'technician_id',
-      state: 'state_id',
-      municipality: 'municipality_id',
-      district: 'district_id',
-      status: 'status_id',
-      address: 'address',
-      description: 'description',
-      solution: 'solution',
-      comments: 'comments',
+    // Primero recrear los campos basados en el tipo de soporte
+    const newFields = createFieldsForType(data.type_id)
+    Object.keys(fields).forEach((key) => delete fields[key])
+    Object.assign(fields, newFields)
+
+    // Mapeo directo de campos simples
+    const simpleMappings = {
+      type: data.type_id,
+      client: data.client_id,
+      service: data.service_id,
+      branch: data.branch_id,
+      technician: data.technician_id,
+      state: data.state_id,
+      municipality: data.municipality_id,
+      district: data.district_id,
+      status: data.status_id,
+      address: data.address,
+      description: data.description,
+      solution: data.solution,
+      comments: data.comments,
     }
 
-    Object.entries(mapping).forEach(([fieldKey, dataKey]) => {
-      if (fields[fieldKey] && data[dataKey] !== undefined) fields[fieldKey].data = data[dataKey]
+    // Asignar campos simples
+    Object.entries(simpleMappings).forEach(([fieldKey, value]) => {
+      if (fields[fieldKey] && value !== undefined && value !== null) {
+        fields[fieldKey].data = value
+      }
     })
 
-    isLoadingExistingData = false
+    // Mapeo de campos anidados (details y contract)
+    if (data.details) {
+      if (fields.profile && data.details.internet_profile_id) {
+        fields.profile.data = data.details.internet_profile_id
+      }
+      if (fields.profile && data.details.iptv_profile_id) {
+        fields.profile.data = data.details.iptv_profile_id
+      }
+      if (fields.node && data.details.node_id) {
+        fields.node.data = data.details.node_id
+      }
+      if (fields.equipment && data.details.equipment_id) {
+        fields.equipment.data = data.details.equipment_id
+      }
+    }
+
+    if (data.contract) {
+      if (fields.initial_date && data.contract.contract_date) {
+        fields.initial_date.data = data.contract.contract_date
+      }
+      if (fields.final_date && data.contract.contract_end_date) {
+        fields.final_date.data = data.contract.contract_end_date
+      }
+    }
+
+    // Pequeño delay para asegurar que Vue procese los cambios
+    setTimeout(() => {
+      isLoadingExistingData = false
+    }, 100)
   }
 
   const getData = async () => {
@@ -62,10 +92,17 @@ export const useSupportForm = (fields, uiStates, props) => {
     toggleLoading(true, 'Obteniendo datos, espera un momento...')
     try {
       const { data } = await api.post('/api/v1/supports/edit', { id: props.id })
+
+      // Cargar datos dependientes PRIMERO
       await loadDataForEdit(data.support)
+
+      // Luego poblar los campos
       populateFields(data.support)
 
-      if (data.support.client) external.filtered_client = [data.support.client]
+      if (data.support.client) {
+        external.filtered_client = [data.support.client]
+      }
+
       uiStates.title = 'Modificar Soporte'
     } catch (err) {
       showNotification('Error', err.response?.data?.message || 'Error al cargar datos', 'red-10')
@@ -182,18 +219,29 @@ export const useSupportForm = (fields, uiStates, props) => {
       async (newType, oldType) => {
         if (newType === oldType || isLoadingExistingData) return
 
+        // Guardar valores actuales antes de recrear campos
+        const currentValues = {}
+        Object.keys(fields).forEach((key) => {
+          currentValues[key] = fields[key]?.data
+        })
+
         // Recrear campos
-        const currentTypeValue = fields.type?.data
         const newFields = createFieldsForType(newType)
         Object.keys(fields).forEach((key) => delete fields[key])
         Object.assign(fields, newFields)
-        if (fields.type) fields.type.data = currentTypeValue
+
+        // Restaurar valores donde sea posible
+        Object.keys(currentValues).forEach((key) => {
+          if (fields[key] && currentValues[key] !== undefined) {
+            fields[key].data = currentValues[key]
+          }
+        })
 
         // Cargar datos dependientes
         external.profiles = external.nodes = external.equipments = external.services = []
         await loaders.loadProfiles(newType)
 
-        const needsNodes = [1, 2, 5, 6, 7].includes(newType) // INSTALLATION, RENEWAL, CHANGE_ADDRESS
+        const needsNodes = [1, 2, 5, 6, 7].includes(newType)
         if (needsNodes) await loaders.loadNodes()
       },
       { immediate: false },

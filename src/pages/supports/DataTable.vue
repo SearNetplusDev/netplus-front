@@ -177,8 +177,8 @@ watch(showForm, (newVal) => {
           </q-td>
 
           <!--    Closed At Date    -->
-          <q-td key="closet_at_date" class="text-left copy-text" :props="props">
-            {{ props.row?.closet_at }}
+          <q-td key="closed_at_date" class="text-left copy-text" :props="props">
+            {{ props.row?.closed_at }}
           </q-td>
 
           <!--    Technician    -->
@@ -206,17 +206,17 @@ watch(showForm, (newVal) => {
             <q-btn-group>
               <q-btn color="primary" icon="edit" size="sm" @click="edit(props.row?.id)">
                 <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
-                  Editar info. de {{ props.row?.name }}
+                  Editar info. del soporte {{ props.row?.ticket_number }}
                 </q-tooltip>
               </q-btn>
               <q-btn
                 color="blue-grey-10"
                 icon="mdi-printer"
                 size="sm"
-                @click="printSupport(props.row?.id, props.row?.type_id)"
+                @click="printSupport(props.row?.id)"
               >
                 <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
-                  Imprimir soporte
+                  Imprimir soporte {{ props.row?.ticket_number }}
                 </q-tooltip>
               </q-btn>
             </q-btn-group>
