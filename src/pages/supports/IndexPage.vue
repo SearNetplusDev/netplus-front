@@ -16,14 +16,13 @@ const filter = {
         { title: 'ID', name: 'id', type: 'numeric' },
         { title: 'Número de Ticket', name: 'ticket_number', type: 'string' },
         { title: 'Fecha Creación', name: 'creation_date', type: 'date' },
-        { title: 'Fecha Solución', name: 'closet_at', type: 'date' },
+        { title: 'Fecha Solución', name: 'closed_at', type: 'date' },
       ],
     },
     {
       name: 'Filtrado en base a datos del cliente',
       opened: false,
       filters: [
-        { title: 'ID', name: 'client.id', type: 'numeric' },
         { title: 'Nombres', name: 'client.name', type: 'string' },
         { title: 'Apellidos', name: 'client.surname', type: 'string' },
         { title: 'DUI', name: 'client.dui.number', type: 'string' },

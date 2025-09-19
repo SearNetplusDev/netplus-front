@@ -18,28 +18,6 @@ const getOptions = (url, index) => {
 }
 
 const filterChange = (key, model) => {
-  // const item = { key, data: model }
-  // let update = false
-  //
-  // for (let i = 0; i < useDataViewer.externalFilters.length; i++) {
-  //   if (useDataViewer.externalFilters[i].key === key) {
-  //     useDataViewer.setExternalFilters({ key: i, option: 'splice', value: null })
-  //   } else {
-  //     useDataViewer.setExternalFilters({ key: i, option: 'replace', value: null })
-  //   }
-  //   update = true
-  //   break
-  // }
-  //
-  // if (!update) {
-  //   useDataViewer.setExternalFilters({
-  //     key: useDataViewer.externalFilters.length,
-  //     option: 'push',
-  //     value: item,
-  //   })
-  // }
-  // useDataViewer.fetch({ force: true })
-
   if (!model || model.length === 0) {
     const existingIndex = useDataViewer.externalFilters.findIndex((filter) => filter.key === key)
     if (existingIndex !== -1) {

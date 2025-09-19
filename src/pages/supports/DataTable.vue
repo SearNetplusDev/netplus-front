@@ -183,7 +183,7 @@ watch(showForm, (newVal) => {
 
           <!--    Technician    -->
           <q-td key="technician" class="text-left copy-text" :props="props">
-            {{ props.row?.technician?.name }}
+            {{ props.row?.technician?.user?.name }}
           </q-td>
 
           <!--    User    -->

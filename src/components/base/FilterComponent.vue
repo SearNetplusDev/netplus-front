@@ -361,7 +361,14 @@ onMounted(() => {
                   transition-show="flip-up"
                   transition-hide="flip-down"
                 >
-                  <q-date minimal dark v-model="dateBetween" range :locale="locale">
+                  <q-date
+                    minimal
+                    dark
+                    v-model="dateBetween"
+                    range
+                    :locale="locale"
+                    mask="YYYY-MM-DD"
+                  >
                     <div class="row items-center justify-end">
                       <q-btn v-close-popup label="Cerrar" flat />
                     </div>
