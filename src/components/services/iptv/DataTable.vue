@@ -23,6 +23,7 @@ const uiStates = reactive({
   isVisible: false,
   currentItem: 0,
   iptv: false,
+  allowedDevices: 0,
 })
 const deleteProps = ref([])
 const showDeleteDialog = (id, type, brand, model, mac) => {
@@ -92,6 +93,7 @@ const getTvBoxes = async () => {
     const { data } = await api.post(`${url}list`, { service: props.service })
     tvBoxes.value = data.collection ?? []
     uiStates.iptv = data.has_iptv ?? false
+    uiStates.allowedDevices = data.allowed_devices ?? 0
     return tvBoxes.value
   } catch (err) {
     console.error(err)
@@ -122,15 +124,17 @@ onMounted(() => {
   <div class="fit row full-width">
     <template v-if="uiStates.iptv">
       <div class="row fit content-end justify-end">
-        <q-btn
-          color="white"
-          icon="add"
-          flat
-          :ripple="{ center: true, color: 'amber' }"
-          label="agregar"
-          align="around"
-          @click="uiStates.isVisible = true"
-        />
+        <template v-if="tvBoxes.length < uiStates.allowedDevices">
+          <q-btn
+            color="white"
+            icon="add"
+            flat
+            :ripple="{ center: true, color: 'amber' }"
+            label="agregar"
+            align="around"
+            @click="uiStates.isVisible = true"
+          />
+        </template>
       </div>
 
       <div class="row fit full-width content-start justify-start q-pa-md">

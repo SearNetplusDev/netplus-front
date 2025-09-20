@@ -1,10 +1,11 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, reactive } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import SupportFormDialog from 'components/supports/SupportFormDialog.vue'
+import PDFDialog from 'components/base/widgets/PDFDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -83,14 +84,24 @@ const columns = [
   { name: 'actions', label: '', align: 'center' },
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
+const uiStates = reactive({
+  visiblePDF: false,
+  currentSupport: 0,
+  pdfUrl: '',
+})
 const edit = (itm) => {
   currentItem.value = itm
   dataViewer.changeShowForm(2)
 }
-const printSupport = (id, type) => {
-  console.log(`Soporte id: ${id}, del tipo ${type}`)
+const printSupport = (id) => {
+  uiStates.visiblePDF = true
+  uiStates.currentSupport = id
+  uiStates.pdfUrl = `/api/v1/supports/print/${id}`
 }
-
+const refreshPDFComponent = () => {
+  uiStates.visiblePDF = false
+  uiStates.currentSupport = 0
+}
 watch(showForm, (newVal) => {
   if (newVal === 1) {
     currentItem.value = 0
@@ -225,5 +236,9 @@ watch(showForm, (newVal) => {
       </template>
     </BaseDataTable>
   </div>
+
+  <template v-if="uiStates.visiblePDF">
+    <PDFDialog :visible="uiStates.visiblePDF" :uri="uiStates.pdfUrl" @hide="refreshPDFComponent" />
+  </template>
 </template>
 <style lang="sass" scoped></style>
