@@ -91,6 +91,7 @@ onMounted(() => {
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
+
       <q-card-section class="q-pa-sm">
         <div class="q-pa-xs">
           <q-table

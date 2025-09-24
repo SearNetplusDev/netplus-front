@@ -103,17 +103,17 @@ onMounted(() => {
       <q-separator dark class="q-my-md" />
     </div>
 
-    <div class="row fit content-end justify-end">
-      <q-btn
-        color="white"
-        icon="add"
-        flat
-        :ripple="{ center: true, color: 'amber' }"
-        label="agregar"
-        align="around"
-        @click="isVisible = true"
-      />
-    </div>
+    <!--    <div class="row fit content-end justify-end">-->
+    <!--      <q-btn-->
+    <!--        color="white"-->
+    <!--        icon="add"-->
+    <!--        flat-->
+    <!--        :ripple="{ center: true, color: 'amber' }"-->
+    <!--        label="agregar"-->
+    <!--        align="around"-->
+    <!--        @click="isVisible = true"-->
+    <!--      />-->
+    <!--    </div>-->
 
     <div class="row full-width fit content-start justify-start q-pa-md">
       <div class="col-12 full-width">

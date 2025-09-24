@@ -6,6 +6,7 @@ import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import SupportFormDialog from 'components/supports/SupportFormDialog.vue'
 import PDFDialog from 'components/base/widgets/PDFDialog.vue'
+import LogDialog from 'components/supports/LogDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -86,6 +87,7 @@ const columns = [
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
 const uiStates = reactive({
   visiblePDF: false,
+  visibleLog: false,
   currentSupport: 0,
   pdfUrl: '',
 })
@@ -102,6 +104,14 @@ const refreshPDFComponent = () => {
   uiStates.visiblePDF = false
   uiStates.currentSupport = 0
 }
+const logDialog = (id) => {
+  uiStates.visibleLog = true
+  uiStates.currentSupport = id
+}
+const refreshLogDialog = () => {
+  uiStates.visibleLog = false
+  uiStates.currentSupport = 0
+}
 watch(showForm, (newVal) => {
   if (newVal === 1) {
     currentItem.value = 0
@@ -114,6 +124,22 @@ watch(showForm, (newVal) => {
   <div>
     <template v-if="showForm !== 0">
       <BaseDialog :id="currentItem" :content="SupportFormDialog" />
+    </template>
+
+    <template v-if="uiStates.visiblePDF">
+      <PDFDialog
+        :visible="uiStates.visiblePDF"
+        :uri="uiStates.pdfUrl"
+        @hide="refreshPDFComponent"
+      />
+    </template>
+
+    <template v-if="uiStates.visibleLog">
+      <LogDialog
+        :id="uiStates.currentSupport"
+        :visible="uiStates.visibleLog"
+        @hide="refreshLogDialog"
+      />
     </template>
 
     <BaseDataTable :columns="columns">
@@ -230,15 +256,17 @@ watch(showForm, (newVal) => {
                   Imprimir soporte {{ props.row?.ticket_number }}
                 </q-tooltip>
               </q-btn>
+
+              <q-btn color="grey-8" icon="history" size="sm" @click="logDialog(props.row?.id)">
+                <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
+                  Historial del soporte {{ props.row?.ticket_number }}
+                </q-tooltip>
+              </q-btn>
             </q-btn-group>
           </q-td>
         </q-tr>
       </template>
     </BaseDataTable>
   </div>
-
-  <template v-if="uiStates.visiblePDF">
-    <PDFDialog :visible="uiStates.visiblePDF" :uri="uiStates.pdfUrl" @hide="refreshPDFComponent" />
-  </template>
 </template>
 <style lang="sass" scoped></style>
