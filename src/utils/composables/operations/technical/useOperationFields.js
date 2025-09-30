@@ -1,5 +1,5 @@
-import { reactive } from 'vue'
 import { useFields } from 'src/utils/composables/useFields.js'
+import { reactive } from 'vue'
 
 const { validationRules, createField } = useFields()
 
@@ -15,7 +15,7 @@ export const SUPPORT_TYPES = {
   EQUIPMENT_SALE: 9,
 }
 
-// Configuración de campos por tipo
+//  Campos por tipo
 const FIELD_CONFIG = {
   base: [
     'type',
@@ -25,54 +25,88 @@ const FIELD_CONFIG = {
     'state',
     'municipality',
     'district',
+    'address',
     'status',
     'description',
-    'address',
     'solution',
     'comments',
   ],
-  contract: ['profile', 'initial_date', 'final_date', 'node', 'equipment'],
+  contract: ['profile', 'node', 'equipment'],
+  geography: ['latitude', 'longitude'],
   service: ['service'],
+  internet_equipment: ['cpe', 'router', 'onu'],
+  eqm: ['tv_box'],
 }
 
 export const FIELDS_BY_TYPE = {
-  [SUPPORT_TYPES.INTERNET_INSTALLATION]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.contract],
-  [SUPPORT_TYPES.IPTV_INSTALLATION]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.contract],
-  [SUPPORT_TYPES.INTERNET_SUPPORT]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service],
-  [SUPPORT_TYPES.IPTV_SUPPORT]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service],
+  [SUPPORT_TYPES.INTERNET_INSTALLATION]: [
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.contract,
+    ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.internet_equipment,
+  ],
+  [SUPPORT_TYPES.IPTV_INSTALLATION]: [
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.contract,
+    ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.internet_equipment,
+    ...FIELD_CONFIG.eqm,
+  ],
+  [SUPPORT_TYPES.INTERNET_SUPPORT]: [
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.contract,
+    ...FIELD_CONFIG.service,
+    ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.internet_equipment,
+  ],
+  [SUPPORT_TYPES.IPTV_SUPPORT]: [
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.contract,
+    ...FIELD_CONFIG.service,
+    ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.internet_equipment,
+    ...FIELD_CONFIG.eqm,
+  ],
   [SUPPORT_TYPES.INTERNET_RENEWAL]: [
     ...FIELD_CONFIG.base,
-    ...FIELD_CONFIG.service,
     ...FIELD_CONFIG.contract,
+    ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.internet_equipment,
+    ...FIELD_CONFIG.service,
   ],
   [SUPPORT_TYPES.IPTV_RENEWAL]: [
     ...FIELD_CONFIG.base,
-    ...FIELD_CONFIG.service,
     ...FIELD_CONFIG.contract,
+    ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.internet_equipment,
+    ...FIELD_CONFIG.service,
+    ...FIELD_CONFIG.eqm,
   ],
   [SUPPORT_TYPES.CHANGE_ADDRESS]: [
     ...FIELD_CONFIG.base,
     ...FIELD_CONFIG.service,
     'node',
     'equipment',
+    ...FIELD_CONFIG.geography,
   ],
-  [SUPPORT_TYPES.EQUIPMENT_SALE]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service],
-  [SUPPORT_TYPES.UNINSTALLATION]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service],
+  [SUPPORT_TYPES.EQUIPMENT_SALE]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service, 'equipment'],
+  [SUPPORT_TYPES.UNINSTALLATION]: [
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.service,
+    ...FIELD_CONFIG.geography,
+  ],
 }
 
-// Definición de campos usando un objeto más compacto
+//  Definición de campos usando un objeto más compacto
 const fieldDefs = {
-  type: ['Tipo de soporte', 'select', true],
-  client: ['Cliente', 'select-filter', true],
-  service: ['Servicio', 'select', true],
+  type: ['Tipo de soporte', 'select', true, true],
+  client: ['Cliente', 'select-filter', true, true],
+  service: ['Servicio', 'select', true, true],
   profile: ['Perfil de navegación', 'select', true],
-  initial_date: ['Fecha de inicio del contrato', 'date', true],
-  final_date: ['Fecha caducidad del contrato', 'date', true],
-  // node: ['Nodo', 'select', false],
-  // equipment: ['Equipo', 'select', false],
-  description: ['Descripción del soporte', 'textarea-md', true],
-  branch: ['Sucursal', 'select', true],
-  technician: ['Técnico', 'select', false],
+  node: ['Nodo', 'select', false],
+  equipment: ['Equipo', 'select', false],
+  description: ['Descripción del soporte', 'textarea-md', true, true],
+  branch: ['Sucursal', 'select', true, true],
   state: ['Departamento', 'select', true],
   municipality: ['Municipio', 'select', true],
   district: ['Distrito', 'select', true],
@@ -80,6 +114,8 @@ const fieldDefs = {
   address: ['Dirección', 'textarea-md', true],
   solution: ['Solución', 'textarea-md', false],
   comments: ['Observaciones', 'textarea-md', false],
+  latitude: ['Latitud', 'text', true],
+  longitude: ['Longitud', 'text', true],
 }
 
 export const createFieldsForType = (supportType) => {
@@ -95,7 +131,6 @@ export const createFieldsForType = (supportType) => {
       disabled,
     )
   })
-
   return newFields
 }
 
@@ -104,12 +139,9 @@ export const fieldOrder = [
   'client',
   'service',
   'profile',
-  'initial_date',
-  'final_date',
-  // 'node',
-  // 'equipment',
+  'node',
+  'equipment',
   'branch',
-  'technician',
   'state',
   'municipality',
   'district',
@@ -118,7 +150,7 @@ export const fieldOrder = [
 
 export const textOrder = ['description', 'address', 'solution', 'comments']
 
-export const useSupportFields = () => {
+export const useOperationFields = () => {
   const fields = reactive(createFieldsForType(null))
   return { fields }
 }

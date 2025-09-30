@@ -101,6 +101,7 @@ onMounted(async () => {
                       :options="selectOptions(index)"
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
+                      :disable="field.disabled"
                     />
                   </template>
 
@@ -129,6 +130,7 @@ onMounted(async () => {
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
                       @filter="selectClient"
+                      :disable="field.disabled"
                     />
                   </template>
 
@@ -145,6 +147,7 @@ onMounted(async () => {
                       :label="field.label"
                       :error="field.error"
                       :error-message="field['error-message']"
+                      :disable="field.disabled"
                     >
                       <template v-slot:append>
                         <q-icon name="event" class="cursor-pointer">
@@ -196,6 +199,7 @@ onMounted(async () => {
                     :rules="field.rules"
                     :error="field.error"
                     :error-message="field['error-message']"
+                    :disable="field.disabled"
                   />
                 </div>
               </div>

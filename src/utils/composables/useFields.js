@@ -10,12 +10,13 @@ export function useFields() {
       ) || 'Formato inválido',
   }
 
-  const createField = (label, type, rules = []) => ({
+  const createField = (label, type, rules = [], disabled = false) => ({
     data: null,
     error: false,
     label,
     type,
     rules,
+    disabled,
   })
 
   const createToggle = (label) => ({
