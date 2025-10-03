@@ -52,6 +52,8 @@ export const useOperationsForm = (fields, uiStates, props) => {
       description: data.description,
       solution: data.solution,
       comments: data.comments,
+      latitude: data.service?.latitude,
+      longitude: data.service?.longitude,
     }
 
     //    Asignar campos simples
@@ -61,14 +63,42 @@ export const useOperationsForm = (fields, uiStates, props) => {
       }
     })
 
+    //    Mejorando la lógica para cargar el perfil según el tipo de soporte
+    if (fields.profile) {
+      let profileId = null
+
+      //    Tipos de instalación y renovación: cargar desde details
+      const isInstallationOrRenewal = [
+        SUPPORT_TYPES.INTERNET_INSTALLATION,
+        SUPPORT_TYPES.IPTV_INSTALLATION,
+        SUPPORT_TYPES.INTERNET_RENEWAL,
+        SUPPORT_TYPES.IPTV_RENEWAL,
+      ].includes(data.type_id)
+      const otherSupports = [
+        SUPPORT_TYPES.INTERNET_SUPPORT,
+        SUPPORT_TYPES.IPTV_SUPPORT,
+        SUPPORT_TYPES.CHANGE_ADDRESS,
+        SUPPORT_TYPES.UNINSTALLATION,
+        SUPPORT_TYPES.EQUIPMENT_SALE,
+      ].includes(data.type_id)
+
+      if (isInstallationOrRenewal) {
+        if (data.details) {
+          profileId = data.details?.internet_profile_id
+        }
+      } else if (otherSupports) {
+        if (data.service?.internet?.profile?.id) {
+          profileId = data.service?.internet?.profile?.id
+        }
+      }
+
+      if (profileId) {
+        fields.profile.data = profileId
+      }
+    }
+
     //    Mapeo de campos anidados (details y contract)
     if (data.details) {
-      if (fields.profile && data.details.internet_profile_id) {
-        fields.profile.data = data.details.internet_profile_id
-      }
-      if (fields.profile && data.details.iptv_profile_id) {
-        fields.profile.data = data.details.iptv_profile_id
-      }
       if (fields.node && data.details.node_id) {
         fields.node.data = data.details.node_id
       }

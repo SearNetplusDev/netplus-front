@@ -112,10 +112,23 @@ export const createFieldsForType = (supportType) => {
 
   fieldsToCreate.forEach((fieldName) => {
     const [label, type, required, disabled] = fieldDefs[fieldName] || ['', 'text', false, false]
+
+    let rules = []
+    if (required) rules.push(validationRules.select_required)
+
+    switch (fieldName) {
+      case 'latitude':
+        rules.push(validationRules.latitude)
+        break
+      case 'longitude':
+        rules.push(validationRules.longitude)
+        break
+    }
     newFields[fieldName] = createField(
       label,
       type,
-      required ? [validationRules.select_required] : [],
+      // required ? [validationRules.select_required] : [],
+      rules,
       disabled,
     )
   })
@@ -130,6 +143,8 @@ export const fieldOrder = [
   'branch',
   'node',
   'equipment',
+  'latitude',
+  'longitude',
   'state',
   'municipality',
   'district',

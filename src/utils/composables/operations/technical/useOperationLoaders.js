@@ -60,14 +60,14 @@ export const loaders = {
 }
 
 export const loadInitialData = async () => {
-  const [branches, statuses, technicians, types] = await Promise.all([
+  const [branches, statuses, types] = await Promise.all([
     getSupportData('/api/v1/general/branches'),
     getSupportData('/api/v1/general/supports/status'),
     getSupportData('/api/v1/general/supports/types'),
     loaders.loadStates(),
   ])
 
-  Object.assign(external, { branches, statuses, technicians, types })
+  Object.assign(external, { branches, statuses, types })
 }
 
 export const loadDataForEdit = async (data) => {

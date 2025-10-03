@@ -141,7 +141,7 @@ onMounted(async () => {
                       outlined
                       clearable
                       color="white"
-                      lazy-rules
+                      lazy-rules="ondemand"
                       v-if="!uiStates.loading"
                       :label="field.label"
                       :rules="field.rules"
@@ -159,7 +159,9 @@ onMounted(async () => {
                     v-if="uiStates.loading"
                   />
                 </div>
+              </div>
 
+              <div class="row wrap full-width justify-start items-center content-start">
                 <!-- Render Text Areas -->
                 <div
                   class="col-xs-12 col-sm-12 col-md-6 col-lg-6 q-pa-sm"
