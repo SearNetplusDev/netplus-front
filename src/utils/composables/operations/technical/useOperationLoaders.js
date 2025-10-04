@@ -2,6 +2,7 @@ import { reactive } from 'vue'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import { useNotify } from 'src/utils/composables/outsideNotification.js'
 import { SUPPORT_TYPES } from 'src/utils/composables/operations/technical/useOperationFields.js'
+import { api } from 'boot/axios.js'
 
 const { showNotification } = useNotify()
 export const external = reactive({
@@ -16,6 +17,10 @@ export const external = reactive({
   states: [],
   statuses: [],
   types: [],
+  filtered_onu_devices: [],
+  filtered_cpe_devices: [],
+  filtered_router_devices: [],
+  filtered_tvbox_devices: [],
 })
 
 //    Función genérica para cargar los datos con dependencias
@@ -56,6 +61,28 @@ export const loaders = {
         : ''
 
     if (profileType) await loadData(`profiles/select/${profileType}`, 'profiles')
+  },
+  //    Buscando dispositivos por MAC
+  searchDevicesByMac: async (mac, deviceType) => {
+    if (!mac || mac.length < 4) {
+      external[`filtered_${deviceType}_devices`] = []
+      return
+    }
+
+    try {
+      const { data } = await api.post('/api/v1/equipment/search', {
+        mac_address: mac,
+        type: deviceType,
+      })
+      external[`filtered_${deviceType}_devices`] = data.equipment || []
+    } catch (err) {
+      console.error(`Error buscando ${deviceType} devices: `, err)
+      showNotification(
+        'Error',
+        err.response?.data?.message || `Error al buscar dispositivo ${deviceType}`,
+        'red-10',
+      )
+    }
   },
 }
 

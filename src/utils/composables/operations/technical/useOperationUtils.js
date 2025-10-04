@@ -35,9 +35,16 @@ export const useOperationUtils = (fields) => {
       }[key]
     ] || []
 
+  //    Función para formatear las opciones de dispositivos (mostrar MACs)
+  const getDeviceOptionLabel = (device) => {
+    if (!device) return ''
+    return `${device.mac_address} - ${device.brand?.name || ''} ${device.model?.name || ''}`
+  }
+
   return {
     regularFields,
     textAreaFields,
     selectOptions,
+    getDeviceOptionLabel,
   }
 }

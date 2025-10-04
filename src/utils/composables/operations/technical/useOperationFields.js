@@ -34,6 +34,7 @@ const FIELD_CONFIG = {
   contract: ['profile', 'node', 'equipment'],
   geography: ['latitude', 'longitude'],
   service: ['service'],
+  devices: ['onu_device', 'cpe_devices', 'router_device', 'tvbox_device'],
 }
 
 export const FIELDS_BY_TYPE = {
@@ -41,23 +42,27 @@ export const FIELDS_BY_TYPE = {
     ...FIELD_CONFIG.base,
     ...FIELD_CONFIG.contract,
     ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.devices,
   ],
   [SUPPORT_TYPES.IPTV_INSTALLATION]: [
     ...FIELD_CONFIG.base,
     ...FIELD_CONFIG.contract,
     ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.devices,
   ],
   [SUPPORT_TYPES.INTERNET_SUPPORT]: [
     ...FIELD_CONFIG.base,
     ...FIELD_CONFIG.contract,
     ...FIELD_CONFIG.service,
     ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.devices,
   ],
   [SUPPORT_TYPES.IPTV_SUPPORT]: [
     ...FIELD_CONFIG.base,
     ...FIELD_CONFIG.contract,
     ...FIELD_CONFIG.service,
     ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.devices,
   ],
   [SUPPORT_TYPES.INTERNET_RENEWAL]: [
     ...FIELD_CONFIG.base,
@@ -70,6 +75,7 @@ export const FIELDS_BY_TYPE = {
     ...FIELD_CONFIG.contract,
     ...FIELD_CONFIG.geography,
     ...FIELD_CONFIG.service,
+    ...FIELD_CONFIG.devices,
   ],
   [SUPPORT_TYPES.CHANGE_ADDRESS]: [
     ...FIELD_CONFIG.base,
@@ -77,11 +83,17 @@ export const FIELDS_BY_TYPE = {
     ...FIELD_CONFIG.contract,
     ...FIELD_CONFIG.geography,
   ],
-  [SUPPORT_TYPES.EQUIPMENT_SALE]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service, 'equipment'],
+  [SUPPORT_TYPES.EQUIPMENT_SALE]: [
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.service,
+    'equipment',
+    ...FIELD_CONFIG.devices,
+  ],
   [SUPPORT_TYPES.UNINSTALLATION]: [
     ...FIELD_CONFIG.base,
     ...FIELD_CONFIG.service,
     ...FIELD_CONFIG.geography,
+    ...FIELD_CONFIG.devices,
   ],
 }
 
@@ -104,6 +116,10 @@ const fieldDefs = {
   comments: ['Observaciones', 'textarea-md', false],
   latitude: ['Latitud', 'text', true],
   longitude: ['Longitud', 'text', true],
+  onu_device: ['MAC ONU', 'select-filter-device', false],
+  cpe_device: ['CPE (Inalámbrico)', 'select-filter-device', false],
+  router_device: ['Router', 'select-filter-device', false],
+  tvbox_device: ['TV BOX', 'select-filter-device', false],
 }
 
 export const createFieldsForType = (supportType) => {
@@ -149,6 +165,10 @@ export const fieldOrder = [
   'municipality',
   'district',
   'status',
+  'cpe_device',
+  'router_device',
+  'onu_device',
+  'tvbox_device',
 ]
 
 export const textOrder = ['description', 'address', 'solution', 'comments']
@@ -170,4 +190,8 @@ export const fieldOptionsMap = {
   municipality: 'municipalities',
   district: 'districts',
   status: 'statuses',
+  onu_device: 'filtererd_onu_devices',
+  cpe_device: 'filtered_cpe_devices',
+  router_device: 'filtered_router_devices',
+  tvbox_device: 'filtered_tvbox_devices',
 }

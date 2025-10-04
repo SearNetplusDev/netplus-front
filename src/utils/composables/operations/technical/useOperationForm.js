@@ -1,4 +1,4 @@
-import { watch, nextTick } from 'vue'
+import { watch, nextTick, computed } from 'vue'
 import { api } from 'boot/axios.js'
 import {
   handleSubmissionError,
@@ -23,6 +23,24 @@ const { showLoading, hideLoading } = useLoading()
 export const useOperationsForm = (fields, uiStates, props) => {
   let isLoadingExistingData = false
   let isLoadingServiceAddress = false
+
+  //    Estado reactivo para determinar que campos de dispositivos mostrar
+  const deviceVisibility = computed(() => {
+    const profileId = fields.profile?.data
+    if (!profileId) return { showOnu: false, showCpe: false, showRouter: false, showTvbox: false }
+
+    //    Buscar el perfil seleccionado en external.profiles
+    const selectedProfile = external.profiles.find((p) => p.id === profileId)
+    if (!selectedProfile)
+      return { showOnu: false, showCpe: false, showRouter: false, showTvbox: false }
+
+    return {
+      showOnu: selectedProfile.ftth === true || selectedProfile.ftth === 1,
+      showCpe: selectedProfile.ftth === false || selectedProfile.ftth === 0,
+      showRouter: true,
+      showTvbox: selectedProfile.iptv === true || selectedProfile.iptv === 1,
+    }
+  })
 
   const toggleLoading = (loading, title) => {
     uiStates.loading = loading
@@ -94,6 +112,54 @@ export const useOperationsForm = (fields, uiStates, props) => {
 
       if (profileId) {
         fields.profile.data = profileId
+      }
+    }
+
+    //    Cargando Nodo y equipo
+    if (data.service) {
+      //    Cargando nodo desde service
+      if (fields.node && data.service?.node_id) {
+        fields.node.data = data.service?.node_id
+      }
+
+      //    Cargando equipo
+      if (fields.equipment && data.service?.equipment_id) {
+        fields.equipment.data = data.service?.equipment_id
+      }
+
+      //    Cargando dispositivos de internet e iptv asociados al servicio
+
+      if (data.service.internet_devices && data.service.internet_devices.length > 0) {
+        data.service.internet_devices.forEach((device) => {
+          if (device.equipment) {
+            //    Determinar tipo según el tipo de equipo
+            //  ONU
+            if (device.equipment.type_id === 4 && fields.onu_device) {
+              fields.onu_device.data = device.equipment.id
+              external.filtered_onu_devices = [device.equipment]
+            }
+            //  CPE
+            else if (device.equipment.type_id === 5 && fields.cpe_device) {
+              fields.cpe_device.data = device.equipment.id
+              external.filtered_cpe_devices = [device.equipment]
+            }
+            //  ROUTER
+            else if (device.equipment.type_id === 7 && fields.router_device) {
+              fields.router_deviced.data = device.equipment.id
+              external.filtered_router_devices = [device.equipment]
+            }
+          }
+        })
+      }
+
+      if (data.service.iptv_devices && data.service.iptv_devices.length > 0) {
+        data.service.iptv_devices.forEach((device) => {
+          //  TV BOX
+          if (device.equipment && device.equipment.type_id === 6 && fields.tvbox_device) {
+            fields.tvbox_device.data = device.equipment.id
+            external.filtered_tvbox_devices = [device.equipment]
+          }
+        })
       }
     }
 
@@ -185,6 +251,17 @@ export const useOperationsForm = (fields, uiStates, props) => {
       } catch (err) {
         showNotification('Error', err.response?.data?.message || 'Error inesperado', 'red-10')
       }
+    })
+  }
+
+  const searchDevice = (val, update, deviceType) => {
+    if (!val || val.length > 4) {
+      update(() => (external[`filtered_${deviceType}_devices`] = []))
+      return
+    }
+
+    update(async () => {
+      await loaders.searchDevicesByMac(val, deviceType)
     })
   }
 
@@ -356,5 +433,7 @@ export const useOperationsForm = (fields, uiStates, props) => {
     populateFields,
     loadServiceAddress,
     loadClientBranch,
+    searchDevice,
+    deviceVisibility,
   }
 }
