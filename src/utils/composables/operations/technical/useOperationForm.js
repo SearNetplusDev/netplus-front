@@ -47,7 +47,6 @@ export const useOperationsForm = (fields, uiStates, props) => {
     if (title) uiStates.title = title
     loading ? showLoading() : setTimeout(hideLoading, 250)
   }
-
   const populateFields = (data) => {
     isLoadingExistingData = true
 
@@ -145,7 +144,7 @@ export const useOperationsForm = (fields, uiStates, props) => {
             }
             //  ROUTER
             else if (device.equipment.type_id === 7 && fields.router_device) {
-              fields.router_deviced.data = device.equipment.id
+              fields.router_device.data = device.equipment.id
               external.filtered_router_devices = [device.equipment]
             }
           }

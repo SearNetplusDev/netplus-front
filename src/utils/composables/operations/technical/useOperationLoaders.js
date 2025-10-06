@@ -102,15 +102,13 @@ export const loadDataForEdit = async (data) => {
 
   if (data.type_id) {
     promises.push(loaders.loadProfiles(data.type_id))
-
     // Para tipos que requieren infraestructura
     if ([1, 2, 5, 6, 7].includes(data.type_id)) {
       promises.push(loaders.loadNodes())
-
-      // Si ya tenemos node_id, cargar equipos
-      if (data.details?.node_id) {
-        promises.push(loaders.loadEquipments(data.details.node_id))
-      }
+    }
+    const nodeId = data.details?.node_id || data.service?.node_id
+    if (nodeId) {
+      promises.push(loaders.loadEquipments(nodeId))
     }
   }
 

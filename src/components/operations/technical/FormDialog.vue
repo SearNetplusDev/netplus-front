@@ -19,12 +19,17 @@ const uiStates = reactive({
 })
 const { showNotification } = useNotifications()
 const { fields } = useOperationFields()
-const { getData, sendData, selectClient, setupWatchers, toggleLoading } = useOperationsForm(
-  fields,
-  uiStates,
-  props,
-)
-const { regularFields, textAreaFields, selectOptions } = useOperationUtils(fields)
+const {
+  getData,
+  sendData,
+  selectClient,
+  setupWatchers,
+  searchDevice,
+  toggleLoading,
+  deviceVisibility,
+} = useOperationsForm(fields, uiStates, props)
+const { regularFields, textAreaFields, selectOptions, getDeviceOptionLabel } =
+  useOperationUtils(fields)
 onMounted(async () => {
   toggleLoading(true, 'Cargando ...')
   try {
@@ -149,6 +154,145 @@ onMounted(async () => {
                       :error-message="field['error-message']"
                       :disable="field.disabled"
                     />
+                  </template>
+
+                  <!--    Render select-filter para dispositivos    -->
+                  <template v-if="field.type === 'select-filter-device'">
+                    <!--    ONU   -->
+                    <q-select
+                      v-model="field.data"
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                      lazy-rules
+                      use-input
+                      input-debounce="300"
+                      v-if="index === 'onu_device' && deviceVisibility.showOnu"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :options="selectOptions(index)"
+                      :option-value="(opt) => opt.id"
+                      :option-label="getDeviceOptionLabel"
+                      @filter="(val, update) => searchDevice(val, update, 'onu')"
+                    >
+                      <template v-slot:no-option>
+                        <q-item>
+                          <q-item-section class="text-grey text-italic">
+                            Dispositivo no encontrado
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-select>
+
+                    <!--    CPE   -->
+                    <q-select
+                      v-model="field.data"
+                      v-if="index === 'cpe_device' && deviceVisibility.showCpe"
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                      lazy-rules
+                      use-input
+                      input-debounce="300"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :options="selectOptions(index)"
+                      :option-value="(opt) => opt.id"
+                      :option-label="getDeviceOptionLabel"
+                      @filter="(val, update) => searchDevice(val, update, 'cpe')"
+                    >
+                      <template v-slot:no-option>
+                        <q-item>
+                          <q-item-section class="text-grey text-italic">
+                            Dispositivo no encontrado
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-select>
+
+                    <!--    Router   -->
+                    <q-select
+                      v-model="field.data"
+                      v-if="index === 'router_device' && deviceVisibility.showRouter"
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                      lazy-rules
+                      use-input
+                      input-debounce="300"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :options="selectOptions(index)"
+                      :option-value="(opt) => opt.id"
+                      :option-label="getDeviceOptionLabel"
+                      @filter="(val, update) => searchDevice(val, update, 'router')"
+                    >
+                      <template v-slot:no-option>
+                        <q-item>
+                          <q-item-section class="text-grey text-italic">
+                            Dispositivo no encontrado
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-select>
+
+                    <!--    TV BOX   -->
+                    <q-select
+                      v-model="field.data"
+                      v-if="index === 'tvbox_device' && deviceVisibility.showTvbox"
+                      dense
+                      dark
+                      outlined
+                      clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
+                      lazy-rules
+                      use-input
+                      input-debounce="300"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :options="selectOptions(index)"
+                      :option-value="(opt) => opt.id"
+                      :option-label="getDeviceOptionLabel"
+                      @filter="(val, update) => searchDevice(val, update, 'tvbox')"
+                    >
+                      <template v-slot:no-option>
+                        <q-item>
+                          <q-item-section class="text-grey text-italic">
+                            Dispositivo no encontrado
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-select>
                   </template>
 
                   <q-skeleton
