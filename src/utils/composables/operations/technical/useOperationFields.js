@@ -165,10 +165,10 @@ export const fieldOrder = [
   'municipality',
   'district',
   'status',
-  'cpe_device',
-  'router_device',
-  'onu_device',
-  'tvbox_device',
+  // 'cpe_device',
+  // 'router_device',
+  // 'onu_device',
+  // 'tvbox_device',
 ]
 
 export const textOrder = ['description', 'address', 'solution', 'comments']
@@ -190,8 +190,8 @@ export const fieldOptionsMap = {
   municipality: 'municipalities',
   district: 'districts',
   status: 'statuses',
-  onu_device: 'filtererd_onu_devices',
-  cpe_device: 'filtered_cpe_devices',
-  router_device: 'filtered_router_devices',
-  tvbox_device: 'filtered_tvbox_devices',
+  // onu_device: 'filtererd_onu_devices',
+  // cpe_device: 'filtered_cpe_devices',
+  // router_device: 'filtered_router_devices',
+  // tvbox_device: 'filtered_tvbox_devices',
 }

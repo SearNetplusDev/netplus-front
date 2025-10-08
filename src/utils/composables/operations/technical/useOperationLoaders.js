@@ -17,10 +17,10 @@ export const external = reactive({
   states: [],
   statuses: [],
   types: [],
-  filtered_onu_devices: [],
-  filtered_cpe_devices: [],
-  filtered_router_devices: [],
-  filtered_tvbox_devices: [],
+  // filtered_onu_devices: [],
+  // filtered_cpe_devices: [],
+  // filtered_router_devices: [],
+  // filtered_tvbox_devices: [],
 })
 
 //    Función genérica para cargar los datos con dependencias
@@ -50,17 +50,81 @@ export const loaders = {
       : (external.equipments = []),
   loadClientServices: (clientId) =>
     clientId ? loadData(`../services/client/${clientId}`, 'services') : (external.services = []),
-  loadProfiles: async (supportType) => {
-    const profileType = [
-      SUPPORT_TYPES.INTERNET_INSTALLATION,
-      SUPPORT_TYPES.INTERNET_RENEWAL,
-    ].includes(supportType)
-      ? 'internet'
-      : [SUPPORT_TYPES.IPTV_INSTALLATION, SUPPORT_TYPES.IPTV_RENEWAL].includes(supportType)
-        ? 'iptv'
-        : ''
 
-    if (profileType) await loadData(`profiles/select/${profileType}`, 'profiles')
+  // loadProfiles: async (supportType) => {
+  //   const profileType = [
+  //     SUPPORT_TYPES.INTERNET_INSTALLATION,
+  //     SUPPORT_TYPES.INTERNET_RENEWAL,
+  //   ].includes(supportType)
+  //     ? 'internet'
+  //     : [SUPPORT_TYPES.IPTV_INSTALLATION, SUPPORT_TYPES.IPTV_RENEWAL].includes(supportType)
+  //       ? 'iptv'
+  //       : ''
+  //
+  //   if (profileType) await loadData(`profiles/select/${profileType}`, 'profiles')
+  // },
+
+  loadProfiles: async (supportType, service = null) => {
+    try {
+      let profileEndpoints = []
+
+      // Tipos de soporte que cargan solo Internet
+      if (
+        [SUPPORT_TYPES.INTERNET_INSTALLATION, SUPPORT_TYPES.INTERNET_RENEWAL].includes(supportType)
+      ) {
+        profileEndpoints = ['internet']
+      }
+
+      // Tipos que cargan solo IPTV
+      else if (
+        [SUPPORT_TYPES.IPTV_INSTALLATION, SUPPORT_TYPES.IPTV_RENEWAL].includes(supportType)
+      ) {
+        profileEndpoints = ['iptv']
+      }
+
+      // 🟩 Tipos mixtos: cambio de domicilio, desinstalación, venta de equipo
+      else if (
+        [
+          SUPPORT_TYPES.CHANGE_ADDRESS,
+          SUPPORT_TYPES.UNINSTALLATION,
+          SUPPORT_TYPES.EQUIPMENT_SALE,
+        ].includes(supportType)
+      ) {
+        // Sí hay un servicio seleccionado, verificar sus módulos
+        if (service) {
+          if (service.internet) profileEndpoints.push('internet')
+          if (service.iptv) profileEndpoints.push('iptv')
+        } else {
+          // Si no hay servicio, cargamos ambos por defecto
+          profileEndpoints = ['internet', 'iptv']
+        }
+      }
+
+      // Soportes que pueden usar cualquiera de los dos (soportes generales)
+      else if ([SUPPORT_TYPES.INTERNET_SUPPORT, SUPPORT_TYPES.IPTV_SUPPORT].includes(supportType)) {
+        profileEndpoints = supportType === SUPPORT_TYPES.INTERNET_SUPPORT ? ['internet'] : ['iptv']
+      }
+
+      // Si no hay endpoints, vaciar
+      if (profileEndpoints.length === 0) {
+        external.profiles = []
+        return
+      }
+
+      // Cargar todos los endpoints definidos (pueden ser uno o dos)
+      const results = await Promise.all(
+        profileEndpoints.map((endpoint) =>
+          getSupportData(`/api/v1/general/profiles/select/${endpoint}`),
+        ),
+      )
+
+      // Combinar resultados (pueden venir Internet + IPTV)
+      external.profiles = results.flat()
+    } catch (err) {
+      console.error('Error cargando perfiles:', err)
+      showNotification('Error', 'Error al cargar perfiles', 'red-10')
+      external.profiles = []
+    }
   },
   //    Buscando dispositivos por MAC
   searchDevicesByMac: async (mac, deviceType) => {

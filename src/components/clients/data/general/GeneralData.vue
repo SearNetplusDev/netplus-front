@@ -4,119 +4,32 @@ import { api } from 'boot/axios.js'
 import localeEs from 'src/utils/composables/localeEs.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
+import { useFields } from 'src/utils/composables/useFields.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
 
 const loading = ref(false)
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { validationRules, createField, createToggle } = useFields()
 const props = defineProps({
   client: Number,
 })
 const url = 'api/v1/clients/'
 const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombres',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  surname: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Apellidos',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  gender: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Género',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  birthdate: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Fecha de Nacimiento',
-    type: 'date',
-    rules: [],
-  },
-  marital: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Estado Civil',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  branch: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Sucursal',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  type: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Tipo de Cliente',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  profession: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Profesión u Oficio',
-    type: 'text',
-    rules: [],
-  },
-  country: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'País',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  document: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Documento a emitir',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  entity: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'Persona jurídica',
-    type: 'toggle',
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'Estado',
-    type: 'toggle',
-  },
-  comments: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Observaciones',
-    type: 'area',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
+  name: createField('Nombres', 'text', [validationRules.text_required]),
+  surname: createField('Apellidos', 'text', [validationRules.text_required]),
+  gender: createField('Género', 'select', [validationRules.select_required]),
+  birthdate: createField('Fecha de nacimiento', 'date', []),
+  marital: createField('Estado Civil', 'select', [validationRules.select_required]),
+  branch: createField('Sucursal', 'select', [validationRules.select_required]),
+  type: createField('Tipo de Cliente', 'select', [validationRules.select_required]),
+  profession: createField('Profesión u Oficio', 'text', []),
+  country: createField('País', 'select', [validationRules.select_required]),
+  document: createField('Documento a emitir', 'select', [validationRules.select_required]),
+  entity: createToggle('Persona Jurídica'),
+  status: createToggle('Estado'),
+  comments: createField('Observaciones', 'area', []),
 })
 const external = reactive({
   gender: [],

@@ -19,17 +19,17 @@ import {
 
 const { showNotification } = useNotify()
 const { showLoading, hideLoading } = useLoading()
-
 export const useOperationsForm = (fields, uiStates, props) => {
   let isLoadingExistingData = false
   let isLoadingServiceAddress = false
 
-  //    Estado reactivo para determinar que campos de dispositivos mostrar
+  // ================================================================
+  // ===  VISIBILIDAD DE DISPOSITIVOS SEGÚN PROFILE =================
+  // ================================================================
   const deviceVisibility = computed(() => {
     const profileId = fields.profile?.data
     if (!profileId) return { showOnu: false, showCpe: false, showRouter: false, showTvbox: false }
 
-    //    Buscar el perfil seleccionado en external.profiles
     const selectedProfile = external.profiles.find((p) => p.id === profileId)
     if (!selectedProfile)
       return { showOnu: false, showCpe: false, showRouter: false, showTvbox: false }
@@ -37,25 +37,27 @@ export const useOperationsForm = (fields, uiStates, props) => {
     return {
       showOnu: selectedProfile.ftth === true || selectedProfile.ftth === 1,
       showCpe: selectedProfile.ftth === false || selectedProfile.ftth === 0,
-      showRouter: true,
+      showRouter: selectedProfile.ftth === false || selectedProfile.ftth === 0,
       showTvbox: selectedProfile.iptv === true || selectedProfile.iptv === 1,
     }
   })
 
+  // ================================================================
+  // ===  FUNCIONES GENERALES   =====================================
+  // ================================================================
   const toggleLoading = (loading, title) => {
     uiStates.loading = loading
     if (title) uiStates.title = title
     loading ? showLoading() : setTimeout(hideLoading, 250)
   }
+
   const populateFields = (data) => {
     isLoadingExistingData = true
 
-    //    Primero recrear los campos basados en el tipo de soporte
     const newFields = createFieldsForType(data.type_id)
     Object.keys(fields).forEach((key) => delete fields[key])
     Object.assign(fields, newFields)
 
-    //    Mapeo directo de campos simples
     const simpleMappings = {
       type: data.type_id,
       client: data.client_id,
@@ -73,24 +75,22 @@ export const useOperationsForm = (fields, uiStates, props) => {
       longitude: data.service?.longitude,
     }
 
-    //    Asignar campos simples
-    Object.entries(simpleMappings).forEach(([fieldKey, value]) => {
-      if (fields[fieldKey] && value !== undefined && value !== null) {
-        fields[fieldKey].data = value
+    Object.entries(simpleMappings).forEach(([key, value]) => {
+      if (fields[key] && value !== undefined && value !== null) {
+        fields[key].data = value
       }
     })
 
-    //    Mejorando la lógica para cargar el perfil según el tipo de soporte
+    // =====  DETERMINAR EL PROFILE SEGÚN EL TIPO DE SOPORTE  ===
     if (fields.profile) {
       let profileId = null
-
-      //    Tipos de instalación y renovación: cargar desde details
       const isInstallationOrRenewal = [
         SUPPORT_TYPES.INTERNET_INSTALLATION,
         SUPPORT_TYPES.IPTV_INSTALLATION,
         SUPPORT_TYPES.INTERNET_RENEWAL,
         SUPPORT_TYPES.IPTV_RENEWAL,
       ].includes(data.type_id)
+
       const otherSupports = [
         SUPPORT_TYPES.INTERNET_SUPPORT,
         SUPPORT_TYPES.IPTV_SUPPORT,
@@ -99,112 +99,70 @@ export const useOperationsForm = (fields, uiStates, props) => {
         SUPPORT_TYPES.EQUIPMENT_SALE,
       ].includes(data.type_id)
 
-      if (isInstallationOrRenewal) {
-        if (data.details) {
-          profileId = data.details?.internet_profile_id
-        }
-      } else if (otherSupports) {
-        if (data.service?.internet?.profile?.id) {
-          profileId = data.service?.internet?.profile?.id
-        }
+      if (isInstallationOrRenewal && data.details) {
+        profileId = data.details?.internet_profile_id
+      } else if (otherSupports && data.service?.internet?.profile?.id) {
+        profileId = data.service?.internet?.profile?.id
       }
 
-      if (profileId) {
-        fields.profile.data = profileId
-      }
+      if (profileId) fields.profile.data = profileId
     }
 
-    //    Cargando Nodo y equipo
+    //  === CARGAR NODO Y EQUIPO  =====
     if (data.service) {
-      //    Cargando nodo desde service
-      if (fields.node && data.service?.node_id) {
-        fields.node.data = data.service?.node_id
-      }
-
-      //    Cargando equipo
-      if (fields.equipment && data.service?.equipment_id) {
+      if (fields.node && data.service?.node_id) fields.node.data = data.service?.node_id
+      if (fields.equipment && data.service?.equipment_id)
         fields.equipment.data = data.service?.equipment_id
-      }
 
-      //    Cargando dispositivos de internet e iptv asociados al servicio
+      /****
 
-      if (data.service.internet_devices && data.service.internet_devices.length > 0) {
-        data.service.internet_devices.forEach((device) => {
-          if (device.equipment) {
-            //    Determinar tipo según el tipo de equipo
-            //  ONU
-            if (device.equipment.type_id === 4 && fields.onu_device) {
-              fields.onu_device.data = device.equipment.id
-              external.filtered_onu_devices = [device.equipment]
-            }
-            //  CPE
-            else if (device.equipment.type_id === 5 && fields.cpe_device) {
-              fields.cpe_device.data = device.equipment.id
-              external.filtered_cpe_devices = [device.equipment]
-            }
-            //  ROUTER
-            else if (device.equipment.type_id === 7 && fields.router_device) {
-              fields.router_device.data = device.equipment.id
-              external.filtered_router_devices = [device.equipment]
-            }
-          }
-        })
-      }
+       //  === INTERNET DEVICES  =======
+       if (data.service?.internet_devices?.length) {
+       data.service?.internet_devices.forEach((device) => {
+       if (!device.equipment) return
 
-      if (data.service.iptv_devices && data.service.iptv_devices.length > 0) {
-        data.service.iptv_devices.forEach((device) => {
-          //  TV BOX
-          if (device.equipment && device.equipment.type_id === 6 && fields.tvbox_device) {
-            fields.tvbox_device.data = device.equipment.id
-            external.filtered_tvbox_devices = [device.equipment]
-          }
-        })
-      }
+       if (device.equipment.type_id === 4 && fields.onu_device) {
+       fields.onu_device.data = device.equipment?.id
+       external.filtered_onu_devices = [device.equipment]
+       } else if (device.equipment.type_id === 5 && fields.cpe_device) {
+       fields.cpe_device.data = device.equipment.id
+       external.filtered_cpe_devices = [device.equipment]
+       } else if (device.equipment.type_id === 7 && fields.router_device) {
+       fields.router_device.data = device.equipment.id
+       external.filtered_router_devices = [device.equipment]
+       }
+       })
+       }
+
+       // === IPTV DEVICES  ============
+       if (data.service.iptv_devices?.length) {
+       data.service.iptv_devices.forEach((device) => {
+       if (device.equipment?.type_id === 6 && fields.tvbox_device) {
+       fields.tvbox_device.data = device.equipment.id
+       external.filtered_tvbox_devices = [device.equipment]
+       }
+       })
+       }
+
+       ****/
     }
 
-    //    Mapeo de campos anidados (details y contract)
-    if (data.details) {
-      if (fields.node && data.details.node_id) {
-        fields.node.data = data.details.node_id
-      }
-      if (fields.equipment && data.details.equipment_id) {
-        fields.equipment.data = data.details.equipment_id
-      }
-    }
-
-    if (data.contract) {
-      if (fields.initial_date && data.contract.contract_date) {
-        fields.initial_date.data = data.contract.contract_date
-      }
-      if (fields.final_date && data.contract.contract_end_date) {
-        fields.final_date.data = data.contract.contract_end_date
-      }
-    }
-
-    //    Pequeño delay para asegurar que Vue procese los cambios
-    setTimeout(() => {
-      isLoadingExistingData = false
-    }, 100)
+    setTimeout(() => (isLoadingExistingData = false), 100)
   }
 
+  // ================================================================
+  // ===  CARGA DE DATOS   ==========================================
+  // ================================================================
   const getData = async () => {
     if (props.id <= 0) return
 
     toggleLoading(true, 'Obteniendo datos, espera un momento...')
     try {
       const { data } = await api.post('/api/v1/operations/technical/edit', { id: props.id })
-
-      // Cargar datos dependientes PRIMERO
       await loadDataForEdit(data.support)
-
-      // Luego poblar los campos
       populateFields(data.support)
-
-      if (data.support.client) {
-        external.filtered_client = [data.support.client]
-      }
-
-      uiStates.title = 'Modificar Soporte'
+      if (data.support.client) external.filtered_client = [data.support.client]
+      uiStates.title = `Soporte de ${data.support.client.names}`
     } catch (err) {
       showNotification('Error', err.response?.data?.message || 'Error al cargar datos', 'red-10')
     } finally {
@@ -212,6 +170,9 @@ export const useOperationsForm = (fields, uiStates, props) => {
     }
   }
 
+  // ================================================================
+  // ===  ENVÍO DE DATOS   ==========================================
+  // ================================================================
   const sendData = async () => {
     toggleLoading(true, 'Procesando datos, espera un momento...')
     try {
@@ -222,9 +183,8 @@ export const useOperationsForm = (fields, uiStates, props) => {
         `/api/v1/operations/technical/${isUpdate ? props.id : ''}`,
         params,
       )
-
       if (data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+        showNotification('Éxito', 'Registro almacenado correctamente', 'blue-grey-10')
         uiStates.title = 'Modificar Soporte'
       } else {
         showNotification('Error', 'Verifica la información ingresada', 'teal-10')
@@ -237,6 +197,9 @@ export const useOperationsForm = (fields, uiStates, props) => {
     }
   }
 
+  // ================================================================
+  // ===  BÚSQUEDA DE CLIENTES ======================================
+  // ================================================================
   const selectClient = (val, update) => {
     if (!val || val.length < 4) {
       update(() => (external.filtered_client = []))
@@ -253,17 +216,9 @@ export const useOperationsForm = (fields, uiStates, props) => {
     })
   }
 
-  const searchDevice = (val, update, deviceType) => {
-    if (!val || val.length > 4) {
-      update(() => (external[`filtered_${deviceType}_devices`] = []))
-      return
-    }
-
-    update(async () => {
-      await loaders.searchDevicesByMac(val, deviceType)
-    })
-  }
-
+  // ================================================================
+  // ===  CARGAR LISTADO DE SERVICIOS   =============================
+  // ================================================================
   const loadServiceAddress = async (serviceId) => {
     try {
       isLoadingServiceAddress = true
@@ -312,7 +267,10 @@ export const useOperationsForm = (fields, uiStates, props) => {
     }
   }
 
-  //  Función para cargar la sucursal del cliente
+  // ================================================================
+  // ===  CARGAR SUCURSAL DEL CLIENTE   =============================
+  // ================================================================
+
   const loadClientBranch = async (clientId) => {
     try {
       const { data } = await api.get(`/api/v1/clients/${clientId}/branch`)
@@ -325,33 +283,27 @@ export const useOperationsForm = (fields, uiStates, props) => {
     }
   }
 
-  // Configurar watchers
+  // ================================================================
+  // ===  WATCHERS   ================================================
+  // ================================================================
   const setupWatchers = () => {
-    // Watcher principal para tipo de soporte
+    // ===  Watcher principal para el tipo de soporte ===============
     watch(
       () => fields.type?.data,
       async (newType, oldType) => {
         if (newType === oldType || isLoadingExistingData) return
 
-        // Guardar valores actuales antes de recrear campos
         const currentValues = {}
-        Object.keys(fields).forEach((key) => {
-          currentValues[key] = fields[key]?.data
-        })
+        Object.keys(fields).forEach((k) => (currentValues[k] = fields[k]?.data))
 
-        // Recrear campos
         const newFields = createFieldsForType(newType)
-        Object.keys(fields).forEach((key) => delete fields[key])
+        Object.keys(fields).forEach((k) => delete fields[k])
         Object.assign(fields, newFields)
-
-        // Restaurar valores donde sea posible
-        Object.keys(currentValues).forEach((key) => {
-          if (fields[key] && currentValues[key] !== undefined) {
-            fields[key].data = currentValues[key]
-          }
+        Object.keys(currentValues).forEach((k) => {
+          if (fields[k] && currentValues[k] !== undefined) fields[k].data = currentValues[k]
         })
 
-        // Cargar datos dependientes
+        // ===  Cargar dependencias ==================================
         external.profiles = external.nodes = external.equipments = external.services = []
         await loaders.loadProfiles(newType)
 
@@ -361,14 +313,14 @@ export const useOperationsForm = (fields, uiStates, props) => {
       { immediate: false },
     )
 
-    // Helper para crear watchers
-    const createWatcher = (fieldName, loadFn, clearFields = []) => {
+    //  Dependencias geográficas y de red
+    const createWatcher = (field, loadFn, clear = []) => {
       watch(
-        () => fields[fieldName]?.data,
+        () => fields[field]?.data,
         async (newVal, oldVal) => {
           if (newVal === oldVal || isLoadingExistingData || isLoadingServiceAddress) return
           if (newVal) await loadFn(newVal)
-          clearFields.forEach((field) => fields[field] && (fields[field].data = null))
+          clear.forEach((f) => fields[f] && (fields[f].data = null))
         },
         { immediate: false },
       )
@@ -378,17 +330,13 @@ export const useOperationsForm = (fields, uiStates, props) => {
     createWatcher('state', loaders.loadMunicipalities, ['municipality', 'district'])
     createWatcher('municipality', loaders.loadDistricts, ['district'])
 
-    // Watcher especial para cliente
+    //  Cliente -> Cargar sucursal y servicios
     watch(
       () => fields.client?.data,
       async (newClient, oldClient) => {
         if (newClient === oldClient || isLoadingExistingData || isLoadingServiceAddress) return
-
         if (newClient) {
-          // Cargar sucursal del cliente
           await loadClientBranch(newClient)
-
-          // Cargar servicios si el tipo de soporte lo requiere
           if ([3, 4, 5, 6, 7, 8, 9].includes(fields.type?.data)) {
             await loaders.loadClientServices(newClient)
           }
@@ -398,23 +346,20 @@ export const useOperationsForm = (fields, uiStates, props) => {
       { immediate: false },
     )
 
-    // Watcher para servicio - cargar dirección automáticamente
+    //  Servicio -> Cargar dirección
     watch(
       () => fields.service?.data,
       async (newService, oldService) => {
         if (newService === oldService || isLoadingExistingData || isLoadingServiceAddress) return
-
-        // Solo cargar dirección para tipos de soporte que requieren servicio
         const serviceRequiredTypes = [
-          SUPPORT_TYPES.INTERNET_SUPPORT, // 3
-          SUPPORT_TYPES.IPTV_SUPPORT, // 4
-          SUPPORT_TYPES.CHANGE_ADDRESS, // 5
-          SUPPORT_TYPES.INTERNET_RENEWAL, // 6
-          SUPPORT_TYPES.IPTV_RENEWAL, // 7
-          SUPPORT_TYPES.UNINSTALLATION, // 8
-          SUPPORT_TYPES.EQUIPMENT_SALE, // 9
+          SUPPORT_TYPES.INTERNET_SUPPORT,
+          SUPPORT_TYPES.IPTV_SUPPORT,
+          SUPPORT_TYPES.CHANGE_ADDRESS,
+          SUPPORT_TYPES.INTERNET_RENEWAL,
+          SUPPORT_TYPES.IPTV_RENEWAL,
+          SUPPORT_TYPES.UNINSTALLATION,
+          SUPPORT_TYPES.EQUIPMENT_SALE,
         ]
-
         if (newService && serviceRequiredTypes.includes(fields.type?.data)) {
           await loadServiceAddress(newService)
         }
@@ -423,6 +368,10 @@ export const useOperationsForm = (fields, uiStates, props) => {
     )
   }
 
+  // ================================================================
+  // ===  RETORNO   =================================================
+  // ================================================================
+
   return {
     getData,
     sendData,
@@ -430,9 +379,6 @@ export const useOperationsForm = (fields, uiStates, props) => {
     setupWatchers,
     toggleLoading,
     populateFields,
-    loadServiceAddress,
-    loadClientBranch,
-    searchDevice,
     deviceVisibility,
   }
 }

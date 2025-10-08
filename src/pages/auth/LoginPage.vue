@@ -36,7 +36,7 @@ const login = async () => {
     }
   } catch (error) {
     // showNotification('Error', 'Credenciales incorrectas o Usuario inactivo', 'red-10')
-    showNotification('Error', `${error}`, 'red-10')
+    showNotification('Error', `${error.response?.data?.message}`, 'red-10')
     loading.value = false
     console.error('General error: ', error)
   }
