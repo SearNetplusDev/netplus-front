@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, computed, onMounted } from 'vue'
+import { reactive, computed, onMounted, ref } from 'vue'
 import { api } from 'boot/axios.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
@@ -7,6 +7,7 @@ import { useClipboard } from 'src/utils/clipboard.js'
 import { useFields } from 'src/utils/composables/useFields.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
+import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
@@ -18,6 +19,12 @@ const props = defineProps({
 const uiStates = reactive({
   title: 'Resolución de soportes',
   loading: false,
+  showDeleteItem: false,
+})
+const deleteProps = ref([])
+const filteredDevices = reactive({
+  internet: [],
+  iptv: [],
 })
 const fields = reactive({
   type: createField('Tipo de soporte', 'select', [validationRules.select_required], true),
@@ -92,13 +99,19 @@ const support = reactive({
   data: [],
 })
 
+const devices = reactive({
+  internet: [],
+  iptv: [],
+  addInternet: null,
+  addIptv: null,
+})
 const getData = async () => {
   uiStates.loading = true
   showLoading()
   try {
     const { data } = await api.post(`/api/v1/operations/technical/edit`, { id: props.id })
-    uiStates.title = `Resolución ${data.support?.ticket_number} (${data.support?.type?.name})`
     let origin = data.support
+    uiStates.title = `Resolución ${origin.ticket_number} (${origin.type?.name})`
     support.data = origin
     fields.type.data = origin.type_id
     fields.client.data = origin.client_id
@@ -125,6 +138,9 @@ const getData = async () => {
     await onNodeChange(false)
     await onStateChange(false)
     await onMunicipalityChange(false)
+
+    devices.internet = origin.service?.internet_devices
+    devices.iptv = origin.service?.iptv_devices
   } catch (err) {
     console.error(err)
   } finally {
@@ -254,6 +270,70 @@ const onMunicipalityChange = async (reload) => {
   }
 }
 const sendData = async () => {}
+const showDeleteDialog = (type, deviceId, mac) => {
+  let uri = ''
+  uiStates.showDeleteItem = true
+  type === 1
+    ? (uri = '/api/v1/service/equipment/internet')
+    : (uri = '/api/v1/services/equipment/iptv')
+
+  deleteProps.value = {
+    title: 'Desvincular Dispositivo',
+    message: `¿Deseas desvincular el equipo con MAC ${mac} del servicio?`,
+    id: deviceId,
+    url: uri,
+  }
+}
+const resetShowDeleteItem = () => {
+  uiStates.showDeleteItem = false
+  getData()
+}
+
+const filterInternetDevices = async (val, update) => {
+  if (!val || val.length < 4) {
+    update(() => {
+      filteredDevices.internet = []
+    })
+    return
+  }
+  try {
+    const { data } = await api.post('api/v1/infrastructure/equipment/inventory/internet/search/', {
+      mac: val,
+    })
+    update(() => {
+      filteredDevices.internet = data.equipment
+    })
+  } catch (err) {
+    showNotification('Error', `${err.response?.data?.message}`, 'red-10')
+  }
+}
+const clearInternetFilters = () => {
+  filteredDevices.internet = devices.addInternet ?? []
+}
+const saveInternetDevice = async () => {
+  uiStates.loading = true
+  showLoading()
+  try {
+    const { data } = await api.post('api/v1/services/equipment/internet/', {
+      equipment: devices.addInternet,
+      service: support.data.service?.id,
+    })
+    if (data.saved) {
+      showNotification('Éxito', `Equipo asignado al servicio`, 'blue-grey-10')
+      await getData()
+      devices.addInternet = null
+    } else {
+      showNotification('Error', 'Ha ocurrido un error, intentalo nuevamente.', 'red-10')
+    }
+  } catch (err) {
+    showNotification('Error', `${err.response?.data?.message}`, 'red-10')
+  } finally {
+    setTimeout(() => {
+      uiStates.loading = false
+      hideLoading()
+    }, 50)
+  }
+}
 
 onMounted(async () => {
   try {
@@ -412,44 +492,183 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <div class="row wrap full-width justify-start items-center content-start">
-                <!--  Internet Profile Data   -->
-                <div class="col-xs-12 col-sm-12 col-md-2 q-ma-sm">
-                  <q-card flat class="custom-cards" style="width: 100%">
-                    <q-card-section class="q-header text-subtitle2 text-center">
-                      Datos de Internet
-                    </q-card-section>
-                    <q-card-section class="text-subtitle2">
-                      Nuevo Perfil: {{ support.data?.details?.profile?.name ?? 'N/A' }}
-                    </q-card-section>
-                    <q-card-section class="text-subtitle2">
-                      Perfil Actual: {{ support.data?.service?.internet?.profile?.name ?? 'N/A' }}
-                    </q-card-section>
-                    <q-card-section class="text-subtitle2">
-                      <q-btn
-                        flat
-                        bordered
-                        text-color="white"
-                        :label="support.data?.service?.internet?.user ?? 'Sin Servicio'"
-                        class="full-width q-mb-xs"
-                        icon="mdi-account"
-                        no-caps
-                        @click="copy(support.data?.service?.internet?.user ?? 'Sin Servicio')"
-                      />
-                      <q-btn
-                        flat
-                        bordered
-                        text-color="white"
-                        :label="support.data?.service?.internet?.secret ?? 'Sin Servicio'"
-                        class="full-width q-mb-xs"
-                        icon="mdi-key-variant"
-                        no-caps
-                        @click="copy(support.data?.service?.internet?.secret ?? 'Sin Servicio')"
-                      />
-                    </q-card-section>
-                  </q-card>
-                </div>
-                <!--  End Internet Profile Data   -->
+              <div
+                class="row wrap full-width justify-start items-start content-start"
+                v-if="support.data?.service !== null"
+              >
+                <template v-if="!uiStates.loading">
+                  <!--  Internet Profile Data   -->
+                  <div class="col-xs-12 col-sm-12 col-md-2 q-ma-sm">
+                    <q-card flat class="custom-cards" style="width: 100%">
+                      <q-card-section class="q-header text-subtitle2 text-center">
+                        Datos de Internet
+                      </q-card-section>
+                      <q-card-section class="text-subtitle2">
+                        Nuevo Perfil: {{ support.data?.details?.profile?.name ?? 'N/A' }}
+                      </q-card-section>
+                      <q-card-section class="text-subtitle2">
+                        Perfil Actual: {{ support.data?.service?.internet?.profile?.name ?? 'N/A' }}
+                      </q-card-section>
+                      <q-card-section class="text-subtitle2">
+                        <q-btn
+                          flat
+                          bordered
+                          text-color="white"
+                          :label="support.data?.service?.internet?.user ?? 'Sin Servicio'"
+                          class="full-width q-mb-xs"
+                          icon="mdi-account"
+                          no-caps
+                          @click="copy(support.data?.service?.internet?.user ?? 'Sin Servicio')"
+                        />
+                        <q-btn
+                          flat
+                          bordered
+                          text-color="white"
+                          :label="support.data?.service?.internet?.secret ?? 'Sin Servicio'"
+                          class="full-width q-mb-xs"
+                          icon="mdi-key-variant"
+                          no-caps
+                          @click="copy(support.data?.service?.internet?.secret ?? 'Sin Servicio')"
+                        />
+                      </q-card-section>
+                    </q-card>
+                  </div>
+                  <!--  End Internet Profile Data   -->
+
+                  <!--  Installed Internet Devices   -->
+                  <div class="col-xs-12 col-sm-12 col-md-2 q-ma-sm">
+                    <q-card flat class="custom-cards" style="width: 100%">
+                      <q-card-section class="q-header text-subtitle2 text-center">
+                        Equipos Instalados
+                      </q-card-section>
+                      <q-card-section>
+                        <template v-for="device in devices.internet" :key="device.id">
+                          <div class="row q-my-xs">
+                            <div class="col-1 text-bold">
+                              {{ device.equipment?.type?.name }}
+                            </div>
+                            <div class="col-9 text-center">
+                              <span class="copy-text" @click="copy(device.equipment?.mac_address)">
+                                {{ device.equipment?.mac_address }}
+                              </span>
+                            </div>
+                            <div class="col-2">
+                              <q-btn
+                                flat
+                                round
+                                icon="mdi-delete"
+                                color="red"
+                                size="sm"
+                                @click="
+                                  showDeleteDialog(1, device.id, device.equipment?.mac_address)
+                                "
+                              >
+                                <q-tooltip
+                                  transition-show="fade"
+                                  transition-hide="flip-left"
+                                  class="bg-grey-10"
+                                >
+                                  Remover dispositivo con MAC {{ device.equipment?.mac_address }}
+                                </q-tooltip>
+                              </q-btn>
+                            </div>
+                          </div>
+                        </template>
+                      </q-card-section>
+
+                      <q-card-section>
+                        <q-select
+                          v-model="devices.addInternet"
+                          dark
+                          dense
+                          outlined
+                          clearable
+                          use-input
+                          hide-selected
+                          fill-input
+                          color="white"
+                          emit-value
+                          map-options
+                          transition-show="jump-up"
+                          transition-hide="jump-down"
+                          lazy-rules
+                          input-debounce="0"
+                          label="Dirección MAC (últimos 4 dígitos)"
+                          :options="filteredDevices.internet"
+                          :option-value="(opt) => opt.id"
+                          :option-label="(opt) => opt.name"
+                          @filter="filterInternetDevices"
+                          @filter-abort="clearInternetFilters"
+                        >
+                          <template v-slot:no-option>
+                            <q-item>
+                              <q-item-section class="text-italic text-grey">
+                                Sin resultados
+                              </q-item-section>
+                            </q-item>
+                          </template>
+                        </q-select>
+                      </q-card-section>
+                      <q-card-actions align="around">
+                        <q-btn flat label="buscar" />
+                        <q-btn flat label="añadir" @click="saveInternetDevice()" />
+                      </q-card-actions>
+                    </q-card>
+                  </div>
+                  <!--  End Installed Internet Devices   -->
+
+                  <!--  Installed IPTV Devices   -->
+                  <div
+                    class="col-xs-12 col-sm-12 col-md-2 q-ma-sm"
+                    v-if="
+                      support.data?.service?.internet?.profile?.iptv ||
+                      support.data?.details?.profile?.iptv
+                    "
+                  >
+                    <q-card flat class="custom-cards" style="width: 100%">
+                      <q-card-section class="q-header text-subtitle2 text-center">
+                        TV Box Instaladas
+                      </q-card-section>
+                      <q-card-section>
+                        <template v-for="device in devices.iptv" :key="device.id">
+                          <div class="row q-my-xs">
+                            <div class="col-10 text-center">
+                              <span class="copy-text" @click="copy(device.equipment?.mac_address)">
+                                {{ device.equipment?.mac_address }}
+                              </span>
+                            </div>
+                            <div class="col-2">
+                              <q-btn
+                                flat
+                                round
+                                icon="mdi-delete"
+                                color="red"
+                                size="sm"
+                                @click="
+                                  showDeleteDialog(2, device.id, device.equipment?.mac_address)
+                                "
+                              >
+                                <q-tooltip
+                                  transition-show="fade"
+                                  transition-hide="flip-left"
+                                  class="bg-grey-10"
+                                >
+                                  Remover dispositivo con MAC {{ device.equipment?.mac_address }}
+                                </q-tooltip>
+                              </q-btn>
+                            </div>
+                          </div>
+                        </template>
+                      </q-card-section>
+
+                      <q-card-actions align="around">
+                        <q-btn flat label="buscar" />
+                        <q-btn flat label="añadir" />
+                      </q-card-actions>
+                    </q-card>
+                  </div>
+                  <!--  End Installed IPTV Devices   -->
+                </template>
               </div>
             </q-card-section>
 
@@ -464,5 +683,13 @@ onMounted(async () => {
       </q-page-container>
     </q-form>
   </q-layout>
+
+  <template v-if="uiStates.showDeleteItem">
+    <delete-item-dialog
+      :data="deleteProps"
+      :visible="uiStates.showDeleteItem"
+      @hide-dialog="resetShowDeleteItem"
+    />
+  </template>
 </template>
 <style lang="sass" scoped></style>
