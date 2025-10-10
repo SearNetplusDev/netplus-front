@@ -6,8 +6,15 @@ import { useNotifications } from 'src/utils/notification.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import { useFields } from 'src/utils/composables/useFields.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
+import EquipmentFormDialog from 'components/services/equipments/EquipmentFormDialog.vue'
+import TvBoxFormDialog from 'components/services/iptv/FormDialog.vue'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
@@ -20,12 +27,10 @@ const uiStates = reactive({
   title: 'Resolución de soportes',
   loading: false,
   showDeleteItem: false,
+  showSearchInternetDevicesDialog: false,
+  showSearchIptvDevicesDialog: false,
 })
 const deleteProps = ref([])
-const filteredDevices = reactive({
-  internet: [],
-  iptv: [],
-})
 const fields = reactive({
   type: createField('Tipo de soporte', 'select', [validationRules.select_required], true),
   client: createField('Cliente', 'select', [validationRules.select_required], true),
@@ -269,7 +274,29 @@ const onMunicipalityChange = async (reload) => {
     showNotification('Error', `${error.response?.data?.message}`, 'red-10')
   }
 }
-const sendData = async () => {}
+const sendData = async () => {
+  uiStates.loading = true
+  showLoading()
+  resetFieldErrors(fields)
+  const params = buildFormData(fields, { _method: 'PUT' })
+  try {
+    const { data } = await api.post(`/api/v1/operations/technical/${props.id}`, params)
+    if (data.saved) {
+      showNotification('Éxito', 'Soporte procesado.', 'blue-grey-10')
+      await getData()
+    } else {
+      showNotification('Error', `Algo ha salido mal.`, 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', `${err.response?.data?.message}`, 'red-10')
+  } finally {
+    setTimeout(() => {
+      uiStates.loading = false
+      hideLoading()
+    })
+  }
+}
 const showDeleteDialog = (type, deviceId, mac) => {
   let uri = ''
   uiStates.showDeleteItem = true
@@ -288,53 +315,11 @@ const resetShowDeleteItem = () => {
   uiStates.showDeleteItem = false
   getData()
 }
-
-const filterInternetDevices = async (val, update) => {
-  if (!val || val.length < 4) {
-    update(() => {
-      filteredDevices.internet = []
-    })
-    return
-  }
-  try {
-    const { data } = await api.post('api/v1/infrastructure/equipment/inventory/internet/search/', {
-      mac: val,
-    })
-    update(() => {
-      filteredDevices.internet = data.equipment
-    })
-  } catch (err) {
-    showNotification('Error', `${err.response?.data?.message}`, 'red-10')
-  }
+const refreshComponent = () => {
+  uiStates.showSearchInternetDevicesDialog = false
+  uiStates.showSearchIptvDevicesDialog = false
+  getData()
 }
-const clearInternetFilters = () => {
-  filteredDevices.internet = devices.addInternet ?? []
-}
-const saveInternetDevice = async () => {
-  uiStates.loading = true
-  showLoading()
-  try {
-    const { data } = await api.post('api/v1/services/equipment/internet/', {
-      equipment: devices.addInternet,
-      service: support.data.service?.id,
-    })
-    if (data.saved) {
-      showNotification('Éxito', `Equipo asignado al servicio`, 'blue-grey-10')
-      await getData()
-      devices.addInternet = null
-    } else {
-      showNotification('Error', 'Ha ocurrido un error, intentalo nuevamente.', 'red-10')
-    }
-  } catch (err) {
-    showNotification('Error', `${err.response?.data?.message}`, 'red-10')
-  } finally {
-    setTimeout(() => {
-      uiStates.loading = false
-      hideLoading()
-    }, 50)
-  }
-}
-
 onMounted(async () => {
   try {
     await getData()
@@ -576,42 +561,12 @@ onMounted(async () => {
                         </template>
                       </q-card-section>
 
-                      <q-card-section>
-                        <q-select
-                          v-model="devices.addInternet"
-                          dark
-                          dense
-                          outlined
-                          clearable
-                          use-input
-                          hide-selected
-                          fill-input
-                          color="white"
-                          emit-value
-                          map-options
-                          transition-show="jump-up"
-                          transition-hide="jump-down"
-                          lazy-rules
-                          input-debounce="0"
-                          label="Dirección MAC (últimos 4 dígitos)"
-                          :options="filteredDevices.internet"
-                          :option-value="(opt) => opt.id"
-                          :option-label="(opt) => opt.name"
-                          @filter="filterInternetDevices"
-                          @filter-abort="clearInternetFilters"
-                        >
-                          <template v-slot:no-option>
-                            <q-item>
-                              <q-item-section class="text-italic text-grey">
-                                Sin resultados
-                              </q-item-section>
-                            </q-item>
-                          </template>
-                        </q-select>
-                      </q-card-section>
                       <q-card-actions align="around">
-                        <q-btn flat label="buscar" />
-                        <q-btn flat label="añadir" @click="saveInternetDevice()" />
+                        <q-btn
+                          flat
+                          label="buscar"
+                          @click="uiStates.showSearchInternetDevicesDialog = true"
+                        />
                       </q-card-actions>
                     </q-card>
                   </div>
@@ -662,21 +617,17 @@ onMounted(async () => {
                       </q-card-section>
 
                       <q-card-actions align="around">
-                        <q-btn flat label="buscar" />
-                        <q-btn flat label="añadir" />
+                        <q-btn
+                          flat
+                          label="buscar"
+                          @click="uiStates.showSearchIptvDevicesDialog = true"
+                        />
                       </q-card-actions>
                     </q-card>
                   </div>
                   <!--  End Installed IPTV Devices   -->
                 </template>
               </div>
-            </q-card-section>
-
-            <q-card-section>
-              <pre>
-              {{ support.data }}
-            </pre
-              >
             </q-card-section>
           </q-card>
         </q-page>
@@ -689,6 +640,23 @@ onMounted(async () => {
       :data="deleteProps"
       :visible="uiStates.showDeleteItem"
       @hide-dialog="resetShowDeleteItem"
+    />
+  </template>
+
+  <template v-if="uiStates.showSearchInternetDevicesDialog">
+    <equipment-form-dialog
+      :visible="uiStates.showSearchInternetDevicesDialog"
+      :service="support.data.service?.id"
+      @hide="refreshComponent"
+    />
+  </template>
+
+  <template v-if="uiStates.showSearchIptvDevicesDialog">
+    <tv-box-form-dialog
+      :id="0"
+      :visible="uiStates.showSearchIptvDevicesDialog"
+      :service="support.data.service?.id"
+      @hide="refreshComponent"
     />
   </template>
 </template>
