@@ -156,6 +156,13 @@ const getData = async () => {
   }
 }
 
+const iptvButtonDisabled = computed(() => {
+  if (!support.data?.service?.internet?.profile) return false
+  const allowedStb = support.data.service?.internet?.profile?.allowed_stb
+  const currentIptvCount = devices.iptv.length
+  return currentIptvCount >= allowedStb
+})
+
 const selectOptions = (field) => {
   return (
     {
@@ -583,6 +590,12 @@ onMounted(async () => {
                     <q-card flat class="custom-cards" style="width: 100%">
                       <q-card-section class="q-header text-subtitle2 text-center">
                         TV Box Instaladas
+                        <div class="text-caption">
+                          {{ devices.iptv.length }}/{{
+                            support.data.service?.internet?.profile?.allowed_stb
+                          }}
+                          dispositivos
+                        </div>
                       </q-card-section>
                       <q-card-section>
                         <template v-for="device in devices.iptv" :key="device.id">
@@ -621,6 +634,7 @@ onMounted(async () => {
                           flat
                           label="buscar"
                           @click="uiStates.showSearchIptvDevicesDialog = true"
+                          :disable="iptvButtonDisabled"
                         />
                       </q-card-actions>
                     </q-card>
