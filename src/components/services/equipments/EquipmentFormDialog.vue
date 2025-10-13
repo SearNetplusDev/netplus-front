@@ -4,6 +4,7 @@ import { api } from 'boot/axios.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
 
 const props = defineProps({
   service: {
@@ -17,21 +18,10 @@ const props = defineProps({
 })
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
+const { validationRules, createField } = useFields()
 const isVisible = ref(props.visible)
 const uri = 'api/v1/infrastructure/equipment/inventory/internet/search/'
 const loading = ref(false)
-const createField = (label, type, rules = []) => ({
-  data: null,
-  error: false,
-  'error-message': '',
-  label,
-  type,
-  rules,
-})
-const validationRules = {
-  text_required: (val) => (val && val.length > 0) || 'Campo requerido',
-  select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
-}
 
 const fields = reactive({
   equipment: createField('MAC o Serial del equipo', 'input-select', [
@@ -77,6 +67,7 @@ const sendData = () => {
     .then((res) => {
       if (res.data.saved) {
         showNotification('Éxito', `Equipo asignado al servicio`)
+        isVisible.value = false
       } else {
         showNotification('Error', 'Verifica la información ingresada', 'teal-10')
       }

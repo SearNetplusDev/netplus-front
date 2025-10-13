@@ -15,6 +15,7 @@ import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
 import EquipmentFormDialog from 'components/services/equipments/EquipmentFormDialog.vue'
 import TvBoxFormDialog from 'components/services/iptv/FormDialog.vue'
+import EquipmentSaleDialog from 'components/operations/technical/EquipmentSaleDialog.vue'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
@@ -29,6 +30,7 @@ const uiStates = reactive({
   showDeleteItem: false,
   showSearchInternetDevicesDialog: false,
   showSearchIptvDevicesDialog: false,
+  showSearchSaleDevicesDialog: false,
 })
 const deleteProps = ref([])
 const fields = reactive({
@@ -107,6 +109,7 @@ const support = reactive({
 const devices = reactive({
   internet: [],
   iptv: [],
+  sold: [],
   addInternet: null,
   addIptv: null,
 })
@@ -146,6 +149,7 @@ const getData = async () => {
 
     devices.internet = origin.service?.internet_devices
     devices.iptv = origin.service?.iptv_devices
+    devices.sold = origin.service?.sold_devices
   } catch (err) {
     console.error(err)
   } finally {
@@ -163,6 +167,12 @@ const iptvButtonDisabled = computed(() => {
   return currentIptvCount >= allowedStb
 })
 
+const internetButtonDisabled = computed(() => {
+  if (!support.data?.service?.internet?.profile) return false
+  const allowedDevices = 2
+  const currentInternetDevicesCount = devices.internet.length
+  return currentInternetDevicesCount >= allowedDevices
+})
 const selectOptions = (field) => {
   return (
     {
@@ -308,7 +318,7 @@ const showDeleteDialog = (type, deviceId, mac) => {
   let uri = ''
   uiStates.showDeleteItem = true
   type === 1
-    ? (uri = '/api/v1/service/equipment/internet')
+    ? (uri = '/api/v1/services/equipment/internet')
     : (uri = '/api/v1/services/equipment/iptv')
 
   deleteProps.value = {
@@ -325,6 +335,7 @@ const resetShowDeleteItem = () => {
 const refreshComponent = () => {
   uiStates.showSearchInternetDevicesDialog = false
   uiStates.showSearchIptvDevicesDialog = false
+  uiStates.showSearchSaleDevicesDialog = false
   getData()
 }
 onMounted(async () => {
@@ -573,6 +584,7 @@ onMounted(async () => {
                           flat
                           label="buscar"
                           @click="uiStates.showSearchInternetDevicesDialog = true"
+                          :disable="internetButtonDisabled"
                         />
                       </q-card-actions>
                     </q-card>
@@ -640,6 +652,42 @@ onMounted(async () => {
                     </q-card>
                   </div>
                   <!--  End Installed IPTV Devices   -->
+
+                  <!--    Equipment Sale    -->
+                  <div
+                    class="col-xs-12 col-sm-12 col-md-2 q-ma-sm"
+                    v-if="support.data.type_id === 9"
+                  >
+                    <q-card flat class="custom-cards" style="width: 100%">
+                      <q-card-section class="q-header text-subtitle2 text-center">
+                        Equipos Vendidos
+                      </q-card-section>
+
+                      <q-card-section>
+                        <template v-for="device in devices.sold" :key="device.id">
+                          <div class="row q-my-xs">
+                            <div class="col-2 text-bold">
+                              {{ device.equipment?.type?.name }}
+                            </div>
+                            <div class="col-10 text-center">
+                              <span class="copy-text" @click="copy(device.equipment?.mac_address)">
+                                {{ device.equipment?.mac_address }}
+                              </span>
+                            </div>
+                          </div>
+                        </template>
+                      </q-card-section>
+
+                      <q-card-actions align="around">
+                        <q-btn
+                          flat
+                          label="Buscar"
+                          @click="uiStates.showSearchSaleDevicesDialog = true"
+                        />
+                      </q-card-actions>
+                    </q-card>
+                  </div>
+                  <!--    End Equipment Sale    -->
                 </template>
               </div>
             </q-card-section>
@@ -670,6 +718,15 @@ onMounted(async () => {
       :id="0"
       :visible="uiStates.showSearchIptvDevicesDialog"
       :service="support.data.service?.id"
+      @hide="refreshComponent"
+    />
+  </template>
+
+  <template v-if="uiStates.showSearchSaleDevicesDialog">
+    <equipment-sale-dialog
+      :visible="uiStates.showSearchSaleDevicesDialog"
+      :service="support.data.service?.id"
+      :client="support.data.service?.client_id"
       @hide="refreshComponent"
     />
   </template>

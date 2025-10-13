@@ -13,6 +13,9 @@ export function useFields() {
     longitude: (val) =>
       /^([-+]?(180(\.0{6,})?|1[0-7]\d(\.\d{6,})?|[0-9]?\d(\.\d{6,})?))$/.test(val) ||
       'Formato incorrecto para longitud',
+    email: (val) =>
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val) ||
+      'Formato de correo incorrecto',
   }
 
   const createField = (label, type, rules = [], disabled = false) => ({

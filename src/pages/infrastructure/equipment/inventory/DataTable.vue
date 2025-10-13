@@ -128,6 +128,11 @@ watch(showForm, (newVal) => {
               {{ props.row.on_iptv_service?.service?.client?.name }}
               {{ props.row.on_iptv_service?.service?.client?.surname }}
             </template>
+
+            <template v-if="props.row.on_sold_devices">
+              {{ props.row.on_sold_devices?.service?.client?.name }}
+              {{ props.row.on_sold_devices?.service?.client?.surname }}
+            </template>
           </q-td>
 
           <!--    Type    -->

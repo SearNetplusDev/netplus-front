@@ -8,6 +8,7 @@ import {
   handleSubmissionError,
   buildFormData,
 } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
 
 const props = defineProps({
   id: { type: Number, required: true },
@@ -16,6 +17,7 @@ const props = defineProps({
 })
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
+const { validationRules, createField } = useFields()
 const uiStates = reactive({
   isVisible: props.visible,
   loading: false,
@@ -23,21 +25,6 @@ const uiStates = reactive({
   isEditMode: false,
 })
 const uri = '/api/v1/services/equipment/iptv/'
-const validationRules = {
-  text_required: (val) => (val && val.length > 0) || 'Campo requerido',
-  select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
-  email: (val) =>
-    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val) || 'Formato de correo incorrecto',
-}
-const createField = (label, type, rules = []) => ({
-  data: null,
-  error: false,
-  'error-message': '',
-  label,
-  type,
-  rules,
-  show: false,
-})
 const fields = reactive({
   equipment: createField('Dirección MAC', 'select', [validationRules.select_required]),
   email: createField('Correo electrónico', 'text', [
@@ -159,6 +146,7 @@ const sendData = async () => {
     if (data.saved) {
       uiStates.title = `Modificar datos de la TV BOX con MAC ${data.equipment?.equipment?.mac_address}`
       showNotification('Éxito', 'Registro almacenado correctamente', 'blue-grey-10')
+      uiStates.isVisible = false
     } else {
       showNotification('Error', 'Verifica la información ingresada', 'teal-10')
     }
