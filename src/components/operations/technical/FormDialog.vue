@@ -1,68 +1,26 @@
 <script setup>
-import { reactive, computed, onMounted, ref } from 'vue'
-import { api } from 'boot/axios.js'
-import { useLoading } from 'src/utils/loader.js'
+import { reactive, onMounted, ref } from 'vue'
+import { getSupportData } from 'src/utils/composables/getData.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useClipboard } from 'src/utils/clipboard.js'
-import { useFields } from 'src/utils/composables/useFields.js'
-import { getSupportData } from 'src/utils/composables/getData.js'
-import {
-  resetFieldErrors,
-  handleSubmissionError,
-  buildFormData,
-} from 'src/utils/composables/useFormHandler.js'
+import { useFormState } from 'src/utils/composables/operations/useFormState.js'
+import { useDeviceManagement } from 'src/utils/composables/operations/useDeviceManagement.js'
+import { useSupportData } from 'src/utils/composables/operations/useSupportData.js'
+import { useLocationData } from 'src/utils/composables/operations/useLocationData.js'
+import { useFieldFilters } from 'src/utils/composables/operations/useFieldFilters.js'
+import { useSupportFields } from 'src/utils/composables/operations/useSupportFields.js'
+import { useSelectHandler } from 'src/utils/composables/operations/useSelectHandler.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 import DeleteItemDialog from 'components/base/DeleteItemDialog.vue'
 import EquipmentFormDialog from 'components/services/equipments/EquipmentFormDialog.vue'
 import TvBoxFormDialog from 'components/services/iptv/FormDialog.vue'
 import EquipmentSaleDialog from 'components/operations/technical/EquipmentSaleDialog.vue'
+import DeviceManagementSection from 'components/operations/technical/DeviceManagementSection.vue'
 
-const { showLoading, hideLoading } = useLoading()
-const { showNotification } = useNotifications()
-const { copy } = useClipboard()
-const { validationRules, createField } = useFields()
 const props = defineProps({
   id: { type: Number, required: true },
 })
-const uiStates = reactive({
-  title: 'Resolución de soportes',
-  loading: false,
-  showDeleteItem: false,
-  showSearchInternetDevicesDialog: false,
-  showSearchIptvDevicesDialog: false,
-  showSearchSaleDevicesDialog: false,
-})
-const deleteProps = ref([])
-const fields = reactive({
-  type: createField('Tipo de soporte', 'select', [validationRules.select_required], true),
-  client: createField('Cliente', 'select', [validationRules.select_required], true),
-  service: createField('Servicio', 'select', [validationRules.select_required], true),
-  profile: createField('Perfil de navegación', 'select', [validationRules.select_required]),
-  node: createField('Nodo', 'select', [validationRules.select_required]),
-  equipment: createField('Equipo', 'select', [validationRules.select_required]),
-  description: createField(
-    'Descripción del soporte',
-    'textarea',
-    [validationRules.text_required],
-    true,
-  ),
-  branch: createField('Sucursal', 'select', [validationRules.select_required], true),
-  state: createField('Departamento', 'select', [validationRules.select_required]),
-  municipality: createField('Municipio', 'select', [validationRules.select_required]),
-  district: createField('Distrito', 'select', [validationRules.select_required]),
-  address: createField('Dirección', 'textarea', [validationRules.text_required]),
-  solution: createField('Solución', 'textarea', []),
-  comments: createField('Observaciones', 'textarea', []),
-  latitude: createField('Latitud', 'text', [
-    validationRules.text_required,
-    validationRules.latitude,
-  ]),
-  longitude: createField('Longitud', 'text', [
-    validationRules.text_required,
-    validationRules.longitude,
-  ]),
-  status: createField('Estado', 'select', [validationRules.select_required]),
-})
+
 const options = reactive({
   type: [],
   client: [],
@@ -77,258 +35,71 @@ const options = reactive({
   status: [],
 })
 
-// =====  Computed properties para separar los campos ===== //
-const normalFields = computed(() => {
-  const normalFieldTypes = ['select', 'select-filter', 'text']
-  const filteredFields = {}
-
-  Object.keys(fields).forEach((key) => {
-    if (normalFieldTypes.includes(fields[key].type)) {
-      filteredFields[key] = fields[key]
-    }
-  })
-
-  return filteredFields
+// =====  Composables =====
+const { showNotification } = useNotifications()
+const { copy } = useClipboard()
+const { state: uiStates, setTitle } = useFormState()
+const { devices, setDevices } = useDeviceManagement()
+const { fetchSupportData, saveSupportData /*, deleteDevice*/ } = useSupportData()
+const { fields, mapSupportToFields /*, resetFields*/ } = useSupportFields()
+const { normalFields, textAreaFields } = useFieldFilters(fields)
+const { onNodeChange, onStateChange, onMunicipalityChange, loadAllLocationData } = useLocationData(
+  fields,
+  options,
+)
+const { handleSelectChange } = useSelectHandler(fields, {
+  onNodeChange,
+  onStateChange,
+  onMunicipalityChange,
 })
 
-const textAreaFields = computed(() => {
-  const filteredFields = {}
+// =====  States  =====
+const support = reactive({ data: {} })
+const deleteProps = ref({})
 
-  Object.keys(fields).forEach((key) => {
-    if (fields[key].type === 'textarea') {
-      filteredFields[key] = fields[key]
-    }
-  })
-  return filteredFields
-})
-
-const support = reactive({
-  data: [],
-})
-
-const devices = reactive({
-  internet: [],
-  iptv: [],
-  sold: [],
-  addInternet: null,
-  addIptv: null,
-})
+// =====  Methods =====
 const getData = async () => {
   uiStates.loading = true
-  showLoading()
-  try {
-    const { data } = await api.post(`/api/v1/operations/technical/edit`, { id: props.id })
-    let origin = data.support
-    uiStates.title = `Resolución ${origin.ticket_number} (${origin.type?.name})`
-    support.data = origin
-    fields.type.data = origin.type_id
-    fields.client.data = origin.client_id
-    fields.service.data = origin.service_id
-    fields.node.data = origin.service?.node_id
-    fields.equipment.data = origin.service?.equipment_id
-    fields.description.data = origin.description
-    fields.branch.data = origin.branch_id
-    fields.state.data = origin.state_id
-    fields.municipality.data = origin.municipality_id
-    fields.district.data = origin.district_id
-    fields.address.data = origin.address
-    fields.solution.data = origin.solution
-    fields.comments.data = origin.comments
-    fields.latitude.data = origin.service?.latitude
-    fields.longitude.data = origin.service?.longitude
-    fields.status.data = origin.status_id
-    let supportWithDetails = [1, 2, 6, 7]
-    if (supportWithDetails.includes(origin.type_id)) {
-      fields.profile.data = origin.details?.internet_profile_id
-    } else {
-      fields.profile.data = origin.service?.internet?.internet_profile_id
-    }
-    await onNodeChange(false)
-    await onStateChange(false)
-    await onMunicipalityChange(false)
+  const supportData = await fetchSupportData(props.id)
 
-    devices.internet = origin.service?.internet_devices
-    devices.iptv = origin.service?.iptv_devices
-    devices.sold = origin.service?.sold_devices
-  } catch (err) {
-    console.error(err)
-  } finally {
-    setTimeout(() => {
-      uiStates.loading = false
-      hideLoading()
-    }, 250)
+  if (!supportData) {
+    uiStates.loading = false
+    return
   }
-}
-
-const iptvButtonDisabled = computed(() => {
-  if (!support.data?.service?.internet?.profile) return false
-  const allowedStb = support.data.service?.internet?.profile?.allowed_stb
-  const currentIptvCount = devices.iptv.length
-  return currentIptvCount >= allowedStb
-})
-
-const internetButtonDisabled = computed(() => {
-  if (!support.data?.service?.internet?.profile) return false
-  const allowedDevices = 2
-  const currentInternetDevicesCount = devices.internet.length
-  return currentInternetDevicesCount >= allowedDevices
-})
-const selectOptions = (field) => {
-  return (
-    {
-      type: options.type,
-      client: options.client,
-      service: options.service,
-      profile: options.profile,
-      node: options.node,
-      equipment: options.equipment,
-      branch: options.branch,
-      state: options.state,
-      municipality: options.municipality,
-      district: options.district,
-      status: options.status,
-    }[field] || []
+  support.data = supportData
+  setTitle(supportData.ticket_number, supportData.type?.name)
+  mapSupportToFields(supportData)
+  setDevices(
+    supportData.service?.internet_devices,
+    supportData.service?.iptv_devices,
+    supportData.service?.sold_devices,
   )
+
+  await loadAllLocationData()
+  uiStates.loading = false
 }
 
-const onSelectChange = (name, val) => {
-  switch (name) {
-    case 'type':
-      fields.type.data = val
-      break
-    case 'client':
-      console.log(val)
-      break
-    case 'service':
-      console.log(val)
-      break
-    case 'profile':
-      fields.profile.data = val
-      break
-    case 'node':
-      handleNodeChange(val)
-      break
-    case 'equipment':
-      fields.equipment.data = val
-      break
-    case 'branch':
-      fields.branch.data = val
-      break
-    case 'state':
-      fields.state.data = val
-      handleStateChange(val)
-      break
-    case 'municipality':
-      handleMunicipalityChange(val)
-      break
-    case 'district':
-      fields.district.data = val
-      break
-    case 'status':
-      fields.status.data = val
-      break
-  }
-}
-const handleNodeChange = (val) => {
-  fields.node.data = val
-  onNodeChange(true)
-}
-const handleStateChange = (val) => {
-  fields.state.data = val
-  onStateChange(true)
-}
-const handleMunicipalityChange = (val) => {
-  fields.municipality.data = val
-  onMunicipalityChange(true)
-}
-const onNodeChange = async (reload) => {
-  if (!fields.node.data) return
-
-  if (reload) {
-    fields.equipment.data = null
-    options.equipment = []
-  }
-  try {
-    options.equipment = await getSupportData(
-      `api/v1/general/infrastructure/node/${fields.node.data}/equipment`,
-    )
-  } catch (err) {
-    showNotification('Error', `${err.response?.data?.message}`, 'red-10')
-  }
-}
-const onStateChange = async (reload) => {
-  if (!fields.state.data) return
-
-  if (reload) {
-    fields.municipality.data = null
-    fields.district.data = null
-    options.municipality = []
-    options.districts = []
-  }
-
-  try {
-    options.municipality = await getSupportData(
-      `api/v1/general/state/${fields.state.data}/municipalities`,
-    )
-  } catch (error) {
-    console.error('Error cargando municipios:', error)
-    showNotification('Error', `${error.response?.data?.message}`, 'red-10')
-  }
-}
-const onMunicipalityChange = async (reload) => {
-  if (!fields.municipality.data) return
-
-  if (reload) {
-    fields.district.data = null
-    options.district = []
-  }
-
-  try {
-    options.district = await getSupportData(
-      `api/v1/general/municipality/${fields.municipality.data}/districts`,
-    )
-  } catch (error) {
-    showNotification('Error', `${error.response?.data?.message}`, 'red-10')
-  }
-}
-const sendData = async () => {
+const handleSave = async () => {
   uiStates.loading = true
-  showLoading()
-  resetFieldErrors(fields)
-  const params = buildFormData(fields, { _method: 'PUT' })
-  try {
-    const { data } = await api.post(`/api/v1/operations/technical/${props.id}`, params)
-    if (data.saved) {
-      showNotification('Éxito', 'Soporte procesado.', 'blue-grey-10')
-      await getData()
-    } else {
-      showNotification('Error', `Algo ha salido mal.`, 'red-10')
-    }
-  } catch (err) {
-    handleSubmissionError(err, fields)
-    showNotification('Error', `${err.response?.data?.message}`, 'red-10')
-  } finally {
-    setTimeout(() => {
-      uiStates.loading = false
-      hideLoading()
-    })
+  const success = await saveSupportData(props.id, fields)
+
+  if (success) {
+    await getData()
   }
+
+  uiStates.loading = false
 }
 const showDeleteDialog = (type, deviceId, mac) => {
-  let uri = ''
-  uiStates.showDeleteItem = true
-  type === 1
-    ? (uri = '/api/v1/services/equipment/internet')
-    : (uri = '/api/v1/services/equipment/iptv')
-
+  const uri = type === 1 ? '/api/v1/services/equipment/internet' : '/api/v1/services/equipment/iptv'
   deleteProps.value = {
-    title: 'Desvincular Dispositivo',
+    title: 'Desvincular dispositivo',
     message: `¿Deseas desvincular el equipo con MAC ${mac} del servicio?`,
     id: deviceId,
     url: uri,
   }
+  uiStates.showDeleteItem = true
 }
-const resetShowDeleteItem = () => {
+const handleDialogClose = () => {
   uiStates.showDeleteItem = false
   getData()
 }
@@ -338,10 +109,9 @@ const refreshComponent = () => {
   uiStates.showSearchSaleDevicesDialog = false
   getData()
 }
-onMounted(async () => {
+const selectOptions = (field) => options[field] || []
+const loadInitialData = async () => {
   try {
-    await getData()
-
     const [types, client, service, profiles, nodes, branches, states, statuses] = await Promise.all(
       [
         getSupportData('/api/v1/general/supports/types'),
@@ -354,23 +124,30 @@ onMounted(async () => {
         getSupportData('/api/v1/general/supports/status'),
       ],
     )
-    options.type = types
-    options.client = client
-    options.service = service
-    options.profile = profiles
-    options.node = nodes
-    options.branch = branches
-    options.state = states
-    options.status = statuses
+
+    Object.assign(options, {
+      type: types,
+      client,
+      service,
+      profile: profiles,
+      node: nodes,
+      branch: branches,
+      state: states,
+      status: statuses,
+    })
   } catch (err) {
-    console.error(err)
-    showNotification('Error', `${err.response?.data?.message}`, 'red-10')
+    showNotification('Error', err.response?.data?.message || 'Error cargando datos', 'red-10')
   }
+}
+onMounted(async () => {
+  await getData()
+  await loadInitialData()
 })
 </script>
+
 <template>
   <q-layout view="hHh LpR fFF" container>
-    <q-form greedy @submit="sendData">
+    <q-form greedy @submit="handleSave">
       <q-header class="q-header">
         <q-toolbar>
           <q-toolbar-title>{{ uiStates.title }}</q-toolbar-title>
@@ -378,15 +155,14 @@ onMounted(async () => {
             flat
             icon="mdi-content-save"
             :loading="uiStates.loading"
-            :label="props.id > 0 ? 'Almacenar' : 'Almacenar'"
+            label="Procesar"
             type="submit"
             color="white"
           >
-            <template v-slot:loading>
+            <template #loading>
               <q-spinner-gears class="on-left" />
             </template>
           </q-btn>
-
           <q-btn v-close-popup round dense icon="close" />
         </q-toolbar>
       </q-header>
@@ -397,15 +173,16 @@ onMounted(async () => {
         <q-page class="q-pa-md bg-dark">
           <q-card flat class="custom-cards q-pa-sm">
             <q-card-section>
+              <!--    Normal Fields   -->
               <div class="row wrap full-width justify-start items-center content-start">
                 <div
                   class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
                   v-for="(field, index) in normalFields"
                   :key="index"
                 >
-                  <!--  Normal Selects    -->
                   <template v-if="field.type === 'select'">
                     <q-select
+                      v-model="field.data"
                       dense
                       dark
                       clearable
@@ -413,10 +190,7 @@ onMounted(async () => {
                       color="white"
                       emit-value
                       map-options
-                      transition-show="jump-up"
-                      transition-hide="jump-down"
                       lazy-rules
-                      v-model="field.data"
                       v-if="!uiStates.loading"
                       :label="field.label"
                       :rules="field.rules"
@@ -425,31 +199,28 @@ onMounted(async () => {
                       :options="selectOptions(index)"
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
-                      @update:model-value="onSelectChange(index, $event)"
-                      :disable="field.disabled"
+                      :disable="field.disabled || uiStates.loading"
+                      @update:model-value="handleSelectChange(index, $event)"
                     />
                   </template>
-                  <!--  End Normal Selects  -->
 
-                  <!--    Text Inputs   -->
                   <template v-if="field.type === 'text'">
                     <q-input
-                      dense
+                      v-model="field.data"
                       dark
+                      dense
                       outlined
                       clearable
                       color="white"
                       lazy-rules="ondemand"
-                      v-model="field.data"
                       v-if="!uiStates.loading"
                       :label="field.label"
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
-                      :disable="field.disabled"
+                      :disable="field.disabled || uiStates.loading"
                     />
                   </template>
-                  <!--    End Text Inputs   -->
 
                   <q-skeleton
                     class="q-my-md"
@@ -460,21 +231,22 @@ onMounted(async () => {
                   />
                 </div>
               </div>
+              <!--    End Normal Fields   -->
 
+              <!--    Textarea Fields   -->
               <div class="row wrap full-width justify-start items-center content-start">
                 <div
                   class="col-xs-12 col-sm-12 col-md-6 col-lg-6 q-pa-sm"
                   v-for="(field, index) in textAreaFields"
                   :key="index"
                 >
-                  <!--    Textarea Inputs   -->
                   <q-input
                     v-model="field.data"
+                    type="textarea"
                     dark
                     dense
                     outlined
                     clearable
-                    type="textarea"
                     rows="4"
                     color="white"
                     v-if="!uiStates.loading"
@@ -482,214 +254,25 @@ onMounted(async () => {
                     :rules="field.rules"
                     :error="field.error"
                     :error-message="field['error-message']"
-                    :disable="field.disabled"
+                    :disable="field.disabled || uiStates.loading"
                   />
-                  <!--    End Textarea Inputs   -->
-                  <q-skeleton
-                    class="q-my-md"
-                    dark
-                    type="QInput"
-                    animation="fade"
-                    v-if="uiStates.loading"
-                  />
+                  <q-skeleton v-if="uiStates.loading" type="QInput" dark animation="fade" />
                 </div>
               </div>
+              <!--    End Textarea Fields -->
 
-              <div
-                class="row wrap full-width justify-start items-start content-start"
-                v-if="support.data?.service !== null"
-              >
-                <template v-if="!uiStates.loading">
-                  <!--  Internet Profile Data   -->
-                  <div class="col-xs-12 col-sm-12 col-md-2 q-ma-sm">
-                    <q-card flat class="custom-cards" style="width: 100%">
-                      <q-card-section class="q-header text-subtitle2 text-center">
-                        Datos de Internet
-                      </q-card-section>
-                      <q-card-section class="text-subtitle2">
-                        Nuevo Perfil: {{ support.data?.details?.profile?.name ?? 'N/A' }}
-                      </q-card-section>
-                      <q-card-section class="text-subtitle2">
-                        Perfil Actual: {{ support.data?.service?.internet?.profile?.name ?? 'N/A' }}
-                      </q-card-section>
-                      <q-card-section class="text-subtitle2">
-                        <q-btn
-                          flat
-                          bordered
-                          text-color="white"
-                          :label="support.data?.service?.internet?.user ?? 'Sin Servicio'"
-                          class="full-width q-mb-xs"
-                          icon="mdi-account"
-                          no-caps
-                          @click="copy(support.data?.service?.internet?.user ?? 'Sin Servicio')"
-                        />
-                        <q-btn
-                          flat
-                          bordered
-                          text-color="white"
-                          :label="support.data?.service?.internet?.secret ?? 'Sin Servicio'"
-                          class="full-width q-mb-xs"
-                          icon="mdi-key-variant"
-                          no-caps
-                          @click="copy(support.data?.service?.internet?.secret ?? 'Sin Servicio')"
-                        />
-                      </q-card-section>
-                    </q-card>
-                  </div>
-                  <!--  End Internet Profile Data   -->
-
-                  <!--  Installed Internet Devices   -->
-                  <div class="col-xs-12 col-sm-12 col-md-2 q-ma-sm">
-                    <q-card flat class="custom-cards" style="width: 100%">
-                      <q-card-section class="q-header text-subtitle2 text-center">
-                        Equipos Instalados
-                      </q-card-section>
-                      <q-card-section>
-                        <template v-for="device in devices.internet" :key="device.id">
-                          <div class="row q-my-xs">
-                            <div class="col-1 text-bold">
-                              {{ device.equipment?.type?.name }}
-                            </div>
-                            <div class="col-9 text-center">
-                              <span class="copy-text" @click="copy(device.equipment?.mac_address)">
-                                {{ device.equipment?.mac_address }}
-                              </span>
-                            </div>
-                            <div class="col-2">
-                              <q-btn
-                                flat
-                                round
-                                icon="mdi-delete"
-                                color="red"
-                                size="sm"
-                                @click="
-                                  showDeleteDialog(1, device.id, device.equipment?.mac_address)
-                                "
-                              >
-                                <q-tooltip
-                                  transition-show="fade"
-                                  transition-hide="flip-left"
-                                  class="bg-grey-10"
-                                >
-                                  Remover dispositivo con MAC {{ device.equipment?.mac_address }}
-                                </q-tooltip>
-                              </q-btn>
-                            </div>
-                          </div>
-                        </template>
-                      </q-card-section>
-
-                      <q-card-actions align="around">
-                        <q-btn
-                          flat
-                          label="buscar"
-                          @click="uiStates.showSearchInternetDevicesDialog = true"
-                          :disable="internetButtonDisabled"
-                        />
-                      </q-card-actions>
-                    </q-card>
-                  </div>
-                  <!--  End Installed Internet Devices   -->
-
-                  <!--  Installed IPTV Devices   -->
-                  <div
-                    class="col-xs-12 col-sm-12 col-md-2 q-ma-sm"
-                    v-if="
-                      support.data?.service?.internet?.profile?.iptv ||
-                      support.data?.details?.profile?.iptv
-                    "
-                  >
-                    <q-card flat class="custom-cards" style="width: 100%">
-                      <q-card-section class="q-header text-subtitle2 text-center">
-                        TV Box Instaladas
-                        <div class="text-caption">
-                          {{ devices.iptv.length }}/{{
-                            support.data.service?.internet?.profile?.allowed_stb
-                          }}
-                          dispositivos
-                        </div>
-                      </q-card-section>
-                      <q-card-section>
-                        <template v-for="device in devices.iptv" :key="device.id">
-                          <div class="row q-my-xs">
-                            <div class="col-10 text-center">
-                              <span class="copy-text" @click="copy(device.equipment?.mac_address)">
-                                {{ device.equipment?.mac_address }}
-                              </span>
-                            </div>
-                            <div class="col-2">
-                              <q-btn
-                                flat
-                                round
-                                icon="mdi-delete"
-                                color="red"
-                                size="sm"
-                                @click="
-                                  showDeleteDialog(2, device.id, device.equipment?.mac_address)
-                                "
-                              >
-                                <q-tooltip
-                                  transition-show="fade"
-                                  transition-hide="flip-left"
-                                  class="bg-grey-10"
-                                >
-                                  Remover dispositivo con MAC {{ device.equipment?.mac_address }}
-                                </q-tooltip>
-                              </q-btn>
-                            </div>
-                          </div>
-                        </template>
-                      </q-card-section>
-
-                      <q-card-actions align="around">
-                        <q-btn
-                          flat
-                          label="buscar"
-                          @click="uiStates.showSearchIptvDevicesDialog = true"
-                          :disable="iptvButtonDisabled"
-                        />
-                      </q-card-actions>
-                    </q-card>
-                  </div>
-                  <!--  End Installed IPTV Devices   -->
-
-                  <!--    Equipment Sale    -->
-                  <div
-                    class="col-xs-12 col-sm-12 col-md-2 q-ma-sm"
-                    v-if="support.data.type_id === 9"
-                  >
-                    <q-card flat class="custom-cards" style="width: 100%">
-                      <q-card-section class="q-header text-subtitle2 text-center">
-                        Equipos Vendidos
-                      </q-card-section>
-
-                      <q-card-section>
-                        <template v-for="device in devices.sold" :key="device.id">
-                          <div class="row q-my-xs">
-                            <div class="col-2 text-bold">
-                              {{ device.equipment?.type?.name }}
-                            </div>
-                            <div class="col-10 text-center">
-                              <span class="copy-text" @click="copy(device.equipment?.mac_address)">
-                                {{ device.equipment?.mac_address }}
-                              </span>
-                            </div>
-                          </div>
-                        </template>
-                      </q-card-section>
-
-                      <q-card-actions align="around">
-                        <q-btn
-                          flat
-                          label="Buscar"
-                          @click="uiStates.showSearchSaleDevicesDialog = true"
-                        />
-                      </q-card-actions>
-                    </q-card>
-                  </div>
-                  <!--    End Equipment Sale    -->
-                </template>
-              </div>
+              <!--    Device management section   -->
+              <device-management-section
+                v-if="support.data?.service && !uiStates.loading"
+                :support-data="support.data"
+                :devices="devices"
+                @show-delete-dialog="showDeleteDialog"
+                @show-internet-devices-dialog="uiStates.showSearchInternetDevicesDialog = true"
+                @show-iptv-devices-dialog="uiStates.showSearchIptvDevicesDialog = true"
+                @show-sale-devices-dialog="uiStates.showSearchSaleDevicesDialog = true"
+                @copy="copy"
+              />
+              <!--    End Device management section   -->
             </q-card-section>
           </q-card>
         </q-page>
@@ -697,38 +280,34 @@ onMounted(async () => {
     </q-form>
   </q-layout>
 
-  <template v-if="uiStates.showDeleteItem">
-    <delete-item-dialog
-      :data="deleteProps"
-      :visible="uiStates.showDeleteItem"
-      @hide-dialog="resetShowDeleteItem"
-    />
-  </template>
+  <delete-item-dialog
+    v-if="uiStates.showDeleteItem"
+    :data="deleteProps"
+    :visible="uiStates.showDeleteItem"
+    @hide-dialog="handleDialogClose"
+  />
 
-  <template v-if="uiStates.showSearchInternetDevicesDialog">
-    <equipment-form-dialog
-      :visible="uiStates.showSearchInternetDevicesDialog"
-      :service="support.data.service?.id"
-      @hide="refreshComponent"
-    />
-  </template>
+  <equipment-form-dialog
+    v-if="uiStates.showSearchInternetDevicesDialog"
+    :visible="uiStates.showSearchInternetDevicesDialog"
+    :service="support.data.service?.id"
+    @hide="refreshComponent"
+  />
 
-  <template v-if="uiStates.showSearchIptvDevicesDialog">
-    <tv-box-form-dialog
-      :id="0"
-      :visible="uiStates.showSearchIptvDevicesDialog"
-      :service="support.data.service?.id"
-      @hide="refreshComponent"
-    />
-  </template>
+  <tv-box-form-dialog
+    v-if="uiStates.showSearchIptvDevicesDialog"
+    :id="0"
+    :visible="uiStates.showSearchIptvDevicesDialog"
+    :service="support.data.service?.id"
+    @hide="refreshComponent"
+  />
 
-  <template v-if="uiStates.showSearchSaleDevicesDialog">
-    <equipment-sale-dialog
-      :visible="uiStates.showSearchSaleDevicesDialog"
-      :service="support.data.service?.id"
-      :client="support.data.service?.client_id"
-      @hide="refreshComponent"
-    />
-  </template>
+  <equipment-sale-dialog
+    v-if="uiStates.showSearchSaleDevicesDialog"
+    :visible="uiStates.showSearchSaleDevicesDialog"
+    :service="support.data.service?.id"
+    :client="support.data.service?.client_id"
+  />
 </template>
+
 <style lang="sass" scoped></style>
