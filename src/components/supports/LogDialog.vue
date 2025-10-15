@@ -1,168 +1,200 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
-import { api } from 'boot/axios.js'
-import { useLoading } from 'src/utils/loader.js'
-import { useNotifications } from 'src/utils/notification.js'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
+import { useLogFormatting } from 'src/utils/composables/logs/useLogFormatting.js'
+import { useLogDifference } from 'src/utils/composables/logs/useLogDifference.js'
+import { useLogData } from 'src/utils/composables/logs/useLogData.js'
 
 const props = defineProps({
   id: { type: Number, required: true },
   visible: { type: Boolean, required: true },
 })
-const { showLoading, hideLoading } = useLoading()
-const { showNotification } = useNotifications()
+const emit = defineEmits(['update:visible'])
+const { formatDate, formatFieldName, formatValue } = useLogFormatting()
+const { getDiff, getCategoryIcon, getActionColor } = useLogDifference()
+const { fetchLogs } = useLogData()
 const uiStates = reactive({
-  isVisible: ref(props.visible),
+  isVisible: props.visible,
   loading: false,
   title: '',
+  searchFilter: '',
 })
-// const columns = [
-//   { name: 'date', label: 'Fecha', align: 'left', field: (row) => formatDate(row.created_at) },
-//   { name: 'user', label: 'Responsable', align: 'left', field: (row) => row.user?.name },
-//   { name: 'action', label: 'Acción', align: 'left', field: (row) => row.action },
-//   { name: 'diff', label: 'Cambios', align: 'left' },
-// ]
-const formatDate = (dateStr) => {
-  const date = new Date(dateStr)
-  // if (isNaN(date.getTime())) return 'Fecha Inválida'
-
-  const options = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'America/El_Salvador',
-  }
-  //
-  // const parser = new Intl.DateTimeFormat('es-ES', options)
-  // return parser.format(date)
-
-  // const year = date.getUTCFullYear()
-  // const month = String(date.getUTCMonth() + 1).padStart(2, '0')
-  // const day = String(date.getUTCDate()).padStart(2, '0')
-  // const hours = String(date.getUTCHours()).padStart(2, '0')
-  // const minutes = String(date.getUTCMinutes()).padStart(2, '0')
-  // const seconds = String(date.getUTCSeconds()).padStart(2, '0')
-  //
-  // return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-
-  return new Intl.DateTimeFormat('es-Es', options).format(date)
-}
 const logs = ref([])
-const getDiff = (before, after) => {
-  const changes = []
-  for (const key in after) {
-    if (before?.[key] !== after[key]) {
-      changes.push({
-        field: key,
-        before: before?.key ?? '---',
-        after: after[key] ?? '---',
-      })
-    }
-  }
-  return changes
-}
-// const initialPagination = {
-//   sort: 'desc',
-//   descending: false,
-//   rowsPerPage: 10,
-// }
+const filteredLogs = computed(() => {
+  if (!uiStates.searchFilter.trim()) return logs.value
+
+  const search = uiStates.searchFilter.toLowerCase()
+  return logs.value.filter(
+    (log) =>
+      log.action.toLowerCase().includes(search) ||
+      log.user?.name.toLowerCase().includes(search) ||
+      log.support?.ticket_number.toLowerCase().includes(search),
+  )
+})
 const getLogs = async () => {
   uiStates.loading = true
-  showLoading()
-  const uri = 'api/v1/supports/logs'
-  try {
-    const { data } = await api.post(uri, { id: props.id })
-    logs.value = data.logs.collection
-    uiStates.title = `Historial del soporte ${data.logs.ticket}`
-  } catch (err) {
-    showNotification('Error', err.response?.data?.message || 'Error al cargar datos.', 'red-10')
-  } finally {
-    setTimeout(() => {
-      hideLoading()
-      uiStates.loading = false
-    }, 250)
-  }
+  const { ticket, logs: fetchedLogs } = await fetchLogs(props.id)
+  logs.value = fetchedLogs
+  uiStates.title = `Historial del soporte ${ticket}`
+  uiStates.loading = false
 }
-
+const getChangesSummary = (log) => {
+  const changes = getDiff(log.before, log.after)
+  return changes.length > 0
+    ? `${changes.length} cambio${changes.length > 1 ? 's' : ''}`
+    : 'Sin Cambios'
+}
+watch(
+  () => props.visible,
+  (newVal) => {
+    uiStates.isVisible = newVal
+  },
+)
+watch(
+  () => uiStates.isVisible,
+  (newVal) => {
+    emit('update:visible', newVal)
+  },
+)
 onMounted(async () => {
   await getLogs()
 })
 </script>
-
 <template>
   <q-dialog
-    v-model="uiStates.isVisible"
+    :model-value="uiStates.isVisible"
     persistent
     transition-show="slide-up"
     transition-hide="jump-down"
     backdrop-filter="blur(4px) saturate(150%)"
+    @update:model-value="uiStates.isVisible = $event"
   >
-    <q-card dark flat style="width: 700px; max-width: 80vh" class="custom-cards">
-      <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">{{ uiStates.title }}</div>
+    <q-card dark flat class="custom-cards" style="width: 800px; max-width: 90vw">
+      <q-card-section class="row items-center q-pb-md">
+        <div>
+          <div class="text-h6 text-white">{{ uiStates.title }}</div>
+          <div class="text-caption text-grey-7">
+            {{ filteredLogs.length }} evento{{ filteredLogs.length !== 1 ? 's' : '' }}
+          </div>
+        </div>
         <q-space />
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
 
-      <q-card-section class="q-pa-sm">
-        <!--        <div class="q-pa-xs">-->
-        <!--          <q-table-->
-        <!--            flat-->
-        <!--            dark-->
-        <!--            row-key="name"-->
-        <!--            class="secondary-table"-->
-        <!--            binary-state-sort-->
-        <!--            no-data-label="Sin resultados"-->
-        <!--            :columns="columns"-->
-        <!--            :rows="logs"-->
-        <!--            :pagination="initialPagination"-->
-        <!--          >-->
-        <!--            <template v-slot:body-cell-diff="props">-->
-        <!--              <div>-->
-        <!--                <ul>-->
-        <!--                  <li v-for="c in getDiff(props.row.before, props.row.after)" :key="c.field">-->
-        <!--                    <b>{{ c.field }}: </b> {{ c.after }}-->
-        <!--                  </li>-->
-        <!--                </ul>-->
-        <!--              </div>-->
-        <!--            </template>-->
-        <!--          </q-table>-->
-        <!--        </div>-->
+      <!--  Search Bar    -->
+      <!--      <q-card-section class="q-pa-md border-bottom">-->
+      <!--        <q-input-->
+      <!--          v-model="uiStates.searchFilter"-->
+      <!--          dense-->
+      <!--          dark-->
+      <!--          outlined-->
+      <!--          clearable-->
+      <!--          placeholder="Buscar por acción, usuario o ticket..."-->
+      <!--          class="full-width"-->
+      <!--        >-->
+      <!--          <template #prepend>-->
+      <!--            <q-icon name="mdi-magnify" />-->
+      <!--          </template>-->
+      <!--        </q-input>-->
+      <!--      </q-card-section>-->
+      <!--  End Search Bar    -->
+
+      <!--    Timeline Content    -->
+      <q-card-section class="q-pa-md">
+        <q-skeleton v-if="uiStates.loading" type="QLinear" dark />
+
+        <div class="text-center q-pa-lg" v-if="filteredLogs.length === 0">
+          <q-icon name="mdi-history" size="lg" color="grey-7" />
+          <div class="text-grey-7 q-mt-md">No hay registros que mostrar</div>
+        </div>
 
         <q-timeline color="primary" layout="dense" class="q-pl-md">
           <q-timeline-entry
-            v-for="log in logs"
-            :key="log.id"
-            :title="log.action.toUpperCase()"
-            :subtitle="`${log.user?.name || 'Brainiac'} • ${formatDate(log.created_at)}`"
-            :icon="log.action === 'create' ? 'mdi-plus-circle' : 'mdi-autorenew'"
+            v-for="(log, index) in filteredLogs"
+            :key="index"
+            :title="`${log.action.toUpperCase()}`"
+            :subtitle="`${log.user?.name || 'Sistema'} • ${formatDate(log.created_at)}`"
+            :icon="getCategoryIcon(log.action)"
+            :color="getActionColor(log.action)"
+            class="log-entry"
           >
-            <div v-if="getDiff(log.before, log.after).length">
-              <q-list dense>
-                <q-item v-for="change in getDiff(log.before, log.after)" :key="change.field">
-                  <q-item-section>
-                    <div>
-                      <strong>{{ change.field }}: </strong>
-                      cambió de: {{ change.before }} a
-                      <span class="text-white">{{ change.after }}</span>
+            <q-card flat class="bg-grey-9 q-mb-md">
+              <q-card-section class="row items-center q-py-sm">
+                <div class="row items-center">
+                  <q-icon
+                    :name="getCategoryIcon(log.action)"
+                    :color="getActionColor(log.action)"
+                    size="sm"
+                    class="q-mr-md"
+                  />
+                  <div>
+                    <div class="text-weight-bold text-white">
+                      {{ getChangesSummary(log) }}
                     </div>
+                    <div class="text-caption text-grey-7">
+                      {{ formatDate(log.created_at) }}
+                    </div>
+                  </div>
+                </div>
+              </q-card-section>
+            </q-card>
+
+            <!--    Changes Detail    -->
+            <div v-if="getDiff(log.before, log.after).length">
+              <div class="text-caption text-uppercase text-weight-bold text-grey-6 q-mb-sm">
+                Cambios realizados:
+              </div>
+              <q-list dense separator class="bg-grey-9 rounded-borders">
+                <q-item
+                  v-for="change in getDiff(log.before, log.after)"
+                  :key="change.field"
+                  class="change-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon name="mdi-arrow-right-circle" color="primary" size="xs" />
+                  </q-item-section>
+
+                  <q-item-section>
+                    <q-item-label class="text-weight-bold text-white">
+                      {{ formatFieldName(change.field) }}
+                    </q-item-label>
+
+                    <q-item-label caption class="text-grey-7 q-mt-xs">
+                      <div class="row items-center q-gutter-md">
+                        <div>
+                          <span class="text-caption text-grey-8">De:</span>
+                          <span class="text-white q-ml-sm">
+                            {{ formatValue(change.before) }}
+                          </span>
+                        </div>
+                        <q-icon name="mdi-arrow-right" size="xs" color="primary" />
+                        <div>
+                          <span class="text-caption text-grey-8">a:</span>
+                          <span class="text-white q-ml-sm">
+                            {{ formatValue(change.after) }}
+                          </span>
+                        </div>
+                      </div>
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
               </q-list>
             </div>
-            <div v-else>Sin cambios detectados</div>
+            <!--    End Changes Detail    -->
+
+            <!--  No Changes    -->
+            <div v-else class="text-center q-py-md">
+              <q-icon name="mdi-check-circle" color="positive" size="sm" />
+              <div class="text-caption text-grey-7 q-mt-sm">Sin cambios detectados</div>
+            </div>
+            <!--  End No Changes    -->
           </q-timeline-entry>
         </q-timeline>
       </q-card-section>
-
-      <q-card-actions align="right">
-        <q-btn flat label="cerrar" v-close-popup />
+      <!--    End Timeline Content    -->
+      <q-card-actions align="right" class="q-pa-md border-top">
+        <q-btn flat label="Cerrar" v-close-popup color="white" />
       </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
-
-<style scoped></style>
+<style lang="sass" scoped></style>
