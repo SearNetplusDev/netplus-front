@@ -33,6 +33,7 @@ export const useSupportFields = () => {
       validationRules.longitude,
     ]),
     status: createField('Estado', 'select', [validationRules.select_required]),
+    technician: createField('Técnico asignado', 'select', [validationRules.select_required], true),
   })
 
   const mapSupportToFields = (support) => {
@@ -52,6 +53,7 @@ export const useSupportFields = () => {
     fields.latitude.data = support.service?.latitude
     fields.longitude.data = support.service?.longitude
     fields.status.data = support.status_id
+    fields.technician.data = support.technician_id
 
     const supportWithDetails = [1, 2, 6, 7]
     fields.profile.data = supportWithDetails.includes(support.type_id)

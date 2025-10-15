@@ -33,6 +33,7 @@ const options = reactive({
   municipality: [],
   district: [],
   status: [],
+  technician: [],
 })
 
 // =====  Composables =====
@@ -112,8 +113,8 @@ const refreshComponent = () => {
 const selectOptions = (field) => options[field] || []
 const loadInitialData = async () => {
   try {
-    const [types, client, service, profiles, nodes, branches, states, statuses] = await Promise.all(
-      [
+    const [types, client, service, profiles, nodes, branches, states, statuses, technicians] =
+      await Promise.all([
         getSupportData('/api/v1/general/supports/types'),
         getSupportData(`/api/v1/clients/search/${fields.client.data}`),
         getSupportData(`/api/v1/services/client/${fields.client.data}`),
@@ -122,8 +123,8 @@ const loadInitialData = async () => {
         getSupportData('/api/v1/general/branches'),
         getSupportData('/api/v1/general/states'),
         getSupportData('/api/v1/general/supports/status'),
-      ],
-    )
+        getSupportData('/api/v1/general/management/users/technicians'),
+      ])
 
     Object.assign(options, {
       type: types,
@@ -134,6 +135,7 @@ const loadInitialData = async () => {
       branch: branches,
       state: states,
       status: statuses,
+      technician: technicians,
     })
   } catch (err) {
     showNotification('Error', err.response?.data?.message || 'Error cargando datos', 'red-10')
