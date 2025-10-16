@@ -16,15 +16,17 @@ export function useFields() {
     email: (val) =>
       /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val) ||
       'Formato de correo incorrecto',
+    nc: (val) => /^\d{12}$/.test(val) || 'Formato incorrecto para NC',
   }
 
-  const createField = (label, type, rules = [], disabled = false) => ({
+  const createField = (label, type, rules = [], disabled = false, mask = '') => ({
     data: null,
     error: false,
     label,
     type,
     rules,
     disabled,
+    mask,
   })
 
   const createToggle = (label) => ({

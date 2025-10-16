@@ -23,11 +23,9 @@ const setMenu = (itm) => {
 }
 const setID = (updatedID) => {
   id.value = updatedID
-  console.log(id)
 }
 const setTitle = (name) => {
   title.value = `Modificar datos del Nodo: ${name}`
-  console.log(title)
 }
 onMounted(() => {
   menuList[0].state = true

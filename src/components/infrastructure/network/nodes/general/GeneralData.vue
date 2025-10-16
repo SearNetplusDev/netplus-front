@@ -4,121 +4,39 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import { useFieldFilters } from 'src/utils/composables/operations/useFieldFilters.js'
 
 const loading = ref(false)
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { validationRules, createField, createToggle } = useFields()
+
 const props = defineProps({
   node: Number,
 })
 const url = 'api/v1/infrastructure/network/nodes/'
 const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  server: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Servidor de autenticación',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  latitude: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Latitud',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^([-+]?([1-8]?[0-9](\.[0-9]+)?)|90(\.0+)?)$/.test(val) || 'Formato incorrecto',
-    ],
-  },
-  longitude: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Longitud',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) =>
-        /^([-+]?((1[0-7][0-9])|(0?[0-9]{1,2})(\.[0-9]+)?)|180(\.0+)?)$/.test(val) ||
-        'Formato incorrecto',
-    ],
-  },
-  state: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Departamento',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  municipality: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Municipio',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  district: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Distrito',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  nc: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'NC',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-    mask: '############',
-  },
-  owner: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Propietario NC',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    type: 'toggle',
-    label: 'Estado',
-  },
-  address: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Dirección',
-    type: 'textarea',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  comments: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombres',
-    type: 'textarea',
-    rules: [],
-  },
+  name: createField('Nombre del nodo', 'text', [validationRules.text_required]),
+  server: createField('Servidor de autenticación', 'select', [validationRules.select_required]),
+  prefix: createField('Prefijo', 'text', [validationRules.text_required], false, 'AA'),
+  lat: createField('Latitud', 'text', [validationRules.text_required, validationRules.latitude]),
+  lng: createField('Longitud', 'text', [validationRules.text_required, validationRules.longitude]),
+  state: createField('Departamento', 'select', [validationRules.select_required]),
+  municipality: createField('Municipio', 'select', [validationRules.select_required]),
+  district: createField('Distrito', 'select', [validationRules.select_required]),
+  nc: createField('NC', 'text', [validationRules.text_required], false, '############'),
+  owner: createField('Propietario NC', 'text', [validationRules.text_required]),
+  status: createToggle('Estado'),
+  address: createField('Dirección', 'textarea', [validationRules.text_required]),
+  comments: createField('Observaciones', 'textarea'),
 })
+const { normalFields, textAreaFields } = useFieldFilters(fields)
 const external = reactive({
   servers: [],
   states: [],
@@ -135,9 +53,10 @@ const getData = () => {
     .then((res) => {
       let item = res.data.node
       fields.name.data = item.name
+      fields.prefix.data = item.prefix
       fields.server.data = item.server_id
-      fields.latitude.data = item.latitude
-      fields.longitude.data = item.longitude
+      fields.lat.data = item.latitude
+      fields.lng.data = item.longitude
       fields.state.data = item.state_id
       fields.municipality.data = item.municipality_id
       fields.district.data = item.district_id
@@ -162,47 +81,29 @@ const getData = () => {
       }, 500)
     })
 }
-const sendData = () => {
+const sendData = async () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
-  params.append('name', fields.name.data)
-  params.append('server', fields.server.data)
-  params.append('lat', fields.latitude.data)
-  params.append('lng', fields.longitude.data)
-  params.append('state', fields.state.data)
-  params.append('municipality', fields.municipality.data)
-  params.append('district', fields.district.data)
-  params.append('address', fields.address.data)
-  params.append('nc', fields.nc.data)
-  params.append('owner', fields.owner.data)
-  params.append('comments', fields.comments.data)
-  params.append('status', status)
-  props.node > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
+  let method = props.node > 0 ? 'PUT' : 'POST'
   let request = props.node > 0 ? `${url}${props.node}` : url
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        emit('loadDrawer', res.data.node?.id)
-        emit('updateTitle', res.data.node?.name)
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 500)
-    })
+  const params = buildFormData(fields, { _method: method })
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      emit('loadDrawer', data.node?.id)
+      emit('updateTitle', data.node?.name)
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 const getOptions = (key) => {
   return (
@@ -314,7 +215,7 @@ onMounted(async () => {
         <div class="col-12 fit row">
           <div
             class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
-            v-for="(field, name) in fields"
+            v-for="(field, name) in normalFields"
             :key="name"
           >
             <!--    Input Text    -->
@@ -378,34 +279,18 @@ onMounted(async () => {
             <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
           </div>
 
-          <div class="col-12 q-pa-sm">
+          <div class="col-12 q-pa-sm" v-for="(field, name) in textAreaFields" :key="name">
             <q-input
-              v-model="fields.address.data"
+              v-model="field.data"
               outlined
               dark
               dense
               type="textarea"
-              label="Dirección"
-              :rules="fields.address.rules"
+              :label="field.label"
+              :rules="field.rules"
               v-if="!loading"
-              :error="fields.address.error"
-              :error-message="fields.address['error-message']"
-            />
-            <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
-          </div>
-
-          <div class="col-12 q-pa-sm">
-            <q-input
-              v-model="fields.comments.data"
-              outlined
-              dark
-              dense
-              type="textarea"
-              label="Observaciones"
-              v-if="!loading"
-              :rules="fields.comments.rules"
-              :error="fields.comments.error"
-              :error-message="fields.comments['error-message']"
+              :error="field.error"
+              :error-message="field['error-message']"
             />
             <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
           </div>
