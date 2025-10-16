@@ -9,8 +9,8 @@ export const useSupportFields = () => {
     client: createField('Cliente', 'select', [validationRules.select_required], true),
     service: createField('Servicio', 'select', [validationRules.select_required], true),
     profile: createField('Perfil de navegación', 'select', [validationRules.select_required]),
-    node: createField('Nodo', 'select', [validationRules.select_required]),
-    equipment: createField('Equipo', 'select', [validationRules.select_required]),
+    node: createField('Nodo', 'select', []),
+    equipment: createField('Equipo', 'select', []),
     description: createField(
       'Descripción del soporte',
       'textarea',
@@ -24,17 +24,29 @@ export const useSupportFields = () => {
     address: createField('Dirección', 'textarea', [validationRules.text_required]),
     solution: createField('Solución', 'textarea', []),
     comments: createField('Observaciones', 'textarea', []),
-    latitude: createField('Latitud', 'text', [
-      validationRules.text_required,
-      validationRules.latitude,
-    ]),
-    longitude: createField('Longitud', 'text', [
-      validationRules.text_required,
-      validationRules.longitude,
-    ]),
+    latitude: createField('Latitud', 'text', []),
+    longitude: createField('Longitud', 'text', []),
     status: createField('Estado', 'select', [validationRules.select_required]),
     technician: createField('Técnico asignado', 'select', [validationRules.select_required], true),
   })
+
+  const updateConditionalRules = (statusId, statusOptions = []) => {
+    const selectedStatus = statusOptions.find((s) => s.id === statusId)
+    const statusName = selectedStatus?.name?.toLowerCase || ''
+    const isRequired = statusName === 'finalizado'
+
+    if (isRequired) {
+      fields.node.rules = [validationRules.select_required]
+      fields.equipment.rules = [validationRules.select_required]
+      fields.latitude.rules = [validationRules.text_required, validationRules.latitude]
+      fields.longitude.rules = [validationRules.text_required, validationRules.longitude]
+    } else {
+      fields.node.rules = []
+      fields.equipment.rules = []
+      fields.latitude.rules = [(val) => !val || validationRules.latitude(val)]
+      fields.longitude.rules = [(val) => !val || validationRules.longitude(val)]
+    }
+  }
 
   const mapSupportToFields = (support) => {
     fields.type.data = support.type_id
@@ -69,5 +81,5 @@ export const useSupportFields = () => {
     })
   }
 
-  return { fields, mapSupportToFields, resetFields }
+  return { fields, mapSupportToFields, resetFields, updateConditionalRules }
 }

@@ -42,7 +42,7 @@ const { copy } = useClipboard()
 const { state: uiStates, setTitle } = useFormState()
 const { devices, setDevices } = useDeviceManagement()
 const { fetchSupportData, saveSupportData /*, deleteDevice*/ } = useSupportData()
-const { fields, mapSupportToFields /*, resetFields*/ } = useSupportFields()
+const { fields, mapSupportToFields, updateConditionalRules } = useSupportFields()
 const { normalFields, textAreaFields } = useFieldFilters(fields)
 const { onNodeChange, onStateChange, onMunicipalityChange, loadAllLocationData } = useLocationData(
   fields,
@@ -52,6 +52,8 @@ const { handleSelectChange } = useSelectHandler(fields, {
   onNodeChange,
   onStateChange,
   onMunicipalityChange,
+  updateConditionalRules,
+  statusOptions: options.status,
 })
 
 // =====  States  =====

@@ -1,4 +1,7 @@
-export const useSelectHandler = (fields, { onNodeChange, onStateChange, onMunicipalityChange }) => {
+export const useSelectHandler = (
+  fields,
+  { onNodeChange, onStateChange, onMunicipalityChange, updateConditionalRules, statusOptions },
+) => {
   const handleSelectChange = (name, val) => {
     const handlers = {
       type: () => {
@@ -30,6 +33,7 @@ export const useSelectHandler = (fields, { onNodeChange, onStateChange, onMunici
       },
       status: () => {
         fields.status.data = val
+        updateConditionalRules(val, statusOptions)
       },
     }
     handlers[name]?.()
