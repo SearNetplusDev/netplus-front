@@ -17,6 +17,10 @@ export function useFields() {
       /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val) ||
       'Formato de correo incorrecto',
     nc: (val) => /^\d{12}$/.test(val) || 'Formato incorrecto para NC',
+    money_format: (val) =>
+      /^\d{1,4}\.\d{8}$/.test(val) ||
+      'Formato inválido (debe contener de 1 a 4 cifras y 8 decimales)',
+    number_stb: (val) => /^[0-9]$/.test(val) || 'Solo se admiten números del 0 al 9',
   }
 
   const createField = (label, type, rules = [], disabled = false, mask = '') => ({

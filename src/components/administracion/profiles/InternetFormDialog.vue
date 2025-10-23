@@ -3,12 +3,19 @@ import { onMounted, ref, reactive, watch } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import LocaleEs from 'src/utils/composables/localeEs.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
+import { getSupportData } from 'src/utils/composables/getData.js'
 
 const { showLoading, hideLoading } = useLoading()
-const title = ref('')
+const { createField, createToggle, validationRules } = useFields()
+const title = ref('Registrar nuevo perfil de internet')
 const loading = ref(false)
 const { showNotification } = useNotifications()
 const props = defineProps({
@@ -16,47 +23,30 @@ const props = defineProps({
 })
 const url = 'api/v1/management/profiles/internet/'
 const locale = LocaleEs
-const validationRules = {
-  text_required: (val) => !!val || 'Campo requerido',
-  number_format: (val) =>
-    /^\d{1,4}\.\d{8}$/.test(val) ||
-    'Formato inválido (debe contener de 1 a 4 cifras y 8 decimales)',
-  number_stb: (val) => /^[0-9]$/.test(val) || 'Solo se admiten números del 0 al 9',
-}
-const createField = (label, type, rules = [], disabled = false) => ({
-  data: null,
-  error: false,
-  label,
-  type,
-  rules,
-  disabled: disabled,
-})
-const createToggleField = (label, type) => ({
-  data: false,
-  error: false,
-  label,
-  type,
-})
 const fields = reactive({
   name: createField('Nombre del perfil', 'text', [validationRules.text_required]),
   alias: createField('Alias del perfil', 'text', [validationRules.text_required]),
-  mk_profile: createField('Perfil principal', 'text', [validationRules.text_required]),
-  debt_profile: createField('Perfil deuda', 'text'),
+  mk_profile: createField('Perfil principal', 'select', [validationRules.select_required]),
+  debt_profile: createField('Perfil deuda', 'select', [validationRules.select_required]),
   net_value: createField('Valor neto', 'text', [validationRules.text_required], true),
   iva: createField('IVA', 'text', [validationRules.text_required], true),
   price: createField('Precio', 'text-price', [
     validationRules.text_required,
-    validationRules.number_format,
+    validationRules.money_format,
   ]),
   expiration: createField('Fecha de vencimiento', 'date', [validationRules.text_required]),
-  iptv: createToggleField('Tiene IPTV', 'toggle'),
-  ftth: createToggleField('Fibra óptica', 'toggle'),
-  status: createToggleField('Estado', 'toggle'),
+  iptv: createToggle('Tiene IPTV', 'toggle'),
+  ftth: createToggle('Fibra óptica', 'toggle'),
+  status: createToggle('Estado', 'toggle'),
   stb: createField('STB permitidas', 'text', [
-    validationRules.text_required,
     validationRules.number_stb,
+    validationRules.text_required,
   ]),
   description: createField('Descripcion', 'text-area', [validationRules.text_required]),
+})
+const profiles = reactive({
+  main: [],
+  debt: [],
 })
 const getData = () => {
   showLoading()
@@ -93,52 +83,38 @@ const getData = () => {
       }, 1000)
     })
 }
-const sendData = () => {
-  let request = ''
-  let status = fields.status.data ? 1 : 0
-  let iptv = fields.iptv.data ? 1 : 0
-  let fiber = fields.ftth.data ? 1 : 0
-  let params = new FormData()
-  title.value = 'Procesando datos, espera un momento...'
+const getOptions = (key) => {
+  return (
+    {
+      mk_profile: profiles.main,
+      debt_profile: profiles.debt,
+    }[key] || []
+  )
+}
+const sendData = async () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  params.append('name', fields.name.data)
-  params.append('alias', fields.alias.data)
-  params.append('description', fields.description.data)
-  if (fields.mk_profile.data) params.append('main_profile', fields.mk_profile.data)
-  if (fields.debt_profile.data) params.append('debt_profile', fields.debt_profile.data)
-  params.append('net_value', fields.net_value.data)
-  params.append('iva', fields.iva.data)
-  params.append('price', fields.price.data)
-  params.append('expires', fields.expiration.data)
-  params.append('iptv', iptv)
-  params.append('ftth', fiber)
-  params.append('status', status)
-  if (fields.stb.data) params.append('stb', fields.stb.data)
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
-
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        title.value = `Editar datos del perfil ${res.data.profile.name}`
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 1000)
-    })
+  let request = props.id > 0 ? `${url}${props.id}` : url
+  let method = props.id > 0 ? 'PUT' : 'POST'
+  title.value = 'Procesando datos, espera un momento...'
+  const params = buildFormData(fields, { _method: method })
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+    } else {
+      showNotification('Error', 'Ha ocurrido un error', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 const formatPriceWith8Decimals = (value) => {
   if (!value || value === '') return ''
@@ -190,12 +166,11 @@ watch(
     }
   },
 )
-onMounted(() => {
-  if (props.id > 0) {
-    getData()
-  } else {
-    title.value = 'Registrar nuevo perfil'
-  }
+onMounted(async () => {
+  if (props.id > 0) getData()
+
+  profiles.main = await getSupportData('/api/v1/general/profiles/mikrotik')
+  profiles.debt = await getSupportData('/api/v1/general/profiles/mikrotik')
 })
 </script>
 
@@ -306,10 +281,9 @@ onMounted(() => {
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
-                      :options="documents"
+                      :options="getOptions(index)"
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
-                      @update:model-value="index === 'type' ? onTypeChange() : null"
                     />
                   </div>
 
