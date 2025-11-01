@@ -13,7 +13,7 @@ export const fieldTranslations = {
   municipality_id: 'ID de municipio',
   district_id: 'ID de distrito',
   address: 'Dirección',
-  closet_at: 'Fecha de solución',
+  closed_at: 'Fecha de solución',
   solution: 'Solución',
   comments: 'Observaciones',
   user_id: 'Generado por',

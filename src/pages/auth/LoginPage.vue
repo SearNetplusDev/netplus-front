@@ -114,7 +114,14 @@ const login = async () => {
                 />
               </div>
 
-              <q-btn class="login-btn" label="Acceder" no-caps :loading="loading" @click="login" />
+              <q-btn
+                class="login-btn"
+                label="Acceder"
+                no-caps
+                :loading="loading"
+                @click="login"
+                type="submit"
+              />
             </div>
           </q-form>
         </div>
