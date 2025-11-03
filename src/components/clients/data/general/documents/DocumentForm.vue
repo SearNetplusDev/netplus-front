@@ -1,14 +1,22 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import { useDocumentFields } from 'src/utils/composables/useDocumentFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import LocaleEs from 'src/utils/composables/localeEs.js'
 
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { createField, createToggle, validationRules } = useFields()
+const { getDocumentMask, getDocumentPlaceholder, getDocumentValidation } = useDocumentFields()
 const props = defineProps({
   client: Number,
   visible: Boolean,
@@ -18,93 +26,49 @@ const isVisible = ref(props.visible)
 const loading = ref(false)
 const title = ref('')
 const url = '/api/v1/clients/documents/'
-const validationPatterns = {
-  1: {
-    pattern: /^\d{7}$/,
-    message: 'Formato de Carnet de residente incorrecto',
-    placeholder: '0000000',
-  },
-  2: {
-    pattern: /^[A-Z][0-9]{7,8}$/,
-    message: 'Formato de pasaporte inválido',
-    placeholder: 'A0000000 ó A00000000',
-  },
-  3: {
-    pattern: /^\d{8}-\d$/,
-    message: 'Formato de DUI no válido',
-    placeholder: '00000000-0',
-  },
-  4: {
-    pattern: /^\d{8}-\d$|^\d{4}-\d{6}-\d{3}-\d$/,
-    message: 'Formato de NIT incorrecto',
-    placeholder: '0000-000000-000-0 ó 00000000-6',
-  },
-  5: {
-    pattern: '',
-    message: '',
-    placeholder: '',
-  },
-}
+const documents = ref([])
+const locale = LocaleEs
+const isLoadingData = ref(false)
+
 const numberRules = computed(() => {
-  const baseRules = [(val) => (val && val.length > 0) || 'Campo requerido']
+  const baseRules = [validationRules.text_required()]
   const selectedType = fields.type.data
 
-  if (selectedType && validationPatterns[selectedType]) {
-    const pattern = validationPatterns[selectedType]
-    baseRules.push((val) => pattern.pattern.test(val) || pattern.message)
+  if (selectedType) {
+    const dynamicRules = getDocumentValidation(selectedType)
+    return [...baseRules, ...dynamicRules]
   }
   return baseRules
 })
 const numberPlaceHolder = computed(() => {
-  const selectedType = fields.type.data
-  if (selectedType && validationPatterns[selectedType]) {
-    return validationPatterns[selectedType].placeholder
-  }
-  return 'Número de documento'
+  return getDocumentPlaceholder(fields.type.data)
+})
+const numberMask = computed(() => {
+  return getDocumentMask(fields.type.data)
 })
 const fields = reactive({
-  type: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Tipo de documento',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  number: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Número del documento',
-    type: 'text',
-    rules: numberRules,
-  },
-  expiration: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Fecha de vencimiento',
-    type: 'date',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'Estado',
-    type: 'toggle',
-  },
+  type: createField('Tipo de documento', 'select', [validationRules.select_required()]),
+  number: createField('Número de documento', 'text', numberRules),
+  expiration: createField('Fecha de vencimiento', 'date', [validationRules.text_required()]),
+  status: createToggle('Estado'),
 })
-const documents = ref([])
-const locale = LocaleEs
-const onTypeChange = () => {
-  fields.number.data = null
-  fields.number.error = false
-  fields.number['error-message'] = ''
-}
+watch(
+  () => fields.type.data,
+  (newType) => {
+    if (newType) fields.number.mask = getDocumentMask(newType)
+
+    if (!isLoadingData.value) {
+      fields.number.data = null
+      fields.number.error = false
+      fields.number['error-message'] = ''
+    }
+  },
+)
 const getDocumentData = () => {
   showLoading()
   loading.value = true
+  isLoadingData.value = true
+
   let data = new FormData()
   data.append('clientID', props.client)
   data.append('documentID', props.documentID)
@@ -125,42 +89,36 @@ const getDocumentData = () => {
       setTimeout(() => {
         hideLoading()
         loading.value = false
+        isLoadingData.value = false
       }, 500)
     })
 }
-const sendData = () => {
+const sendData = async () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
-  params.append('client', props.client)
-  params.append('type', fields.type.data)
-  params.append('number', fields.number.data)
-  params.append('expiration', fields.expiration.data)
-  params.append('status', status)
-  props.documentID > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   let request = props.documentID > 0 ? `${url}${props.documentID}` : url
-  api
-    .post(request, params)
-    .then((res) => {
+  let method = props.documentID > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
+  params.append('client', props.client)
+
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
       isVisible.value = false
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 500)
-    })
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 onMounted(async () => {
   if (props.documentID > 0) getDocumentData()
@@ -205,6 +163,7 @@ onMounted(async () => {
                   :error="field.error"
                   :error-message="field['error-message']"
                   :placeholder="index === 'number' ? numberPlaceHolder : undefined"
+                  :mask="index === 'number' ? numberMask : field.mask"
                 />
               </div>
               <div v-if="field.type === 'select'">
@@ -228,7 +187,6 @@ onMounted(async () => {
                   :options="documents"
                   :option-value="(opt) => opt.id"
                   :option-label="(opt) => opt.name"
-                  @update:model-value="index === 'type' ? onTypeChange() : null"
                 />
               </div>
 
