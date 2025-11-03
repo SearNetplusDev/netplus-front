@@ -3,7 +3,12 @@ import { ref, reactive, onMounted } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 
 const props = defineProps({
   client: Number,
@@ -12,29 +17,17 @@ const props = defineProps({
 })
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { createField, createToggle, validationRules } = useFields()
 const isVisible = ref(props.visible)
 const loading = ref(false)
 const title = ref('')
 const url = '/api/v1/clients/emails/'
 const fields = reactive({
-  email: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Correo electrónico',
-    type: 'text',
-    rules: [
-      (val) => (val !== null && val !== '') || 'Campo requerido',
-      (val) => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val) || 'Formato incorrecto',
-    ],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'Estado',
-    type: 'toggle',
-  },
+  email: createField('Correo electrónico', 'text', [
+    validationRules.text_required,
+    validationRules.email,
+  ]),
+  status: createToggle('Estado'),
 })
 const getData = () => {
   showLoading()
@@ -59,37 +52,32 @@ const getData = () => {
       }, 500)
     })
 }
-const sendData = () => {
+const sendData = async () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
-  params.append('client', props.client)
-  params.append('email', fields.email.data)
-  params.append('status', status)
-  props.emailID > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   let request = props.emailID > 0 ? `${url}${props.emailID}` : url
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        isVisible.value = false
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 500)
-    })
+  let method = props.emailID > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
+  params.append('client', props.client)
+
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      isVisible.value = false
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'teal-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 onMounted(() => {
   if (props.emailID > 0) getData()

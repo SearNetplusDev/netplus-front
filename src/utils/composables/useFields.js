@@ -1,3 +1,5 @@
+import { parsePhoneNumberFromString } from 'libphonenumber-js'
+
 export function useFields() {
   const validationRules = {
     text_required: (val) => (val && val.length > 0) || 'Campo requerido',
@@ -21,6 +23,18 @@ export function useFields() {
       /^\d{1,4}\.\d{8}$/.test(val) ||
       'Formato inválido (debe contener de 1 a 4 cifras y 8 decimales)',
     number_stb: (val) => /^[0-9]$/.test(val) || 'Solo se admiten números del 0 al 9',
+    nrc: (val) => /^\d{6}-\d$/.test(val) || 'Formato incorrecto',
+    dui: (val) => /^\d{8}-\d$/.test(val) || 'Formato incorrecto',
+    nit: (val) => /^\d{8}-\d$|^\d{4}-\d{6}-\d{3}-\d$/.test(val) || 'Formato incorrecto',
+    national_phone: (val) => /^[267]\d{3}-\d{4}$/.test(val) || 'Formato incorrecto',
+    two_decimal: (val) => /^\d{2}\.\d{2}$/.test(val) || 'Formato inválido',
+    money_two_decimal: (val) => /^\d{2,4}\.\d{2}$/.test(val) || 'Formato inválido',
+    parsed_phone: (getCountry) => (val) => {
+      const country = getCountry()
+      const parsed = parsePhoneNumberFromString(val, country)
+      return (parsed && parsed.isValid()) || 'Teléfono inválido para el país seleccionado'
+    },
+    only_letters: (val) => /^[a-zA-ZáéíóúÁÉÍÓÚ\s]+$/.test(val) || 'No se permiten números',
   }
 
   const createField = (label, type, rules = [], disabled = false, mask = '') => ({

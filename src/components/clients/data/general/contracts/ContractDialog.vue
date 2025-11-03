@@ -4,11 +4,17 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import LocaleEs from 'src/utils/composables/localeEs.js'
 
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { validationRules, createField, createToggle } = useFields()
 const props = defineProps({
   client: Number,
   visible: Boolean,
@@ -20,59 +26,22 @@ const title = ref('')
 const url = '/api/v1/clients/contracts/'
 const locale = LocaleEs
 const fields = reactive({
-  initialDate: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Fecha de inicio del contrato',
-    type: 'date',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  finalDate: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Fecha de finalización del contrato',
-    type: 'date',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  cost: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Costo de instalación',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^\d{2}\.\d{2}$/.test(val) || 'Formato inválido',
-    ],
-  },
-  amount: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Total del contrato',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^\d{2,4}\.\d{2}$/.test(val) || 'Formato inválido',
-    ],
-  },
-  contract: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Estado del contrato',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'Estado',
-    type: 'toggle',
-  },
+  start_contract: createField('Fecha de inicio de contrato', 'date', [
+    validationRules.text_required,
+  ]),
+  end_contract: createField('Fecha de finalización de contrato', 'date', [
+    validationRules.text_required,
+  ]),
+  installation_price: createField('Costo de instalación', 'text', [
+    validationRules.text_required,
+    validationRules.two_decimal,
+  ]),
+  contract_amount: createField('Total del contrato', 'text', [
+    validationRules.text_required,
+    validationRules.money_two_decimal,
+  ]),
+  contract_status: createField('Estado del contrato', 'select', [validationRules.select_required]),
+  status: createToggle('Estado de registro'),
 })
 const contractStatus = ref([])
 const getData = () => {
@@ -84,11 +53,11 @@ const getData = () => {
     .post(`${url}edit`, data)
     .then((res) => {
       let item = res.data.contract
-      fields.initialDate.data = item.contract_date
-      fields.finalDate.data = item.contract_end_date
-      fields.cost.data = item.installation_price
-      fields.amount.data = item.contract_amount
-      fields.contract.data = item.contract_status_id
+      fields.start_contract.data = item.contract_date
+      fields.end_contract.data = item.contract_end_date
+      fields.installation_price.data = item.installation_price
+      fields.contract_amount.data = item.contract_amount
+      fields.contract_status.data = item.contract_status_id
       fields.status.data = item.status_id
       title.value = `Editar datos del contrato válido del ${item.contract_date} al ${item.contract_end_date}`
     })
@@ -102,41 +71,31 @@ const getData = () => {
       }, 500)
     })
 }
-const sendData = () => {
+const sendData = async () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
-  params.append('client', props.client)
-  params.append('start_contract', fields.initialDate.data)
-  params.append('end_contract', fields.finalDate.data)
-  params.append('installation_price', fields.cost.data)
-  params.append('contract_amount', fields.amount.data)
-  params.append('contract_status', fields.contract.data)
-  params.append('status', status)
-  props.contractID > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   let request = props.contractID > 0 ? `${url}${props.contractID}` : url
-  api
-    .post(request, params)
-    .then((res) => {
+  let method = props.contractID > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
+  params.append('client', props.client)
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
       isVisible.value = false
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 500)
-    })
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 onMounted(async () => {
   if (props.contractID > 0) getData()

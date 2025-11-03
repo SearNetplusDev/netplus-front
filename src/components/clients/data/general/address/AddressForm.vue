@@ -4,7 +4,12 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 
 const props = defineProps({
   client: Number,
@@ -13,66 +18,19 @@ const props = defineProps({
 })
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { validationRules, createToggle, createField } = useFields()
 const isVisible = ref(props.visible)
 const loading = ref(false)
 const title = ref('')
 const url = '/api/v1/clients/addresses/'
 const fields = reactive({
-  neighborhood: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Barrio/Colonia/Cantón',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  state: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Departamento',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  municipality: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Municipio',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  district: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Distrito',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  country: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'País',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    type: 'toggle',
-    label: 'Estado',
-  },
-  address: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Dirección',
-    type: 'area',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
+  neighborhood: createField('Barrio/Colonia/Cantón', 'text', [validationRules.text_required]),
+  state: createField('Departamento', 'select', [validationRules.select_required]),
+  municipality: createField('Municipio', 'select', [validationRules.select_required]),
+  district: createField('Distrito', 'select', [validationRules.select_required]),
+  country: createField('País', 'select', [validationRules.select_required]),
+  status: createToggle('Estado'),
+  address: createField('Dirección', 'area', [validationRules.text_required]),
 })
 const external = reactive({
   countries: [],
@@ -112,42 +70,33 @@ const getData = () => {
       }, 500)
     })
 }
-const sendData = () => {
+const sendData = async () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
-  params.append('client', props.client)
-  params.append('neighborhood', fields.neighborhood.data)
-  params.append('address', fields.address.data)
-  params.append('state', fields.state.data)
-  params.append('municipality', fields.municipality.data)
-  params.append('district', fields.district.data)
-  params.append('country', fields.country.data)
-  params.append('status', status)
-  props.addressID > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   let request = props.addressID > 0 ? `${url}${props.addressID}` : url
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        isVisible.value = false
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 500)
-    })
+  let method = props.addressID > 0 ? 'PUT' : 'POST'
+
+  let params = buildFormData(fields, { _method: method })
+  params.append('client', props.client)
+
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      isVisible.value = false
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 const getOptions = (key) => {
   return (

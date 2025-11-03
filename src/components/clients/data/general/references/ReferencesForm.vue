@@ -4,10 +4,16 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { createField, createToggle, validationRules } = useFields()
 const props = defineProps({
   client: Number,
   visible: Boolean,
@@ -18,53 +24,26 @@ const loading = ref(false)
 const title = ref('')
 const url = '/api/v1/clients/references/'
 const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre completo',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^[a-zA-ZáéíóúÁÉÍÓÚ\s]+$/.test(val) || 'No se permiten números',
-    ],
-  },
-  dui: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Número de DUI',
-    type: 'text',
-    mask: '########-#',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  mobile: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Número de Teléfono',
-    type: 'text',
-    mask: '####-####',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^[267]\d{3}-\d{4}$/.test(val) || 'Formato incorrecto',
-    ],
-  },
-  kinship: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Parentesco',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'Estado',
-    type: 'toggle',
-  },
+  name: createField('Nombre completo', 'text', [
+    validationRules.text_required(),
+    validationRules.only_letters(),
+  ]),
+  dui: createField(
+    'DUI',
+    'text',
+    [validationRules.text_required(), validationRules.dui()],
+    false,
+    '########-#',
+  ),
+  mobile: createField(
+    'Número de teléfono',
+    'text',
+    [validationRules.text_required(), validationRules.national_phone()],
+    false,
+    '####-####',
+  ),
+  kinship: createField('Parentesco', 'select', [validationRules.select_required()]),
+  status: createToggle('Estado'),
 })
 const relationships = ref([])
 const getData = () => {
@@ -93,40 +72,32 @@ const getData = () => {
       }, 500)
     })
 }
-const sendData = () => {
+const sendData = async () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
-  params.append('client', props.client)
-  params.append('name', fields.name.data)
-  params.append('dui', fields.dui.data)
-  params.append('mobile', fields.mobile.data)
-  params.append('kinship', fields.kinship.data)
-  params.append('status', status)
-  props.referenceID > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   let request = props.referenceID > 0 ? `${url}${props.referenceID}` : url
-  api
-    .post(request, params)
-    .then((res) => {
+  let method = props.referenceID > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
+  params.append('client', props.client)
+
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
       isVisible.value = false
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 500)
-    })
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 onMounted(async () => {
   if (props.referenceID > 0) getData()

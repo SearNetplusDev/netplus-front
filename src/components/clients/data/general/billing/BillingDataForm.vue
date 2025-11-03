@@ -4,10 +4,16 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
-import { handleSubmissionError, resetFieldErrors } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  handleSubmissionError,
+  resetFieldErrors,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { validationRules, createField, createToggle } = useFields()
 const props = defineProps({
   client: Number,
 })
@@ -15,123 +21,37 @@ const loading = ref(false)
 const url = '/api/v1/clients/financial/information/'
 const currentID = ref(0)
 const fields = reactive({
-  nrc: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'NRC',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^\d{6}-\d$/.test(val) || 'Formato incorrecto',
-    ],
-    type: 'text',
-    mask: '######-#',
-  },
-  activity: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Actividad económica',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-    type: 'select-filter',
-  },
-  representative: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Representante Legal',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-    type: 'text',
-  },
-  dui: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'DUI',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^\d{8}-\d$/.test(val) || 'Formato incorrecto',
-    ],
-    type: 'text',
-    mask: '########-#',
-  },
-  nit: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'NIT',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^\d{8}-\d$|^\d{4}-\d{6}-\d{3}-\d$/.test(val) || 'Formato incorrecto',
-    ],
-    type: 'text',
-  },
-  phone: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Número de teléfono',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^[267]\d{3}-\d{4}$/.test(val) || 'Formato incorrecto',
-    ],
-    type: 'text',
-    mask: '####-####',
-  },
-  alias: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Alias Factura',
-    rules: [],
-    type: 'text',
-  },
-  retained: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'I.V.A. Retenido',
-    type: 'toggle',
-  },
-  state: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Departamento',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  municipality: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Municipio',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  district: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Distrito',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'Estado',
-    type: 'toggle',
-  },
-  address: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Dirección',
-    type: 'area',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
+  nrc: createField(
+    'NRC',
+    'text',
+    [validationRules.text_required, validationRules.nrc],
+    false,
+    '######-#',
+  ),
+  activity: createField('Actividad económica', 'select-filter', [validationRules.select_required]),
+  representative: createField('Representante legal', 'text', [validationRules.text_required]),
+  dui: createField(
+    'DUI',
+    'text',
+    [validationRules.text_required, validationRules.dui],
+    false,
+    '########-#',
+  ),
+  nit: createField('NIT', 'text', [validationRules.text_required, validationRules.nit]),
+  phone: createField(
+    'Número de teléfono',
+    'text',
+    [validationRules.text_required, validationRules.national_phone],
+    false,
+    '####-####',
+  ),
+  alias: createField('Alias factura', 'text', []),
+  retained: createToggle('IVA retenido'),
+  state: createField('Departamento', 'select', [validationRules.select_required]),
+  municipality: createField('Municipio', 'select', [validationRules.select_required]),
+  district: createField('Distrito', 'select', [validationRules.select_required]),
+  status: createToggle('Estado'),
+  address: createField('Dirección', 'area', [validationRules.text_required]),
 })
 const filteredActivities = ref([])
 const external = reactive({
@@ -274,49 +194,32 @@ const getData = () => {
       }, 500)
     })
 }
-const sendData = () => {
+const sendData = async () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  let status = fields.status.data ? 1 : 0
-  let retained = fields.retained.data ? 1 : 0
-  let params = new FormData()
-  params.append('client', props.client)
-  params.append('nrc', fields.nrc.data)
-  params.append('activity', fields.activity.data)
-  params.append('retained', retained)
-  params.append('representative', fields.representative.data)
-  params.append('dui', fields.dui.data)
-  params.append('nit', fields.nit.data)
-  params.append('phone', fields.phone.data)
-  params.append('alias', fields.alias.data)
-  params.append('state', fields.state.data)
-  params.append('municipality', fields.municipality.data)
-  params.append('district', fields.district.data)
-  params.append('address', fields.address.data)
-  params.append('status', status)
-  currentID.value > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   let request = currentID.value > 0 ? `${url}${currentID.value}` : url
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        currentID.value = res.data.info.id
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 500)
-    })
+  let method = currentID.value > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
+  params.append('client', props.client)
+
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      currentID.value = data.info.id
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 onMounted(async () => {
   getData()
@@ -438,6 +341,7 @@ onMounted(async () => {
               outlined
               dark
               dense
+              clearable
               type="textarea"
               label="Dirección"
               v-if="!loading"

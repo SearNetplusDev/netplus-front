@@ -4,8 +4,12 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
-import { parsePhoneNumberFromString } from 'libphonenumber-js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 
 const props = defineProps({
   client: Number,
@@ -14,48 +18,19 @@ const props = defineProps({
 })
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { createField, createToggle, validationRules } = useFields()
 const isVisible = ref(props.visible)
 const loading = ref(false)
 const title = ref('')
 const url = '/api/v1/clients/phones/'
 const fields = reactive({
-  type: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Tipo de Teléfono',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  country: {
-    data: 'SV',
-    error: false,
-    'error-message': '',
-    label: 'País',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  number: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Número de teléfono',
-    type: 'text',
-    rules: [
-      (val) => (val !== null && val !== '') || 'Campo requerido',
-      (val) => {
-        const parsed = parsePhoneNumberFromString(val, fields.country.data)
-        return (parsed && parsed.isValid()) || 'Telefóno inválido para el país seleccionado'
-      },
-    ],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    label: 'Estado',
-    type: 'toggle',
-  },
+  type: createField('Tipo de teléfono', 'select', [validationRules.select_required()]),
+  country: createField('País', 'select', [validationRules.select_required]),
+  number: createField('Número de teléfono', 'text', [
+    validationRules.text_required,
+    validationRules.parsed_phone(() => fields.country.data),
+  ]),
+  status: createToggle('Estado'),
 })
 const external = reactive({
   types: [],
@@ -87,39 +62,32 @@ const getPhoneData = () => {
       }, 500)
     })
 }
-const sendData = () => {
+const sendData = async () => {
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
-  params.append('client', props.client)
-  params.append('type', fields.type.data)
-  params.append('country', fields.country.data)
-  params.append('number', fields.number.data)
-  params.append('status', status)
-  props.phoneID > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
   let request = props.phoneID > 0 ? `${url}${props.phoneID}` : url
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        isVisible.value = false
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 500)
-    })
+  let method = props.phoneID > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
+  params.append('client', props.client)
+
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      isVisible.value = false
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 const getOptions = (key) => {
   return (
@@ -134,6 +102,7 @@ onMounted(async () => {
   title.value = 'Registrar teléfono'
   external.types = await getSupportData('/api/v1/general/client/phones')
   external.countries = await getSupportData('/api/v1/general/countries/phones')
+  fields.country.data = 'SV'
 })
 </script>
 

@@ -6,7 +6,11 @@ import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useFields } from 'src/utils/composables/useFields.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 
 const loading = ref(false)
 const { showNotification } = useNotifications()
@@ -29,7 +33,7 @@ const fields = reactive({
   document: createField('Documento a emitir', 'select', [validationRules.select_required]),
   entity: createToggle('Persona Jurídica'),
   status: createToggle('Estado'),
-  comments: createField('Observaciones', 'area', []),
+  comment: createField('Observaciones', 'area', []),
 })
 const external = reactive({
   gender: [],
@@ -73,7 +77,7 @@ const getData = () => {
       fields.country.data = itm.country_id
       fields.document.data = itm.document_type_id
       fields.entity.data = itm.legal_entity
-      fields.comments.data = itm.comments
+      fields.comment.data = itm.comments
       fields.status.data = itm.status_id
       sendTitle(`${itm.name} ${itm.surname}`)
     })
@@ -90,52 +94,32 @@ const getData = () => {
 const sendTitle = (name) => {
   emit('updateTitle', name)
 }
-const sendData = () => {
-  let request = ''
-  let status = fields.status.data ? 1 : 0
-  let entity = fields.entity.data ? 1 : 0
-  let params = new FormData()
+const sendData = async () => {
   loading.value = true
+  let request = props.client > 0 ? `${url}${props.client}` : url
+  let method = props.client > 0 ? 'PUT' : 'POST'
   showLoading()
   resetFieldErrors(fields)
-  params.append('name', fields.name.data)
-  params.append('surname', fields.surname.data)
-  params.append('gender', fields.gender.data)
-  params.append('birthdate', fields.birthdate.data)
-  params.append('marital', fields.marital.data)
-  params.append('branch', fields.branch.data)
-  params.append('type', fields.type.data)
-  params.append('profession', fields.profession.data)
-  params.append('country', fields.country.data)
-  params.append('document', fields.document.data)
-  params.append('entity', entity)
-  params.append('status', status)
-  params.append('comment', fields.comments.data)
-  props.client > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  props.client > 0 ? (request = `${url}${props.client}`) : (request = url)
+  const params = buildFormData(fields, { _method: method })
 
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        let itm = res.data.client
-        emit('loadDrawer', itm.id)
-        sendTitle(`${itm.name} ${itm.surname}`)
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 500)
-    })
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      emit('loadDrawer', data.client.id)
+      sendTitle(`${data.client.name} ${data.client.surname}`)
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 //  Observa cambios en la propiedad cliente, de haberlos ejecuta getData
 watch(
@@ -267,15 +251,16 @@ onMounted(async () => {
 
           <div class="col-12">
             <q-input
-              v-model="fields.comments.data"
+              v-model="fields.comment.data"
               outlined
               dark
               dense
+              clearable
               type="textarea"
               label="Observaciones"
               v-if="!loading"
-              :error="fields.comments.error"
-              :error-message="fields.comments['error-message']"
+              :error="fields.comment.error"
+              :error-message="fields.comment['error-message']"
             />
             <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
           </div>
