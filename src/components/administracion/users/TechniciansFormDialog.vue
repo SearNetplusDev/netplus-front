@@ -3,7 +3,12 @@ import { onMounted, ref, reactive } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import LocaleEs from 'src/utils/composables/localeEs.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
@@ -12,46 +17,23 @@ const { showLoading, hideLoading } = useLoading()
 const title = ref('')
 const loading = ref(false)
 const { showNotification } = useNotifications()
+const { createField, createToggle, validationRules } = useFields()
 const props = defineProps({
   id: Number,
 })
 const url = 'api/v1/management/technicians/'
 const locale = LocaleEs
 const fields = reactive({
-  user: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Usuario',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  phone: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Teléfono',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) => /^[267]\d{3}-\d{4}$/.test(val) || 'Formato incorrecto',
-    ],
-  },
-  hiring: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Fecha de contratación',
-    type: 'date',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    type: 'toggle',
-    label: 'Estado',
-  },
+  user: createField('Usuario', 'select', [validationRules.select_required()]),
+  phone: createField(
+    'Teléfono',
+    'text',
+    [validationRules.text_required(), validationRules.national_phone()],
+    false,
+    '####-####',
+  ),
+  hiring_date: createField('Fecha de contratación', 'date', [validationRules.text_required()]),
+  status: createToggle('Estado'),
 })
 const external = reactive({
   technicians: [],
@@ -70,7 +52,7 @@ const getData = () => {
       fields.user.data = itm.user_id
       fields.phone.data = itm.phone_number
       fields.status.data = itm.status_id
-      fields.hiring.data = itm.hiring_date
+      fields.hiring_date.data = itm.hiring_date
       title.value = `Editar datos del tecnico: ${itm.user?.name}`
     })
     .catch((err) => {
@@ -83,40 +65,33 @@ const getData = () => {
       }, 1000)
     })
 }
-const sendData = () => {
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
+const sendData = async () => {
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  params.append('user', fields.user.data)
-  params.append('phone', fields.phone.data)
-  params.append('hiring_date', fields.hiring.data)
-  params.append('status', status)
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  let request = props.id > 0 ? `${url}${props.id}` : url
 
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        title.value = `Editar datos del tecnico: ${res.data.technician?.user?.name}`
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 1000)
-    })
+  let request = props.id > 0 ? `${url}${props.id}` : url
+  let method = props.id > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
+
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      title.value = `Editar datos del técnico: ${data.technician?.user?.name}`
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'teal-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 const filterTechs = (val, update) => {
   if (val === '') {

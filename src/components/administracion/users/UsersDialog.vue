@@ -3,13 +3,19 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import FooterComponent from 'components/base/widgets/FooterComponent.vue'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import { useAuthStore } from 'stores/auth.js'
+import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const auth = useAuthStore()
 const { showLoading, hideLoading } = useLoading()
+const { createField, createToggle, validationRules } = useFields()
 const title = ref('')
 const loading = ref(false)
 const { showNotification } = useNotifications()
@@ -31,7 +37,7 @@ const passwordRules = computed(() => [
 ])
 const confirmPasswordRules = computed(() => [
   (val) => {
-    const pass = fields.password_1.data
+    const pass = fields.password.data
     if (props.id === 0) {
       if (!val) return 'Confirma contraseña'
       if (val !== pass) return 'Las contraseñas no coinciden'
@@ -42,58 +48,15 @@ const confirmPasswordRules = computed(() => [
   },
 ])
 const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  email: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Correo electrónico',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) =>
-        /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(val) ||
-        'Formato Incorrecto',
-    ],
-  },
-  password_1: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Contraseña',
-    type: 'password',
-    rules: passwordRules,
-  },
-  password_2: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Confirma contraseña',
-    type: 'password',
-    rules: confirmPasswordRules,
-  },
-  role: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Rol',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    type: 'toggle',
-    label: 'Estado',
-  },
+  name: createField('Nombre', 'text', [validationRules.text_required()]),
+  email: createField('Correo electrónico', 'text', [
+    validationRules.text_required(),
+    validationRules.email(),
+  ]),
+  password: createField('Contraseña', 'password', passwordRules),
+  password_2: createField('Confirmación de contraseña', 'password', confirmPasswordRules),
+  role: createField('Rol asignado', 'select', [validationRules.select_required()]),
+  status: createToggle('Estado'),
   permissions: {
     data: [],
     disabled: null,
@@ -130,49 +93,36 @@ const getData = () => {
       }, 1000)
     })
 }
-const sendData = () => {
+const sendData = async () => {
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  let status
-  fields.status.data === true ? (status = 1) : (status = 0)
-  let params = new FormData()
-  params.append('name', fields.name.data)
-  params.append('email', fields.email.data)
-  params.append('status', status)
-  params.append('role', fields.role.data)
+
+  let request = props.id > 0 ? `${url}${props.id}` : url
+  let method = props.id > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
   fields.permissions.data.forEach((perm) => {
     params.append('permissions[]', perm)
   })
-  if (fields.password_1.data !== null) params.append('password', fields.password_1.data)
-  let request = props.id > 0 ? `${url}${props.id}` : url
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
 
-  api
-    .post(request, params, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado', 'blue-grey-10')
-        title.value = `Modificar datos de ${res.data.user?.name}`
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'red-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', `${err}`, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 1000)
-    })
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado', 'blue-grey-10')
+      title.value = `Modificar datos de ${data.user?.name}`
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 const getPermissions = async (index) => {
   const role = fields[index].data

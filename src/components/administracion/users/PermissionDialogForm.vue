@@ -3,11 +3,17 @@ import { onMounted, ref, reactive } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
+const { createField, validationRules } = useFields()
 const title = ref('')
 const loading = ref(false)
 const { showNotification } = useNotifications()
@@ -16,22 +22,8 @@ const props = defineProps({
 })
 const url = 'api/v1/management/permissions/'
 const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  menu: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Elemento del menú',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
+  name: createField('Nombre', 'text', [validationRules.text_required()]),
+  menu: createField('Elemento del menú', 'select', [validationRules.select_required()]),
 })
 const filteredPermissions = ref([])
 const external = reactive({
@@ -61,37 +53,33 @@ const getData = () => {
       }, 1000)
     })
 }
-const sendData = () => {
-  let params = new FormData()
+const sendData = async () => {
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  params.append('name', fields.name.data)
-  params.append('menu', fields.menu.data)
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  let request = props.id > 0 ? `${url}${props.id}` : url
 
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        title.value = `Editar permiso: ${res.data.permission?.name}`
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 1000)
-    })
+  let request = props.id > 0 ? `${url}${props.id}` : url
+  let method = props.id > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
+
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      title.value = `Editar permiso: ${data.permission?.name}`
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 const filterPermissions = (val, update) => {
   if (val === '') {

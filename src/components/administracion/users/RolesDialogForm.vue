@@ -3,13 +3,19 @@ import { onMounted, ref, reactive } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 import { useAuthStore } from 'stores/auth.js'
 
 const auth = useAuthStore()
 const { showLoading, hideLoading } = useLoading()
+const { createField, validationRules } = useFields()
 const title = ref('')
 const loading = ref(false)
 const { showNotification } = useNotifications()
@@ -18,22 +24,8 @@ const props = defineProps({
 })
 const url = 'api/v1/management/roles/'
 const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  home: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Redirige a:',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
+  name: createField('Nombre', 'text', [validationRules.text_required()]),
+  homepage: createField('Redirige a:', 'text', [validationRules.text_required()]),
   role_permissions: {
     data: [],
     disabled: false,
@@ -51,7 +43,7 @@ const getData = () => {
     .then((res) => {
       let itm = res.data.role
       fields.name.data = itm.role?.name
-      fields.home.data = itm.role?.homepage
+      fields.homepage.data = itm.role?.homepage
       fields.role_permissions.data = itm.permissions
       title.value = `Editar datos del rol: ${itm.role?.name}`
     })
@@ -65,40 +57,36 @@ const getData = () => {
       }, 1000)
     })
 }
-const sendData = () => {
-  let params = new FormData()
+const sendData = async () => {
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  params.append('name', fields.name.data)
-  params.append('homepage', fields.home.data)
+
+  let request = props.id > 0 ? `${url}${props.id}` : url
+  let method = props.id > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
   fields.role_permissions.data.forEach((perm) => {
     params.append('permissions[]', perm)
   })
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  let request = props.id > 0 ? `${url}${props.id}` : url
 
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        title.value = `Editar datos del rol: ${res.data.role?.name}`
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 1000)
-    })
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+      title.value = `Editar datos del rol: ${data.role?.name}`
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification('Error', err.response?.data?.message || 'Error al guardar', 'red-10')
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 
 const selectOrRemove = () => {
