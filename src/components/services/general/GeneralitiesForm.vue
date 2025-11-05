@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
+import { useFields } from 'src/utils/composables/useFields.js'
 import {
   handleSubmissionError,
   resetFieldErrors,
@@ -14,6 +15,7 @@ import LocaleEs from 'src/utils/composables/localeEs.js'
 
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { createField, createToggle, validationRules } = useFields()
 const supportStore = useSupportDataStore()
 const props = defineProps({
   service: {
@@ -25,45 +27,27 @@ const emit = defineEmits(['record-created'])
 const url = '/api/v1/services/'
 const loading = ref(false)
 const locale = LocaleEs
-const validationRules = {
-  text_required: (val) => (val && val.length > 0) || 'Campo requerido',
-  select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
-  latitude: (val) =>
-    /^([-+]?(90(\.0{6,})?|[0-8]?\d(\.\d{6,})?))$/.test(val) || 'Formato incorrecto para latitud',
-  longitude: (val) =>
-    /^([-+]?(180(\.0{6,})?|1[0-7]\d(\.\d{6,})?|[0-9]?\d(\.\d{6,})?))$/.test(val) ||
-    'Formato incorrecto para longitud',
-}
-const createField = (label, type, rules = []) => ({
-  data: null,
-  error: false,
-  'error-message': '',
-  label,
-  type,
-  rules,
-})
-const createToggleField = (label) => ({
-  data: false,
-  error: false,
-  'error-message': '',
-  label,
-  type: 'toggle',
-})
 const fields = reactive({
   code: createField('Código', 'text'),
   name: createField('Nombre', 'text'),
-  node: createField('Nodo', 'select', [validationRules.select_required]),
-  equipment: createField('Equipo', 'select', [validationRules.select_required]),
-  installation_date: createField('Fecha de instalación', 'date', [validationRules.text_required]),
-  technician: createField('Instalador', 'select', [validationRules.select_required]),
-  lat: createField('Latitud', 'text', [validationRules.text_required, validationRules.latitude]),
-  long: createField('Longitud', 'text', [validationRules.text_required, validationRules.longitude]),
-  state: createField('Departamento', 'select', [validationRules.select_required]),
-  municipality: createField('Municipio', 'select', [validationRules.select_required]),
-  district: createField('Distrito', 'select', [validationRules.select_required]),
-  separation: createToggleField('Factura independiente', 'toggle'),
-  status: createToggleField('Estado', 'toggle'),
-  address: createField('Dirección', 'text-area', [validationRules.text_required]),
+  node: createField('Nodo', 'select', [validationRules.select_required()]),
+  equipment: createField('Equipo', 'select', [validationRules.select_required()]),
+  installation_date: createField('Fecha de instalación', 'date', [validationRules.text_required()]),
+  technician: createField('Instalador', 'select', [validationRules.select_required()]),
+  lat: createField('Latitud', 'text', [
+    validationRules.text_required(),
+    validationRules.latitude(),
+  ]),
+  long: createField('Longitud', 'text', [
+    validationRules.text_required(),
+    validationRules.longitude(),
+  ]),
+  state: createField('Departamento', 'select', [validationRules.select_required()]),
+  municipality: createField('Municipio', 'select', [validationRules.select_required()]),
+  district: createField('Distrito', 'select', [validationRules.select_required()]),
+  separation: createToggle('Factura independiente'),
+  status: createToggle('Estado'),
+  address: createField('Dirección', 'text-area', [validationRules.text_required()]),
   comments: createField('Observaciones', 'text-area'),
 })
 const external = reactive({
