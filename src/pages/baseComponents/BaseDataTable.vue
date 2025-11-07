@@ -17,7 +17,6 @@ const paginate = computed({
   },
 })
 const onRequest = (prop) => {
-  console.log(`[OnRequest] activado con: ${prop}`)
   let { page, rowsPerPage, sortBy, descending, rowsNumber } = prop.pagination
   if (rowsPerPage !== paginate.value.rowsPerPage) {
     page = 1
