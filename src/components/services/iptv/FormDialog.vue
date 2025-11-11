@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, onMounted } from 'vue'
+import { reactive, onMounted, watch } from 'vue'
 import { api } from 'boot/axios.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
@@ -27,11 +27,18 @@ const uiStates = reactive({
 const uri = '/api/v1/services/equipment/iptv/'
 const fields = reactive({
   equipment: createField('Dirección MAC', 'select', [validationRules.select_required]),
-  email: createField('Correo electrónico', 'text', [
-    validationRules.text_required,
-    validationRules.email,
-  ]),
-  email_password: createField('Contraseña del correo', 'password', [validationRules.text_required]),
+  email: createField(
+    'Correo electrónico',
+    'text',
+    [validationRules.text_required, validationRules.email],
+    true,
+  ),
+  email_password: createField(
+    'Contraseña del correo',
+    'password',
+    [validationRules.text_required],
+    true,
+  ),
   iptv_password: createField('Contraseña de activación', 'password', [
     validationRules.text_required,
   ]),
@@ -42,6 +49,21 @@ const devices = reactive({
   filtered: [],
   selectedOption: null,
 })
+const loadSuggestedEmail = async () => {
+  try {
+    const { data } = await api.post(`${uri}suggested-email`)
+    if (data.suggested_email) {
+      fields.email.data = data.suggested_email.email
+      fields.email_password.data = data.suggested_email.email_password
+    }
+  } catch (err) {
+    showNotification(
+      'Error',
+      err.response?.data?.message || err.message || 'Error inesperado',
+      'red-10',
+    )
+  }
+}
 const filter = (val, update) => {
   const url = 'api/v1/infrastructure/equipment/inventory/iptv/search'
   if (uiStates.isEditMode && (!val || val.length === 0)) {
@@ -113,7 +135,7 @@ const getData = async () => {
     setTimeout(() => {
       uiStates.loading = false
       hideLoading()
-    }, 300)
+    }, 150)
   }
 }
 const loadInitialOptions = async () => {
@@ -162,12 +184,21 @@ const sendData = async () => {
     }, 300)
   }
 }
+watch(
+  () => props.visible,
+  async (newVal) => {
+    if (newVal && !props.id) {
+      await loadSuggestedEmail()
+    }
+  },
+)
 onMounted(() => {
   if (props.id > 0) {
     getData()
   } else {
     uiStates.isEditMode = false
     devices.selectedOption = null
+    loadSuggestedEmail()
   }
 })
 </script>
@@ -247,6 +278,7 @@ onMounted(() => {
                   :label="field.label"
                   :error="field.error"
                   :error-message="field['error-message']"
+                  :disable="field.disabled"
                 />
               </template>
 
@@ -264,6 +296,7 @@ onMounted(() => {
                   :label="field.label"
                   :error="field.error"
                   :error-message="field['error-message']"
+                  :disable="field.disabled"
                 >
                   <template v-slot:append>
                     <q-icon
