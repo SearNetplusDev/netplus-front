@@ -3,13 +3,19 @@ import { onMounted, ref, reactive } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const loading = ref(false)
 const title = ref('Agregar estado')
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { createField, createToggle, validationRules } = useFields()
 const props = defineProps({
   id: {
     type: Number,
@@ -18,27 +24,10 @@ const props = defineProps({
   },
 })
 const url = '/api/v1/supports/status/'
-const validationRules = {
-  text_required: (val) => (val && val.length > 0) || 'Campo requerido',
-  select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
-}
-const createField = (label, type, rules = []) => ({
-  data: null,
-  error: false,
-  label,
-  type,
-  rules,
-})
-const createToggleField = (label, type) => ({
-  data: false,
-  error: false,
-  label,
-  type,
-})
 const fields = reactive({
-  name: createField('Nombre', 'text', [validationRules.text_required]),
-  badge: createField('Nombre', 'text', [validationRules.text_required]),
-  status: createToggleField('Estado', 'toggle'),
+  name: createField('Nombre', 'text', [validationRules.text_required()]),
+  badge: createField('Nombre', 'color', [validationRules.text_required()]),
+  status: createToggle('Estado'),
 })
 const getData = () => {
   let params = new FormData()
@@ -65,38 +54,35 @@ const getData = () => {
       }, 300)
     })
 }
-const sendData = () => {
-  let params = new FormData()
+const sendData = async () => {
+  let request = props.id > 0 ? `${url}${props.id}` : url
+  let method = props.id > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  let request = props.id > 0 ? `${url}${props.id}` : url
-  let status = fields.status.data ? 1 : 0
-  params.append('name', fields.name.data)
-  params.append('badge', fields.badge.data)
-  params.append('status', status)
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Éxito', 'Registro almacenado correctamente', 'blue-grey-10')
-        title.value = `Modificar información del estado ${res.data.status?.name}`
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 300)
-    })
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      title.value = `Editar los datos del estado ${data.status?.name}`
+      showNotification('Éxito', 'Registro almacenado correctamente', 'blue-grey-10')
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification(
+      'Error',
+      err.response?.data?.message || err.message || 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 onMounted(() => {
   if (props.id > 0) getData()
@@ -188,6 +174,36 @@ onMounted(() => {
                       :error-message="fields.status['error-message']"
                     />
                   </div>
+
+                  <template v-if="field.type === 'color'">
+                    <q-input
+                      v-model="field.data"
+                      dense
+                      dark
+                      outlined
+                      :label="field.label"
+                      v-if="!loading"
+                    >
+                      <template v-slot:append>
+                        <q-icon name="colorize" class="cursor-pointer">
+                          <q-popup-proxy transition-show="scale" transition-hide="scale">
+                            <q-color v-model="field.data" format-model="hex" />
+                          </q-popup-proxy>
+                        </q-icon>
+                      </template>
+                    </q-input>
+
+                    <q-badge
+                      class="q-mt-sm text-weight-bold"
+                      size
+                      :label="field.data"
+                      :style="{
+                        backgroundColor: field.data,
+                        color: '#fff',
+                      }"
+                      v-if="!loading"
+                    />
+                  </template>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
                 </div>
               </div>

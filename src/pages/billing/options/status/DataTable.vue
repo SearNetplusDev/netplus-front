@@ -68,9 +68,8 @@ watch(showForm, (newVal) => {
         <!--  Color   -->
         <q-td key="color" class="text-left copy-text" :props="props">
           <q-badge
-            class="q-mt-sm text-weight-bold"
-            size
-            label="Previsualización"
+            class="q-py-xs text-weight-bold"
+            :label="props.row.badge_color"
             :style="{
               backgroundColor: props.row.badge_color,
               color: '#fff',

@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
+import { useFields } from 'src/utils/composables/useFields.js'
 import {
   handleSubmissionError,
   resetFieldErrors,
@@ -18,32 +19,15 @@ const props = defineProps({
 })
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
+const { createField, createToggle, validationRules } = useFields()
 const title = ref('Agregar tipo de soporte')
 const loading = ref(false)
 const uri = '/api/v1/supports/types/'
-const validationRules = {
-  text_required: (val) => !!val || 'Campo requerido',
-  decimal: (val) => /^\d{1,4}\.\d{2}$/.test(val) || 'Solo se admiten decimales',
-}
-const createField = (label, type, rules = []) => ({
-  data: null,
-  error: false,
-  label,
-  type,
-  rules,
-})
-const createToggleField = (label, type, rules = []) => ({
-  data: false,
-  error: false,
-  label,
-  type,
-  rules,
-})
 const fields = reactive({
   name: createField('Nombre', 'text', [validationRules.text_required]),
   price: createField('Precio', 'numeric', [validationRules.text_required, validationRules.decimal]),
-  badge: createField('Color', 'text'),
-  status: createToggleField('Estado', 'toggle'),
+  badge: createField('Color', 'color', [validationRules.text_required()]),
+  status: createToggle('Estado'),
 })
 const getData = () => {
   title.value = 'Obteniendo datos...'
@@ -226,6 +210,36 @@ onMounted(() => {
                       v-if="!loading"
                       :error="fields.status.error"
                       :error-message="fields.status['error-message']"
+                    />
+                  </template>
+
+                  <template v-if="field.type === 'color'">
+                    <q-input
+                      v-model="field.data"
+                      dense
+                      dark
+                      outlined
+                      :label="field.label"
+                      v-if="!loading"
+                    >
+                      <template v-slot:append>
+                        <q-icon name="colorize" class="cursor-pointer">
+                          <q-popup-proxy transition-show="scale" transition-hide="scale">
+                            <q-color v-model="field.data" format-model="hex" />
+                          </q-popup-proxy>
+                        </q-icon>
+                      </template>
+                    </q-input>
+
+                    <q-badge
+                      class="q-mt-sm text-weight-bold"
+                      size
+                      :label="field.data"
+                      :style="{
+                        backgroundColor: field.data,
+                        color: '#fff',
+                      }"
+                      v-if="!loading"
                     />
                   </template>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
