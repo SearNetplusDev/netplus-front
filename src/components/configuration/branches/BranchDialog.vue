@@ -360,6 +360,7 @@ onMounted(async () => {
                         backgroundColor: field.data,
                         color: '#fff',
                       }"
+                      v-if="!loading"
                     />
                   </div>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />

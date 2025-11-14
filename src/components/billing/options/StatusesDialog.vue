@@ -202,6 +202,7 @@ onMounted(async () => {
                         backgroundColor: field.data,
                         color: '#fff',
                       }"
+                      v-if="!uiStates.loading"
                     />
                   </template>
 
