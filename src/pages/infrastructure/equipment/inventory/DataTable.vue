@@ -111,9 +111,9 @@ watch(showForm, (newVal) => {
           <!--    Status    -->
           <q-td key="client" class="text-left copy-text" :props="props">
             <q-badge
-              :color="props.row?.status?.badge_color"
               :label="props.row?.status?.name"
               class="text-center text-weight-bold q-py-xs"
+              :style="{ backgroundColor: props.row?.status?.badge_color, color: '#eee' }"
             />
           </q-td>
 

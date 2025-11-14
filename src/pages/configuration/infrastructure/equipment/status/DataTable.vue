@@ -24,6 +24,7 @@ const columns = [
     align: 'left',
   },
   { name: 'name', label: 'Nombre', align: 'left' },
+  { name: 'color', label: 'Color', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
@@ -85,6 +86,15 @@ watch(showForm, (newVal) => {
           <!--    Name    -->
           <q-td key="name" class="text-left copy-text" :props="props">
             {{ props.row?.name }}
+          </q-td>
+
+          <!--    Color    -->
+          <q-td key="color" class="text-left copy-text" :props="props">
+            <q-badge
+              :label="props.row.badge_color"
+              class="text-center text-weight-bold q-py-xs"
+              :style="{ backgroundColor: props.row.badge_color }"
+            />
           </q-td>
 
           <!--    Actions    -->
