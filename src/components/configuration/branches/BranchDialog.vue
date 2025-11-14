@@ -3,7 +3,12 @@ import { onMounted, ref, reactive } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
@@ -11,98 +16,37 @@ const { showLoading, hideLoading } = useLoading()
 const title = ref('')
 const loading = ref(false)
 const { showNotification } = useNotifications()
+const { createField, createToggle, validationRules } = useFields()
 const props = defineProps({
   id: Number,
 })
 const url = 'api/v1/configuration/branches/'
 const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  code: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Código',
-    type: 'text',
-    rules: [],
-  },
-  landline: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Número de teléfono fijo',
-    type: 'text',
-    rules: [],
-  },
-  mobile: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Número de teléfono celular',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  state: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Departamento',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  municipality: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Municipio',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  district: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Distrito',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  country: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'País',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  badge: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Color de badge',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    type: 'toggle',
-  },
-  address: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Dirección',
-    type: 'text-area',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
+  name: createField('Nombre', 'text', [validationRules.text_required()]),
+  code: createField('Código', 'text', [validationRules.text_required()]),
+  landline: createField(
+    'Número de teléfono fijo',
+    'text',
+    [validationRules.text_required(), validationRules.national_phone()],
+    false,
+    '####-####',
+  ),
+  mobile: createField(
+    'Número de teléfono celular',
+    'text',
+    [validationRules.text_required(), validationRules.national_phone()],
+    false,
+    '####-####',
+  ),
+  state: createField('Departamento', 'select', [validationRules.select_required()]),
+  municipality: createField('Municipio', 'select', [validationRules.select_required()]),
+  district: createField('Distrito', 'select', [validationRules.select_required()]),
+  country: createField('País', 'select', [validationRules.select_required()]),
+  badge: createField('Color', 'color', [validationRules.text_required()]),
+  status: createToggle('Estado'),
+  address: createField('Dirección', 'text-area', [validationRules.text_required()]),
 })
+
 const external = reactive({
   countries: [],
   states: [],
@@ -146,47 +90,34 @@ const getData = () => {
       }, 1000)
     })
 }
-const sendData = () => {
-  let request = ''
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
+const sendData = async () => {
+  let request = props.id > 0 ? `${url}${props.id}` : url
+  let method = props.id > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
   title.value = 'Procesando datos, espera un momento...'
   loading.value = true
   showLoading()
   resetFieldErrors(fields)
-  params.append('name', fields.name.data)
-  params.append('code', fields.code.data)
-  params.append('landline', fields.landline.data)
-  params.append('mobile', fields.mobile.data)
-  params.append('address', fields.address.data)
-  params.append('state', fields.state.data)
-  params.append('municipality', fields.municipality.data)
-  params.append('district', fields.district.data)
-  params.append('country', fields.country.data)
-  params.append('badge', fields.badge.data)
-  params.append('status', status)
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
-
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 1000)
-    })
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
+    } else {
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification(
+      'Error',
+      err.response?.data?.message || err.message || 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 
 const getOptions = (key) => {
@@ -400,6 +331,35 @@ onMounted(async () => {
                       v-if="!loading"
                       :error="fields.status.error"
                       :error-message="fields.status['error-message']"
+                    />
+                  </div>
+
+                  <div v-if="field.type === 'color'">
+                    <q-input
+                      v-model="field.data"
+                      dense
+                      dark
+                      outlined
+                      :label="field.label"
+                      v-if="!loading"
+                    >
+                      <template v-slot:append>
+                        <q-icon name="colorize" class="cursor-pointer">
+                          <q-popup-proxy transition-show="scale" transition-hide="scale">
+                            <q-color v-model="field.data" format-model="hex" />
+                          </q-popup-proxy>
+                        </q-icon>
+                      </template>
+                    </q-input>
+
+                    <q-badge
+                      class="q-mt-sm text-weight-bold"
+                      size
+                      :label="field.data"
+                      :style="{
+                        backgroundColor: field.data,
+                        color: '#fff',
+                      }"
                     />
                   </div>
                   <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
