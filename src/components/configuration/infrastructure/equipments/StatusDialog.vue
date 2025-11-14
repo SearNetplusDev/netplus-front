@@ -3,6 +3,7 @@ import { onMounted, ref, reactive } from 'vue'
 import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
+import { useFields } from 'src/utils/composables/useFields.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
@@ -10,42 +11,16 @@ const { showLoading, hideLoading } = useLoading()
 const title = ref('')
 const loading = ref(false)
 const { showNotification } = useNotifications()
+const { createField, createToggle, validationRules } = useFields()
 const props = defineProps({
   id: Number,
 })
 const url = 'api/v1/configuration/infrastructure/equipments/status/'
 const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  color: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    type: 'toggle',
-    label: 'Estado',
-  },
-  description: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Descripción',
-    type: 'textarea',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
+  name: createField('Nombre', 'text', [validationRules.text_required()]),
+  color: createField('Color', 'text', [validationRules.text_required()]),
+  status: createToggle('Estado'),
+  description: createField('Descripción', 'textarea', [validationRules.text_required()]),
 })
 const getData = () => {
   showLoading()

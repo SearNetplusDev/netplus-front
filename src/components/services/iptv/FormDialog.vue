@@ -170,7 +170,7 @@ const sendData = async () => {
       showNotification('Éxito', 'Registro almacenado correctamente', 'blue-grey-10')
       uiStates.isVisible = false
     } else {
-      showNotification('Error', 'Verifica la información ingresada', 'teal-10')
+      showNotification('Error', 'Verifica la información ingresada', 'red-10')
     }
   } catch (err) {
     console.error(err)

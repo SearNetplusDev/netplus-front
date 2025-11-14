@@ -16,6 +16,12 @@ const billing = [
         component: () => import('pages/billing/options/activities/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Tipos de actividades', permission: [3] },
       },
+      {
+        path: 'opciones/estados',
+        name: 'facturacion.opciones.estados',
+        component: () => import('pages/billing/options/status/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Estados de factura', permission: [50] },
+      },
     ],
   },
 ]
