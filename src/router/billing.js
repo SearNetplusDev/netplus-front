@@ -22,6 +22,12 @@ const billing = [
         component: () => import('pages/billing/options/status/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Estados de factura', permission: [50] },
       },
+      {
+        path: 'opciones/descuentos',
+        name: 'facturacion.opciones.estados',
+        component: () => import('pages/billing/options/discounts/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Catálogo de descuentos', permission: [51] },
+      },
     ],
   },
 ]

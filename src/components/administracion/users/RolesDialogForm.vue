@@ -24,8 +24,8 @@ const props = defineProps({
 })
 const url = 'api/v1/management/roles/'
 const fields = reactive({
-  name: createField('Nombre', 'text', [validationRules.text_required()]),
-  homepage: createField('Redirige a:', 'text', [validationRules.text_required()]),
+  name: createField('Nombre', 'text', [validationRules.text_required]),
+  homepage: createField('Redirige a:', 'text', [validationRules.text_required]),
   role_permissions: {
     data: [],
     disabled: false,

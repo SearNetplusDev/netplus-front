@@ -31,7 +31,7 @@ const locale = LocaleEs
 const isLoadingData = ref(false)
 
 const numberRules = computed(() => {
-  const baseRules = [validationRules.text_required()]
+  const baseRules = [validationRules.text_required]
   const selectedType = fields.type.data
 
   if (selectedType) {
@@ -47,9 +47,9 @@ const numberMask = computed(() => {
   return getDocumentMask(fields.type.data)
 })
 const fields = reactive({
-  type: createField('Tipo de documento', 'select', [validationRules.select_required()]),
+  type: createField('Tipo de documento', 'select', [validationRules.select_required]),
   number: createField('Número de documento', 'text', numberRules),
-  expiration: createField('Fecha de vencimiento', 'date', [validationRules.text_required()]),
+  expiration: createField('Fecha de vencimiento', 'date', [validationRules.text_required]),
   status: createToggle('Estado'),
 })
 watch(

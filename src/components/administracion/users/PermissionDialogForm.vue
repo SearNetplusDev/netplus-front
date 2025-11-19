@@ -22,8 +22,8 @@ const props = defineProps({
 })
 const url = 'api/v1/management/permissions/'
 const fields = reactive({
-  name: createField('Nombre', 'text', [validationRules.text_required()]),
-  menu: createField('Elemento del menú', 'select', [validationRules.select_required()]),
+  name: createField('Nombre', 'text', [validationRules.text_required]),
+  menu: createField('Elemento del menú', 'select', [validationRules.select_required]),
 })
 const filteredPermissions = ref([])
 const external = reactive({

@@ -21,10 +21,10 @@ const props = defineProps({
 })
 const url = 'api/v1/configuration/infrastructure/equipments/status/'
 const fields = reactive({
-  name: createField('Nombre', 'text', [validationRules.text_required()]),
-  badge: createField('Color', 'color', [validationRules.text_required()]),
+  name: createField('Nombre', 'text', [validationRules.text_required]),
+  badge: createField('Color', 'color', [validationRules.text_required]),
   status: createToggle('Estado'),
-  description: createField('Descripción', 'textarea', [validationRules.text_required()]),
+  description: createField('Descripción', 'textarea', [validationRules.text_required]),
 })
 const getData = () => {
   showLoading()
@@ -65,7 +65,7 @@ const sendData = async () => {
     const { data } = await api.post(request, params)
     if (data.saved) {
       showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-      title.value=`Editar estado: ${data.status?.name}`
+      title.value = `Editar estado: ${data.status?.name}`
     } else {
       showNotification('Error', 'Verifica la información ingresada', 'red-10')
     }

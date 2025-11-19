@@ -26,7 +26,7 @@ const uri = '/api/v1/supports/types/'
 const fields = reactive({
   name: createField('Nombre', 'text', [validationRules.text_required]),
   price: createField('Precio', 'numeric', [validationRules.text_required, validationRules.decimal]),
-  badge: createField('Color', 'color', [validationRules.text_required()]),
+  badge: createField('Color', 'color', [validationRules.text_required]),
   status: createToggle('Estado'),
 })
 const getData = () => {

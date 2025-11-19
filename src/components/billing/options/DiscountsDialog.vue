@@ -4,6 +4,7 @@ import { api } from 'boot/axios.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useFields } from 'src/utils/composables/useFields.js'
+import { useFieldFilters } from 'src/utils/composables/operations/useFieldFilters.js'
 import {
   resetFieldErrors,
   handleSubmissionError,
@@ -14,37 +15,57 @@ import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
 const { createField, createToggle, validationRules } = useFields()
-
 const props = defineProps({
-  id: Number,
+  id: {
+    type: Number,
+    required: true,
+  },
 })
-const url = 'api/v1/billing/options/statuses/'
+const url = 'api/v1/billing/options/discounts/'
 const uiStates = reactive({
   loading: false,
-  title: 'Crear estado',
+  title: 'Agregar descuento',
 })
 const fields = reactive({
   name: createField('Nombre', 'text', [validationRules.text_required]),
-  color: createField('Color', 'color', []),
+  code: createField('Código', 'text', [validationRules.text_required]),
+  description: createField('Descripción', 'textarea', []),
+  percentage: createField('Porcentaje de descuento', 'text', [
+    validationRules.text_required,
+    validationRules.money_two_decimal,
+  ]),
+  amount: createField('Monto fijo de descuento', 'text', [
+    validationRules.text_required,
+    validationRules.money_two_decimal,
+  ]),
   status: createToggle('Estado'),
 })
+const { normalFields, textAreaFields } = useFieldFilters(fields)
 const getData = async () => {
   uiStates.loading = true
-  uiStates.title = 'Obteniendo datos, espera un momento...'
+  uiStates.title = 'Obteniendo datos, espera un momento ...'
   showLoading()
-  let uri = `${url}edit`
+
   try {
-    const { data } = await api.post(uri, { id: props.id })
-    if (data.status) {
-      fields.name.data = data.status?.name
-      fields.color.data = data.status?.badge_color
-      fields.status.data = data.status?.status_id
-      uiStates.title = `Editar los datos del estado ${data.status?.name}`
+    const {
+      data: { discount },
+    } = await api.post(`${url}edit`, { id: props.id })
+
+    if (discount) {
+      Object.assign(fields, {
+        name: { data: discount.name },
+        code: { data: discount.code },
+        description: { data: discount.description },
+        percentage: { data: discount.percentage },
+        amount: { data: discount.amount },
+        status: { data: discount.status_id },
+      })
+      uiStates.title = `Modificar información del descuento ${discount.name}`
     }
   } catch (err) {
     showNotification(
       'Error',
-      err.response?.data?.message || err.message || 'Error inesperado',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
       'red-10',
     )
   } finally {
@@ -56,7 +77,7 @@ const getData = async () => {
 }
 const sendData = async () => {
   uiStates.loading = true
-  uiStates.title = 'Procesando datos, espera un momento...'
+  uiStates.title = 'Procesando datos, espera un momento ...'
   showLoading()
   resetFieldErrors(fields)
   let request = props.id > 0 ? `${url}${props.id}` : url
@@ -65,7 +86,7 @@ const sendData = async () => {
   try {
     const { data } = await api.post(request, params)
     if (data.saved) {
-      uiStates.title = `Editar los datos del estado ${data.status?.name}`
+      uiStates.title = `Modificar la información del descuento ${data.discount?.name}`
       showNotification('Éxito', 'Registro almacenado correctamente', 'blue-grey-10')
     } else {
       showNotification('Error', 'Verifica la información ingresada', 'red-10')
@@ -77,6 +98,7 @@ const sendData = async () => {
       err.response?.data?.message || err.message || 'Error inesperado',
       'red-10',
     )
+    uiStates.title = 'ERROR'
   } finally {
     setTimeout(() => {
       uiStates.loading = false
@@ -127,8 +149,8 @@ onMounted(async () => {
                     <q-breadcrumbs-el label="Facturación" icon="paid" />
                     <q-breadcrumbs-el label="Opciones" icon="construction" />
                     <q-breadcrumbs-el
-                      label="Estados de factura"
-                      icon="mdi-invoice-multiple-outline"
+                      label="Catálogo de descuentos"
+                      icon="mdi-cloud-percent-outline"
                     />
                   </q-breadcrumbs>
                 </div>
@@ -138,31 +160,33 @@ onMounted(async () => {
 
             <q-separator dark class="q-my-sm" />
 
-            <!--    Input content   -->
+            <!--  Input Content   -->
             <q-card-section>
               <div class="row wrap full-width justify-start items-start content-start">
                 <div
-                  class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-md"
-                  v-for="(field, index) in fields"
+                  class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
+                  v-for="(field, index) in normalFields"
                   :key="index"
                 >
-                  <div v-if="field.type === 'text'">
+                  <template v-if="field.type === 'text'">
                     <q-input
-                      dense
+                      v-model="field.data"
                       dark
+                      dense
                       outlined
                       clearable
+                      color="white"
                       lazy-rules
-                      v-model="field.data"
                       v-if="!uiStates.loading"
                       :label="field.label"
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
+                      :disable="field.disabled || uiStates.loading"
                     />
-                  </div>
+                  </template>
 
-                  <div v-if="field.type === 'toggle'">
+                  <template v-if="field.type === 'toggle'">
                     <q-toggle
                       v-model="field.data"
                       :label="field.label"
@@ -174,40 +198,10 @@ onMounted(async () => {
                       :error="fields.status.error"
                       :error-message="fields.status['error-message']"
                     />
-                  </div>
-
-                  <template v-if="field.type === 'color'">
-                    <q-input
-                      v-model="field.data"
-                      dense
-                      dark
-                      outlined
-                      :label="field.label"
-                      v-if="!uiStates.loading"
-                    >
-                      <template v-slot:append>
-                        <q-icon name="colorize" class="cursor-pointer">
-                          <q-popup-proxy transition-show="scale" transition-hide="scale">
-                            <q-color v-model="field.data" format-model="hex" />
-                          </q-popup-proxy>
-                        </q-icon>
-                      </template>
-                    </q-input>
-
-                    <q-badge
-                      class="q-mt-sm text-weight-bold"
-                      size
-                      :label="field.data"
-                      :style="{
-                        backgroundColor: field.data,
-                        color: '#fff',
-                      }"
-                      v-if="!uiStates.loading"
-                    />
                   </template>
 
                   <q-skeleton
-                    class="q-my-xs"
+                    class="q-my-md"
                     dark
                     type="QInput"
                     animation="fade"
@@ -215,8 +209,34 @@ onMounted(async () => {
                   />
                 </div>
               </div>
+
+              <div class="row wrap full-width justify-start items-center content-start">
+                <div
+                  class="col-xs-12 col-sm-12 col-md-12 col-lg-12 q-pa-sm"
+                  v-for="(field, index) in textAreaFields"
+                  :key="index"
+                >
+                  <q-input
+                    v-model="field.data"
+                    type="textarea"
+                    dark
+                    dense
+                    outlined
+                    clearable
+                    rows="4"
+                    color="white"
+                    v-if="!uiStates.loading"
+                    :label="field.label"
+                    :rules="field.rules"
+                    :error="field.error"
+                    :error-message="field['error-message']"
+                    :disable="field.disabled || uiStates.loading"
+                  />
+                  <q-skeleton v-if="uiStates.loading" type="QInput" dark animation="fade" />
+                </div>
+              </div>
             </q-card-section>
-            <!--    End Input content   -->
+            <!--  End input Content   -->
           </q-card>
         </q-page>
       </q-page-container>

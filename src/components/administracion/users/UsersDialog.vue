@@ -48,14 +48,14 @@ const confirmPasswordRules = computed(() => [
   },
 ])
 const fields = reactive({
-  name: createField('Nombre', 'text', [validationRules.text_required()]),
+  name: createField('Nombre', 'text', [validationRules.text_required]),
   email: createField('Correo electrónico', 'text', [
-    validationRules.text_required(),
-    validationRules.email(),
+    validationRules.text_required,
+    validationRules.email,
   ]),
   password: createField('Contraseña', 'password', passwordRules),
   password_2: createField('Confirmación de contraseña', 'password', confirmPasswordRules),
-  role: createField('Rol asignado', 'select', [validationRules.select_required()]),
+  role: createField('Rol asignado', 'select', [validationRules.select_required]),
   status: createToggle('Estado'),
   permissions: {
     data: [],

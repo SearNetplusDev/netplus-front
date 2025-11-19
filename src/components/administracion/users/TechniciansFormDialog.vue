@@ -24,15 +24,15 @@ const props = defineProps({
 const url = 'api/v1/management/technicians/'
 const locale = LocaleEs
 const fields = reactive({
-  user: createField('Usuario', 'select', [validationRules.select_required()]),
+  user: createField('Usuario', 'select', [validationRules.select_required]),
   phone: createField(
     'Teléfono',
     'text',
-    [validationRules.text_required(), validationRules.national_phone()],
+    [validationRules.text_required, validationRules.national_phone],
     false,
     '####-####',
   ),
-  hiring_date: createField('Fecha de contratación', 'date', [validationRules.text_required()]),
+  hiring_date: createField('Fecha de contratación', 'date', [validationRules.text_required]),
   status: createToggle('Estado'),
 })
 const external = reactive({

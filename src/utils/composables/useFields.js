@@ -28,7 +28,7 @@ export function useFields() {
     nit: (val) => /^\d{8}-\d$|^\d{4}-\d{6}-\d{3}-\d$/.test(val) || 'Formato incorrecto',
     national_phone: (val) => /^[267]\d{3}-\d{4}$/.test(val) || 'Formato incorrecto',
     two_decimal: (val) => /^\d{2}\.\d{2}$/.test(val) || 'Formato inválido',
-    money_two_decimal: (val) => /^\d{2,4}\.\d{2}$/.test(val) || 'Formato inválido',
+    money_two_decimal: (val) => /^\d{1,4}\.\d{2}$/.test(val) || 'Formato inválido',
     parsed_phone: (getCountry) => (val) => {
       const country = getCountry()
       const parsed = parsePhoneNumberFromString(val, country)

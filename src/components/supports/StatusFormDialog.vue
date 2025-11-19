@@ -25,8 +25,8 @@ const props = defineProps({
 })
 const url = '/api/v1/supports/status/'
 const fields = reactive({
-  name: createField('Nombre', 'text', [validationRules.text_required()]),
-  badge: createField('Nombre', 'color', [validationRules.text_required()]),
+  name: createField('Nombre', 'text', [validationRules.text_required]),
+  badge: createField('Nombre', 'color', [validationRules.text_required]),
   status: createToggle('Estado'),
 })
 const getData = () => {

@@ -25,24 +25,24 @@ const title = ref('')
 const url = '/api/v1/clients/references/'
 const fields = reactive({
   name: createField('Nombre completo', 'text', [
-    validationRules.text_required(),
-    validationRules.only_letters(),
+    validationRules.text_required,
+    validationRules.only_letters,
   ]),
   dui: createField(
     'DUI',
     'text',
-    [validationRules.text_required(), validationRules.dui()],
+    [validationRules.text_required, validationRules.dui],
     false,
     '########-#',
   ),
   mobile: createField(
     'Número de teléfono',
     'text',
-    [validationRules.text_required(), validationRules.national_phone()],
+    [validationRules.text_required, validationRules.national_phone],
     false,
     '####-####',
   ),
-  kinship: createField('Parentesco', 'select', [validationRules.select_required()]),
+  kinship: createField('Parentesco', 'select', [validationRules.select_required]),
   status: createToggle('Estado'),
 })
 const relationships = ref([])

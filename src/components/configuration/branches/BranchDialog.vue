@@ -22,29 +22,29 @@ const props = defineProps({
 })
 const url = 'api/v1/configuration/branches/'
 const fields = reactive({
-  name: createField('Nombre', 'text', [validationRules.text_required()]),
-  code: createField('Código', 'text', [validationRules.text_required()]),
+  name: createField('Nombre', 'text', [validationRules.text_required]),
+  code: createField('Código', 'text', [validationRules.text_required]),
   landline: createField(
     'Número de teléfono fijo',
     'text',
-    [validationRules.text_required(), validationRules.national_phone()],
+    [validationRules.text_required, validationRules.national_phone],
     false,
     '####-####',
   ),
   mobile: createField(
     'Número de teléfono celular',
     'text',
-    [validationRules.text_required(), validationRules.national_phone()],
+    [validationRules.text_required, validationRules.national_phone],
     false,
     '####-####',
   ),
-  state: createField('Departamento', 'select', [validationRules.select_required()]),
-  municipality: createField('Municipio', 'select', [validationRules.select_required()]),
-  district: createField('Distrito', 'select', [validationRules.select_required()]),
-  country: createField('País', 'select', [validationRules.select_required()]),
-  badge: createField('Color', 'color', [validationRules.text_required()]),
+  state: createField('Departamento', 'select', [validationRules.select_required]),
+  municipality: createField('Municipio', 'select', [validationRules.select_required]),
+  district: createField('Distrito', 'select', [validationRules.select_required]),
+  country: createField('País', 'select', [validationRules.select_required]),
+  badge: createField('Color', 'color', [validationRules.text_required]),
   status: createToggle('Estado'),
-  address: createField('Dirección', 'text-area', [validationRules.text_required()]),
+  address: createField('Dirección', 'text-area', [validationRules.text_required]),
 })
 
 const external = reactive({
