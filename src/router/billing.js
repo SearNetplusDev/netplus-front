@@ -28,6 +28,12 @@ const billing = [
         component: () => import('pages/billing/options/discounts/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Catálogo de descuentos', permission: [51] },
       },
+      {
+        path: 'opciones/formas/pago',
+        name: 'facturacion.opciones.formas.pago',
+        component: () => import('pages/billing/options/payment_methods/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Formas de pago', permission: [52] },
+      },
     ],
   },
 ]
