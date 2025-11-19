@@ -79,7 +79,7 @@ watch(showForm, (newVal) => {
 
         <!--    Amount    -->
         <q-td key="amount" class="text-left copy-text" :props="props">
-          {{ props.row?.amount }}
+          $ {{ props.row?.amount }}
         </q-td>
 
         <!--    Actions    -->

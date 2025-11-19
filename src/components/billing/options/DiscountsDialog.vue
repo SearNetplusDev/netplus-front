@@ -52,15 +52,13 @@ const getData = async () => {
     } = await api.post(`${url}edit`, { id: props.id })
 
     if (discount) {
-      Object.assign(fields, {
-        name: { data: discount.name },
-        code: { data: discount.code },
-        description: { data: discount.description },
-        percentage: { data: discount.percentage },
-        amount: { data: discount.amount },
-        status: { data: discount.status_id },
-      })
-      uiStates.title = `Modificar información del descuento ${discount.name}`
+      fields.name.data = discount.name
+      fields.code.data = discount.code
+      fields.description.data = discount.description
+      fields.percentage.data = discount.percentage
+      fields.amount.data = discount.amount
+      fields.status.data = discount.status_id
+      uiStates.title = `Modificar información de ${discount.name}`
     }
   } catch (err) {
     showNotification(
