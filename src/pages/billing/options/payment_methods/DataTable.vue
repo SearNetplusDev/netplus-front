@@ -72,11 +72,11 @@ watch(showForm, (newVal) => {
         </q-td>
 
         <!--    Color    -->
-        <q-td key="amount" class="text-left copy-text" :props="props">
+        <q-td key="color" class="text-left copy-text" :props="props">
           <q-badge
             class="text-center text-weight-bold q-py-xs"
             :label="props.row.badge_color"
-            :style="{ backgroundColor: props.row.badge_color, color:'#fff' }"
+            :style="{ backgroundColor: props.row.badge_color, color: '#fff' }"
           />
         </q-td>
 
