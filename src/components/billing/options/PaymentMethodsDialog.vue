@@ -177,6 +177,10 @@ onMounted(async () => {
                       outlined
                       :label="field.label"
                       v-if="!uiStates.loading"
+                      :rules="field.rules"
+                      :error="field.error"
+                      :error-message="field['error-message']"
+                      :disable="field.disabled || uiStates.loading"
                     >
                       <template v-slot:append>
                         <q-icon name="colorize" class="cursor-pointer">
