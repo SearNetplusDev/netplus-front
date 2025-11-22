@@ -112,18 +112,18 @@ watch(showForm, (newVal) => {
           <!--    Status    -->
           <q-td key="status" :props="props">
             <q-badge
-              :color="props.row?.status?.badge_color"
               :label="props.row?.status?.name"
               class="text-center text-weight-bold q-py-xs"
+              :style="{ backgroundColor: props.row.status?.badge_color, color: '#fff' }"
             />
           </q-td>
 
           <!--    Type    -->
           <q-td key="type" :props="props">
             <q-badge
-              :color="props.row?.type?.badge_color"
               :label="props.row?.type?.name"
               class="text-center text-weight-bold q-py-xs"
+              :style="{ backgroundColor: props.row.type?.badge_color, color: '#fff' }"
             />
           </q-td>
 

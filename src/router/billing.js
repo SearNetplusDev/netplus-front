@@ -24,7 +24,7 @@ const billing = [
       },
       {
         path: 'opciones/descuentos',
-        name: 'facturacion.opciones.estados',
+        name: 'facturacion.opciones.descuentos',
         component: () => import('pages/billing/options/discounts/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Catálogo de descuentos', permission: [51] },
       },
