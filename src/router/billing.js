@@ -34,6 +34,12 @@ const billing = [
         component: () => import('pages/billing/options/payment_methods/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Formas de pago', permission: [52] },
       },
+      {
+        path: 'facturas',
+        name: 'facturacion.facturas',
+        component: () => import('pages/billing/invoices/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Listado de facturas', permission: [53] },
+      },
     ],
   },
 ]
