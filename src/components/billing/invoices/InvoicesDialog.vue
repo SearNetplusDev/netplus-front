@@ -85,7 +85,7 @@ onMounted(async () => {
               <q-table
                 flat
                 bordered
-                row-key="name"
+                row-key="id"
                 :rows="data.invoices"
                 :columns="columns"
                 binary-state-sort
@@ -104,7 +104,7 @@ onMounted(async () => {
                     <q-td auto-width>
                       <q-btn
                         size="sm"
-                        color="accent"
+                        color="primary"
                         round
                         dense
                         :icon="props.expand ? 'remove' : 'add'"
@@ -192,6 +192,19 @@ onMounted(async () => {
                           </q-item>
                         </q-list>
                       </q-btn-dropdown>
+                    </q-td>
+                  </q-tr>
+
+                  <q-tr v-show="props.expand" :props="props">
+                    <q-td colspan="100%">
+                      <div class="text-subtitle2">Expansión para {{ props.row.period?.code }}</div>
+                      <q-separator class="q-mb-xs" />
+                      <div class="text-caption">
+                        Del {{ props.row.period?.period_start }} al
+                        {{ props.row.period?.period_end }}
+                      </div>
+                      <q-separator class="q-mb-xs" />
+                      <div class="text-weight-bold">Factura ID {{ props.row.id }}</div>
                     </q-td>
                   </q-tr>
                 </template>
