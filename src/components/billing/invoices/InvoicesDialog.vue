@@ -83,12 +83,15 @@ onMounted(async () => {
           <q-card-section>
             <div class="q-pa-md">
               <q-table
+                dark
                 flat
-                bordered
+                binary-state-sort
                 row-key="id"
                 :rows="data.invoices"
                 :columns="columns"
-                binary-state-sort
+                no-data-label="Sin facturas generadas"
+                class="secondary-table"
+                :pagination="{ rowsPerPage: 12 }"
               >
                 <template v-slot:header="props">
                   <q-tr :props="props">
@@ -181,13 +184,19 @@ onMounted(async () => {
                         <q-list>
                           <q-item clickable v-close-popup>
                             <q-item-section>
-                              <q-item-label>Pagar</q-item-label>
+                              <q-item-label>Detalles</q-item-label>
+                            </q-item-section>
+                            <q-item-section avatar>
+                              <q-avatar icon="mdi-invoice-text-outline" text-color="white" />
                             </q-item-section>
                           </q-item>
 
                           <q-item clickable v-close-popup>
                             <q-item-section>
-                              <q-item-label>Solicitar Anulación</q-item-label>
+                              <q-item-label>Anular</q-item-label>
+                            </q-item-section>
+                            <q-item-section avatar>
+                              <q-avatar icon="mdi-invoice-text-remove-outline" text-color="white" />
                             </q-item-section>
                           </q-item>
                         </q-list>
