@@ -31,6 +31,10 @@ const columns = [
   },
   { name: 'name', label: 'Nombres', align: 'left' },
   { name: 'surname', label: 'Apellidos', align: 'left' },
+  { name: 'total_invoices', label: 'Facturas generadas', align: 'center' },
+  { name: 'paid_invoices', label: 'Facturas pagadas', align: 'center' },
+  { name: 'pending_invoices', label: 'Facturas pendientes', align: 'center' },
+  { name: 'overdue_invoices', label: 'Facturas vencidas', align: 'center' },
   { name: 'document', label: 'DUI', align: 'left' },
   { name: 'mobile', label: 'Teléfono', align: 'left' },
   {
@@ -112,8 +116,11 @@ watch(showForm, (newVal) => {
           <q-td key="financial_status" :props="props">
             <q-badge
               class="text-center text-weight-bold q-py-xs"
-              label="En proceso"
-              :style="{ backgroundColor: '#eac435', color: '#000' }"
+              :label="props.row.financial_status?.status?.name ?? 'Sin facturas generadas'"
+              :style="{
+                backgroundColor: props.row.financial_status?.status?.badge_color ?? '#7b2d8e',
+                color: '#fff',
+              }"
             />
           </q-td>
 
@@ -125,6 +132,26 @@ watch(showForm, (newVal) => {
           <!--    Apellidos     -->
           <q-td key="surname" class="text-left copy-text" :props="props">
             {{ props.row?.surname }}
+          </q-td>
+
+          <!--  Total Facturas    -->
+          <q-td auto-width key="total_invoices" class="text-center copy-text" :props="props">
+            {{ props.row.financial_status?.total_invoices ?? 0 }}
+          </q-td>
+
+          <!--  Total Facturas Pagadas    -->
+          <q-td auto-width key="paid_invoices" class="text-center copy-text" :props="props">
+            {{ props.row.financial_status?.paid_invoices ?? 0 }}
+          </q-td>
+
+          <!--  Total Facturas Pendientes    -->
+          <q-td auto-width key="pending_invoices" class="text-center copy-text" :props="props">
+            {{ props.row.financial_status?.pending_invoices ?? 0 }}
+          </q-td>
+
+          <!--  Total Facturas Vencidas    -->
+          <q-td auto-width key="overdue_invoices" class="text-center copy-text" :props="props">
+            {{ props.row.financial_status?.overdue_invoices ?? 0 }}
           </q-td>
 
           <!--    DUI     -->
