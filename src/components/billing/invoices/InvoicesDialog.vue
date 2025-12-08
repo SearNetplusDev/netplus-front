@@ -5,6 +5,7 @@ import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
+import PDFDialog from 'components/base/widgets/PDFDialog.vue'
 
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
@@ -19,6 +20,9 @@ const url = 'api/v1/billing/invoices/'
 const uiStates = reactive({
   loading: false,
   title: 'Facturas de ',
+  visiblePDF: false,
+  currentInvoice: 0,
+  pdfUri: '',
 })
 const columns = [
   { name: 'id', label: 'ID', align: 'left' },
@@ -60,7 +64,15 @@ const getData = async () => {
     }, 150)
   }
 }
-
+const print = (id) => {
+  uiStates.visiblePDF = true
+  uiStates.currentInvoice = id
+  uiStates.pdfUri = `/api/v1/billing/invoices/print/${uiStates.currentInvoice}`
+}
+const refreshPDFComponent = () => {
+  uiStates.visiblePDF = false
+  uiStates.currentInvoice = 0
+}
 onMounted(async () => {
   if (props.id > 0) await getData()
 })
@@ -182,7 +194,7 @@ onMounted(async () => {
                     <q-td auto-width key="actions" :props="props">
                       <q-btn-dropdown color="primary" label="acciones">
                         <q-list>
-                          <q-item clickable v-close-popup>
+                          <q-item clickable v-close-popup @click="print(props.row.id)">
                             <q-item-section>
                               <q-item-label>Detalles</q-item-label>
                             </q-item-section>
@@ -223,6 +235,14 @@ onMounted(async () => {
         </q-card>
       </q-page>
     </q-page-container>
+
+    <template v-if="uiStates.visiblePDF">
+      <PDFDialog
+        :visible="uiStates.visiblePDF"
+        :uri="uiStates.pdfUri"
+        @hide="refreshPDFComponent"
+      />
+    </template>
   </q-layout>
 </template>
 
