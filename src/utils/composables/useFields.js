@@ -2,7 +2,7 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js'
 
 export function useFields() {
   const validationRules = {
-    text_required: (val) => (val && val.length > 0) || 'Campo requerido',
+    text_required: (val) => !!val || 'Campo requerido',
     select_required: (val) => (val !== null && val !== '') || 'Campo requerido',
     valid_mac: (val) =>
       /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(val) || 'Formato incorrecto.',
