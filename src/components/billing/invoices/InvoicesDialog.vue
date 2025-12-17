@@ -6,6 +6,7 @@ import { useLoading } from 'src/utils/loader.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 import PDFDialog from 'components/base/widgets/PDFDialog.vue'
+import ExtensionDialog from 'components/billing/invoices/extensions/ExtensionDialog.vue'
 
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
@@ -21,6 +22,7 @@ const uiStates = reactive({
   loading: false,
   title: 'Facturas de ',
   visiblePDF: false,
+  visibleDialog: false,
   currentInvoice: 0,
   pdfUri: '',
 })
@@ -69,9 +71,15 @@ const print = (id) => {
   uiStates.currentInvoice = id
   uiStates.pdfUri = `/api/v1/billing/invoices/print/${uiStates.currentInvoice}`
 }
-const refreshPDFComponent = () => {
+const extension = (id) => {
+  uiStates.visibleDialog = true
+  uiStates.currentInvoice = id
+}
+const resetDialogState = () => {
+  uiStates.visibleDialog = false
   uiStates.visiblePDF = false
   uiStates.currentInvoice = 0
+  uiStates.pdfUri = ''
 }
 onMounted(async () => {
   if (props.id > 0) await getData()
@@ -203,12 +211,12 @@ onMounted(async () => {
                             </q-item-section>
                           </q-item>
 
-                          <q-item clickable v-close-popup>
+                          <q-item clickable v-close-popup @click="extension(props.row.id)">
                             <q-item-section>
-                              <q-item-label>Anular</q-item-label>
+                              <q-item-label>Extensión</q-item-label>
                             </q-item-section>
                             <q-item-section avatar>
-                              <q-avatar icon="mdi-invoice-text-remove-outline" text-color="white" />
+                              <q-avatar icon="mdi-store-clock-outline" text-color="white" />
                             </q-item-section>
                           </q-item>
                         </q-list>
@@ -237,10 +245,14 @@ onMounted(async () => {
     </q-page-container>
 
     <template v-if="uiStates.visiblePDF">
-      <PDFDialog
-        :visible="uiStates.visiblePDF"
-        :uri="uiStates.pdfUri"
-        @hide="refreshPDFComponent"
+      <PDFDialog :visible="uiStates.visiblePDF" :uri="uiStates.pdfUri" @hide="resetDialogState" />
+    </template>
+
+    <template v-if="uiStates.visibleDialog">
+      <ExtensionDialog
+        :visible="uiStates.visibleDialog"
+        :invoice="uiStates.currentInvoice"
+        @hide="resetDialogState"
       />
     </template>
   </q-layout>

@@ -198,7 +198,7 @@ onMounted(async () => {
     transition-hide="jump-down"
     backdrop-filter="blur(4px) saturate(150%)"
   >
-    <q-card dark flat style="width: 700px; max-width: 80vh" class="custom-cards">
+    <q-card dark flat style="width: 700px; max-width: 80vw" class="custom-cards">
       <q-card-section class="row items-center q-pb-none">
         <div class="text-h6 text-white">{{ title }}</div>
         <q-space />
