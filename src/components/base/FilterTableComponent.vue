@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, onMounted } from 'vue'
-import { api } from 'boot/axios.js'
+import { api } from 'src/utils/api.js'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 
 const useDataViewer = useDataviewerStore()

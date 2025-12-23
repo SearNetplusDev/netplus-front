@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { api } from 'boot/axios.js'
+import { api } from 'src/utils/api.js'
 import { useMenuStore } from 'stores/menu-store.js'
 
 export const useAuthStore = defineStore('auth', {

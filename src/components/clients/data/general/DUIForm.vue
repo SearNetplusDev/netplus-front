@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useQuasar } from 'quasar'
-import { api } from 'boot/axios.js'
+import { api } from 'src/utils/api.js'
 import { useLoading } from 'src/utils/loader.js'
 
 const $q = useQuasar()

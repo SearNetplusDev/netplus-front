@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref } from 'vue'
-import { api } from 'boot/axios.js'
+import { api } from 'src/utils/api.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'

@@ -1,4 +1,5 @@
-import { api, cancelSource } from 'boot/axios.js'
+// import { api, cancelSource } from 'boot/axios.js'
+import { api, cancelSource } from 'src/utils/api.js'
 
 let timeoutReload = null
 

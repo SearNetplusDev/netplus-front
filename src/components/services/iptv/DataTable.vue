@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, reactive } from 'vue'
 import { useLoading } from 'src/utils/loader.js'
-import { api } from 'boot/axios.js'
+import { api } from 'src/utils/api.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 // import { useNotifications } from 'src/utils/notification.js'
 import FormDialog from 'components/services/iptv/FormDialog.vue'

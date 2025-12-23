@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { api } from 'boot/axios.js'
+import { api } from 'src/utils/api.js'
 import { useLoading } from 'src/utils/loader.js'
 import DocumentForm from 'components/clients/data/general/documents/DocumentForm.vue'
 import { useClipboard } from 'src/utils/clipboard.js'

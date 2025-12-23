@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, onMounted, watch } from 'vue'
-import { api } from 'boot/axios.js'
+import { api } from 'src/utils/api.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
 import {

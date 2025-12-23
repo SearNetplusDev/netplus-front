@@ -1,9 +1,7 @@
-import MainLayout from 'layouts/MainLayout.vue'
-
 const dashboard = [
   {
     path: '/dashboard',
-    component: MainLayout,
+    component: () => import('layouts/MainLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {

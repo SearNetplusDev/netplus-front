@@ -1,4 +1,4 @@
-import { api } from 'boot/axios.js'
+import { api } from 'src/utils/api.js'
 
 export async function getSupportData(url) {
   try {

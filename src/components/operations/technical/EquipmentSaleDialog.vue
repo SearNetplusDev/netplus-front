@@ -1,6 +1,6 @@
 <script setup>
 import { reactive } from 'vue'
-import { api } from 'boot/axios.js'
+import { api } from 'src/utils/api.js'
 import { useFields } from 'src/utils/composables/useFields.js'
 import { useNotifications } from 'src/utils/notification.js'
 import {

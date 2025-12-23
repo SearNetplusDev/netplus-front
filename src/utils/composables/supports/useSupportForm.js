@@ -1,5 +1,5 @@
 import { watch, nextTick } from 'vue'
-import { api } from 'boot/axios.js'
+import { api } from 'src/utils/api.js'
 import {
   handleSubmissionError,
   resetFieldErrors,
