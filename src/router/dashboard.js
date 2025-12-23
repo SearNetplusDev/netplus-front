@@ -1,5 +1,4 @@
 import MainLayout from 'layouts/MainLayout.vue'
-import DashboardPage from 'pages/dashboard/DashboardPage.vue'
 
 const dashboard = [
   {
@@ -10,7 +9,7 @@ const dashboard = [
       {
         path: '',
         name: 'dashboard',
-        component: DashboardPage,
+        component: () => import('pages/dashboard/DashboardPage.vue'),
         meta: { requiresAuth: true, title: 'Dashboard', permission: [27] },
       },
     ],
