@@ -5,6 +5,7 @@ import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import InvoicesDialog from 'components/billing/invoices/InvoicesDialog.vue'
+import PaymentDialog from 'components/billing/payments/PaymentDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -76,6 +77,11 @@ const columns = [
   { name: 'actions', label: '', align: 'center' },
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
+const show_payment_form = ref(false)
+const payments = (itm) => {
+  currentItem.value = itm
+  show_payment_form.value = true
+}
 const invoices = (itm) => {
   currentItem.value = itm
   dataViewer.changeShowForm(2)
@@ -87,12 +93,20 @@ watch(showForm, (newVal) => {
     dataViewer.fetch({ force: true })
   }
 })
+const reset_dialog = () => {
+  currentItem.value = 0
+  show_payment_form.value = false
+}
 </script>
 
 <template>
   <div>
     <template v-if="showForm !== 0">
       <BaseDialog :id="currentItem" :content="InvoicesDialog" />
+    </template>
+
+    <template v-if="show_payment_form">
+      <PaymentDialog :visible="show_payment_form" :client="currentItem" @hide="reset_dialog" />
     </template>
 
     <BaseDataTable :columns="columns">
@@ -201,6 +215,16 @@ watch(showForm, (newVal) => {
           <!--    Actions    -->
           <q-td key="actions" :props="props">
             <q-btn-group>
+              <q-btn
+                color="green-10"
+                icon="mdi-account-cash"
+                size="sm"
+                @click="payments(props.row.id)"
+              >
+                <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
+                  Ingresar pago a {{ props.row.name }} {{ props.row.surname }}
+                </q-tooltip>
+              </q-btn>
               <q-btn
                 color="blue-10"
                 icon="mdi-invoice-list-outline"
