@@ -27,10 +27,13 @@ const states = reactive({
 const fields = reactive({
   service: createField('Servicio', 'select', [validationRules.select_required]),
   invoice: createField('Factura', 'select', [validationRules.select_required]),
-  amount: createField('Cantidad', 'text', [
-    validationRules.text_required,
-    validationRules.money_two_decimal,
-  ]),
+  amount: createField(
+    'Cantidad',
+    'text',
+    [validationRules.text_required, validationRules.money_two_decimal],
+    true,
+    '##.##',
+  ),
   payment_method: createField('Método de pago', 'select', [validationRules.select_required]),
   comments: createField('Observaciones', 'textarea'),
 })
@@ -47,14 +50,22 @@ const optionsMap = {
 }
 const get_options = (key) => external[optionsMap[key]] || []
 const onselect_change = (name, val) => {
-  if (name === 'service') {
-    if (val) {
-      fetchInvoices(val)
-    } else {
-      external.invoices = []
-      fields.invoice.data = null
-    }
+  const actions = {
+    service: () => {
+      if (val) {
+        fetchInvoices(val)
+      } else {
+        external.invoices = []
+        fields.invoice.data = null
+      }
+      fields.amount.data = null
+    },
+    invoice: () => {
+      const selected = external.invoices.find((inv) => inv.id === val)
+      fields.amount.data = selected?.total || null
+    },
   }
+  actions[name]?.()
 }
 const fetchServices = async () => {
   const data = await getSupportData(`api/v1/services/client/${props.client}`)
@@ -66,7 +77,7 @@ const fetchInvoices = async (service_id) => {
     showLoading()
     external.invoices = []
     fields.invoice.data = null
-    const { data } = await getSupportData(`api/v1/billing/invoices/service/${service_id}`)
+    const data = await getSupportData(`api/v1/billing/invoices/service/${service_id}`)
     if (data) external.invoices = data
   } finally {
     setTimeout(() => {
@@ -75,7 +86,7 @@ const fetchInvoices = async (service_id) => {
   }
 }
 const fetchPaymentMethods = async () => {
-  const { data } = await getSupportData(`api/v1/general/billing/payment-methods`)
+  const data = await getSupportData(`api/v1/general/billing/payment-methods`)
   if (data) external.methods = data
 }
 const loadInitialData = () => {
@@ -187,6 +198,8 @@ onMounted(() => {
                   :rules="field.rules"
                   :error="field.error"
                   :error-message="field['error-message']"
+                  :disable="field.disabled"
+                  :mask="field.mask"
                 />
               </template>
               <q-skeleton
