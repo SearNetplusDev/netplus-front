@@ -99,7 +99,7 @@ const send_data = async () => {
   showLoading()
   resetFieldErrors(fields)
   // let uri = ``
-  let request = ``
+  let request = `api/v1/billing/payments`
   let method = 'POST'
   let params = buildFormData(fields, { _method: method, client: props.client })
   try {
