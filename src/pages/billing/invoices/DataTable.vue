@@ -10,6 +10,7 @@ import PaymentDialog from 'components/billing/payments/PaymentDialog.vue'
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const currentItem = ref(0)
+const currentName = ref('')
 const columns = [
   { name: 'id', label: 'ID', sortable: true, align: 'center' },
   {
@@ -78,8 +79,9 @@ const columns = [
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
 const show_payment_form = ref(false)
-const payments = (itm) => {
+const payments = (itm, name) => {
   currentItem.value = itm
+  currentName.value = name
   show_payment_form.value = true
 }
 const invoices = (itm) => {
@@ -95,6 +97,7 @@ watch(showForm, (newVal) => {
 })
 const reset_dialog = () => {
   currentItem.value = 0
+  currentName.value = ''
   show_payment_form.value = false
 }
 </script>
@@ -106,7 +109,12 @@ const reset_dialog = () => {
     </template>
 
     <template v-if="show_payment_form">
-      <PaymentDialog :visible="show_payment_form" :client="currentItem" @hide="reset_dialog" />
+      <PaymentDialog
+        :visible="show_payment_form"
+        :client="currentItem"
+        :name="currentName"
+        @hide="reset_dialog"
+      />
     </template>
 
     <BaseDataTable :columns="columns">
@@ -219,7 +227,7 @@ const reset_dialog = () => {
                 color="green-10"
                 icon="mdi-account-cash"
                 size="sm"
-                @click="payments(props.row.id)"
+                @click="payments(props.row.id, `${props.row.name} ${props.row.surname}`)"
               >
                 <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
                   Ingresar pago a {{ props.row.name }} {{ props.row.surname }}

@@ -18,80 +18,45 @@ const { validationRules, createField } = useFields()
 const props = defineProps({
   visible: { type: Boolean, required: true },
   client: { type: Number, required: true },
+  name: { type: String, required: true },
 })
 const states = reactive({
   is_visible: props.visible,
   loading: false,
-  title: 'Ingresar pago',
+  title: `Ingresar pago a ${props.name}`,
 })
 const fields = reactive({
-  service: createField('Servicio', 'select', [validationRules.select_required]),
-  invoice: createField('Factura', 'select', [validationRules.select_required]),
+  invoices: createField('Facturas', 'multi-select', [validationRules.select_required]),
+  discount: createField('Descuento', 'select', []),
   amount: createField(
-    'Cantidad',
+    'Total a pagar',
     'text',
     [validationRules.text_required, validationRules.money_two_decimal],
     true,
-    '##.##',
   ),
   payment_method: createField('Método de pago', 'select', [validationRules.select_required]),
-  comments: createField('Observaciones', 'textarea'),
+  comments: createField('Observaciones', 'textarea', []),
 })
 const external = reactive({
-  services: [],
   invoices: [],
+  discounts: [],
   methods: [],
 })
 const { normalFields, textAreaFields } = useFieldFilters(fields)
 const optionsMap = {
-  service: 'services',
-  invoice: 'invoices',
   payment_method: 'methods',
+  discount: 'discounts',
 }
 const get_options = (key) => external[optionsMap[key]] || []
-const onselect_change = (name, val) => {
-  const actions = {
-    service: () => {
-      if (val) {
-        fetchInvoices(val)
-      } else {
-        external.invoices = []
-        fields.invoice.data = null
-      }
-      fields.amount.data = null
-    },
-    invoice: () => {
-      const selected = external.invoices.find((inv) => inv.id === val)
-      fields.amount.data = selected?.total || null
-    },
-  }
-  actions[name]?.()
-}
-const fetchServices = async () => {
-  const data = await getSupportData(`api/v1/services/client/${props.client}`)
-  if (data) external.services = data
-}
-
-const fetchInvoices = async (service_id) => {
-  try {
-    showLoading()
-    external.invoices = []
-    fields.invoice.data = null
-    const data = await getSupportData(`api/v1/billing/invoices/service/${service_id}`)
-    if (data) external.invoices = data
-  } finally {
-    setTimeout(() => {
-      hideLoading()
-    }, 150)
-  }
-}
-const fetchPaymentMethods = async () => {
-  const data = await getSupportData(`api/v1/general/billing/payment-methods`)
-  if (data) external.methods = data
-}
-const loadInitialData = () => {
-  states.loading = true
-  Promise.all([fetchServices(), fetchPaymentMethods()]).finally(() => (states.loading = false))
+const get_initial_data = async () => {
+  const [invoices, discounts, methods] = await Promise.all([
+    getSupportData(`/api/v1/billing/invoices/client/${props.client}`),
+    getSupportData('/api/v1/general/billing/discounts/list'),
+    getSupportData('/api/v1/general/billing/payment-methods'),
+  ])
+  external.invoices = invoices
+  external.discounts = discounts
+  external.methods = methods
 }
 const emit = defineEmits(['hide'])
 const send_data = async () => {
@@ -124,15 +89,33 @@ const send_data = async () => {
     }, 150)
   }
 }
+const calculate_total = () => {
+  let total = 0
+  if (fields.invoices.data && fields.invoices.data.length > 0) {
+    total = fields.invoices.data.reduce((sum, invoice_id) => {
+      const invoice = external.invoices.find((inv) => inv.id === invoice_id)
+      return sum + (invoice ? parseFloat(invoice.total) : 0)
+    }, 0)
+  }
+
+  if (fields.discount.data) {
+    const discount = external.discounts.find((disc) => disc.id === fields.discount.data)
+    if (discount) total -= parseFloat(discount.amount)
+  }
+
+  total = Math.max(0, total)
+  fields.amount.data = total.toFixed(2)
+}
 watch(
-  () => props.visible,
-  (newVal) => {
-    states.is_visible = newVal
-    if (newVal) loadInitialData()
-  },
+  () => fields.invoices.data,
+  () => calculate_total(),
+)
+watch(
+  () => fields.discount.data,
+  () => calculate_total(),
 )
 onMounted(() => {
-  if (props.visible) loadInitialData()
+  if (props.visible) get_initial_data()
 })
 </script>
 
@@ -160,6 +143,33 @@ onMounted(() => {
               v-for="(field, index) in normalFields"
               :key="index"
             >
+              <template v-if="field.type === 'multi-select'">
+                <q-select
+                  v-model="field.data"
+                  dark
+                  dense
+                  outlined
+                  color="white"
+                  clearable
+                  emit-value
+                  map-options
+                  transition-show="flip-up"
+                  transition-hide="flip-down"
+                  lazy-rules
+                  multiple
+                  use-chips
+                  stack-label
+                  v-if="!states.loading"
+                  :label="field.label"
+                  :rules="field.rules"
+                  :error="field.error"
+                  :error-message="field['error-message']"
+                  :options="external.invoices"
+                  :option-value="(opt) => opt.id"
+                  :option-label="(opt) => opt.name"
+                />
+              </template>
+
               <template v-if="field.type === 'select'">
                 <q-select
                   v-model="field.data"
@@ -181,7 +191,6 @@ onMounted(() => {
                   :options="get_options(index)"
                   :option-value="(opt) => opt.id"
                   :option-label="(opt) => opt.name"
-                  @update:model-value="onselect_change(index, $event)"
                 />
               </template>
 
