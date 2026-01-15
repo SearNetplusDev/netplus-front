@@ -4,6 +4,7 @@ import { api } from 'src/utils/api.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useClipboard } from 'src/utils/clipboard.js'
+import { useDateFormatter } from 'src/utils/composables/useDateFormatter.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 import PDFDialog from 'components/base/widgets/PDFDialog.vue'
 import ExtensionDialog from 'components/billing/invoices/extensions/ExtensionDialog.vue'
@@ -11,6 +12,7 @@ import ExtensionDialog from 'components/billing/invoices/extensions/ExtensionDia
 const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
 const { copy } = useClipboard()
+const { formatLongDate } = useDateFormatter()
 const props = defineProps({
   id: {
     type: Number,
@@ -36,9 +38,18 @@ const columns = [
   { name: 'total', label: 'Total', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ]
+const paymentsColumns = [
+  { name: 'payment_id', label: 'ID pago', align: 'left', field: 'id' },
+  { name: 'payment_date', label: 'Fecha de pago', align: 'left', field: 'payment_date' },
+  { name: 'payment_method', label: 'Método de pago', align: 'left' },
+  { name: 'amount', label: 'Monto Aplicado', align: 'left', field: 'id' },
+]
 const data = reactive({
   invoices: [],
 })
+const moneyFormat = (amount) => {
+  return parseFloat(amount).toFixed(2)
+}
 const getData = async () => {
   uiStates.loading = true
   uiStates.title = 'Obteniendo datos, espera un momento ...'
@@ -170,12 +181,12 @@ onMounted(async () => {
                       class="copy-text"
                       @click="copy(props.row.subtotal)"
                     >
-                      $ {{ props.row.subtotal }}
+                      $ {{ moneyFormat(props.row.subtotal) }}
                     </q-td>
 
                     <!--  IVA  -->
                     <q-td key="tax" :props="props" class="copy-text" @click="copy(props.row.iva)">
-                      $ {{ props.row.iva }}
+                      $ {{ moneyFormat(props.row.iva) }}
                     </q-td>
 
                     <!--  Detained IVA  -->
@@ -185,7 +196,7 @@ onMounted(async () => {
                       class="copy-text"
                       @click="copy(props.row.iva_retenido)"
                     >
-                      $ {{ props.row.iva_retenido }}
+                      $ {{ moneyFormat(props.row.iva_retenido) }}
                     </q-td>
 
                     <!--  TOTAL  -->
@@ -195,7 +206,7 @@ onMounted(async () => {
                       class="copy-text"
                       @click="copy(props.row.total_amount)"
                     >
-                      $ {{ props.row.total_amount }}
+                      $ {{ moneyFormat(props.row.total_amount) }}
                     </q-td>
 
                     <!--    Actions   -->
@@ -224,16 +235,102 @@ onMounted(async () => {
                     </q-td>
                   </q-tr>
 
-                  <q-tr v-show="props.expand" :props="props">
-                    <q-td colspan="100%">
-                      <div class="text-subtitle2">Expansión para {{ props.row.period?.code }}</div>
-                      <q-separator class="q-mb-xs" />
-                      <div class="text-caption">
-                        Del {{ props.row.period?.period_start }} al
-                        {{ props.row.period?.period_end }}
+                  <!--    Desplegable   -->
+                  <q-tr v-show="props.expand" :props="props" class="expanded-row">
+                    <q-td colspan="100%" class="expanded-content">
+                      <div class="q-pa-md">
+                        <div v-if="props.row.payments && props.row.payments.length > 0">
+                          <div class="text-subtitle2 q-mb-md text-white">
+                            Pagos aplicados ({{ props.row.payments.length }})
+                          </div>
+
+                          <q-table
+                            dark
+                            flat
+                            :rows="props.row.payments"
+                            :columns="paymentsColumns"
+                            row-key="id"
+                            hide-pagination
+                            :rows-per-page-options="[0]"
+                            class="nested-table"
+                          >
+                            <template v-slot:body-cell-payment_id="cellProps">
+                              <!--  Id pago -->
+                              <q-td
+                                :props="cellProps"
+                                @click="copy(cellProps.row.id)"
+                                class="copy-text"
+                              >
+                                {{ cellProps.row.id }}
+                              </q-td>
+                            </template>
+
+                            <!--  Fecha pago    -->
+                            <template v-slot:body-cell-payment_date="cellProps">
+                              <q-td :props="cellProps">
+                                {{ formatLongDate(cellProps.row.payment_date) }}
+                              </q-td>
+                            </template>
+
+                            <!--  Método de pago    -->
+                            <template v-slot:body-cell-payment_method="cellProps">
+                              <q-td :props="cellProps">
+                                <q-badge
+                                  class="text-center text-weight-bold q-py-xs"
+                                  :label="cellProps.row.payment_method.name"
+                                  :style="{
+                                    backgroundColor: cellProps.row.payment_method?.badge_color,
+                                    color: '#fff',
+                                  }"
+                                />
+                              </q-td>
+                            </template>
+
+                            <!--  Cantidad pagada   -->
+                            <template v-slot:body-cell-amount="cellProps">
+                              <q-td :props="cellProps" class="copy-text">
+                                $ {{ moneyFormat(cellProps.row.amount) }}
+                              </q-td>
+                            </template>
+                          </q-table>
+                        </div>
+
+                        <!--    Mensaje cuando no hay pagos   -->
+                        <div v-else class="text-center q-pa-sm">
+                          <q-icon name="mdi-cash-remove" size="48px" color="grey-6" />
+                          <div class="text-grey-6 q-mt-sm">No hay pagos registrados</div>
+                        </div>
+
+                        <!--  Mostrar descuentos si existen   -->
+                        <div
+                          v-if="props.row.discounts && props.row.discounts.length > 0"
+                          class="q-mt-md"
+                        >
+                          <div class="text-subtitle2 q-mb-sm text-white">Descuentos aplicados</div>
+
+                          <q-list dark bordered separator>
+                            <q-item v-for="discount in props.row.discounts" :key="discount.id">
+                              <q-item-section>
+                                <q-item-label class="text-weight-bold">
+                                  {{ discount.name }}
+                                </q-item-label>
+                                <q-item-label caption>
+                                  {{ discount.description }}
+                                </q-item-label>
+                              </q-item-section>
+                              <q-item-section side>
+                                <q-badge
+                                  color="negative"
+                                  class="text-weight-bold"
+                                  :label="
+                                    '- $' + parseFloat(discount.pivot.applied_amount).toFixed(2)
+                                  "
+                                />
+                              </q-item-section>
+                            </q-item>
+                          </q-list>
+                        </div>
                       </div>
-                      <q-separator class="q-mb-xs" />
-                      <div class="text-weight-bold">Factura ID {{ props.row.id }}</div>
                     </q-td>
                   </q-tr>
                 </template>
@@ -258,4 +355,15 @@ onMounted(async () => {
   </q-layout>
 </template>
 
-<style scoped></style>
+<style scoped lang="sass">
+.expanded-row
+  background-color: #1a1a2e !important
+
+.expanded-content
+  background-color: #2f353b !important
+  padding: 20px !important
+
+.nested-table
+  background-color: rgba(255,255,255,0.05)
+  border-radius: 8px
+</style>
