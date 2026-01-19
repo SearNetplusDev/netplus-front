@@ -89,43 +89,43 @@ const send_data = async () => {
     }, 150)
   }
 }
-// const calculate_total = () => {
-//   let total = 0
-//   if (fields.invoices.data && fields.invoices.data.length > 0) {
-//     total = fields.invoices.data.reduce((sum, invoice_id) => {
-//       const invoice = external.invoices.find((inv) => inv.id === invoice_id)
-//       return sum + (invoice ? parseFloat(invoice.total) : 0)
-//     }, 0)
-//   }
-//
-//   if (fields.discount.data) {
-//     const discount = external.discounts.find((disc) => disc.id === fields.discount.data)
-//     if (discount) total -= parseFloat(discount.amount)
-//   }
-//
-//   total = Math.max(0, total)
-//   fields.amount.data = total.toFixed(2)
-// }
-
 const calculate_total = () => {
   let total = 0
   if (fields.invoices.data && fields.invoices.data.length > 0) {
-    const discount = fields.discount.data
-      ? external.discounts.find((disc) => disc.id === fields.discount.data)
-      : null
-    const discountAmount = discount ? parseFloat(discount.amount) : 0
     total = fields.invoices.data.reduce((sum, invoice_id) => {
       const invoice = external.invoices.find((inv) => inv.id === invoice_id)
-      if (invoice) {
-        const invoiceTotal = parseFloat(invoice.total)
-        const invoiceWithDiscount = Math.max(0, invoiceTotal - discountAmount)
-        return sum + invoiceWithDiscount
-      }
-      return sum
+      return sum + (invoice ? parseFloat(invoice.total) : 0)
     }, 0)
   }
+
+  if (fields.discount.data) {
+    const discount = external.discounts.find((disc) => disc.id === fields.discount.data)
+    if (discount) total -= parseFloat(discount.amount)
+  }
+
+  total = Math.max(0, total)
   fields.amount.data = total.toFixed(2)
 }
+
+// const calculate_total = () => {
+//   let total = 0
+//   if (fields.invoices.data && fields.invoices.data.length > 0) {
+//     const discount = fields.discount.data
+//       ? external.discounts.find((disc) => disc.id === fields.discount.data)
+//       : null
+//     const discountAmount = discount ? parseFloat(discount.amount) : 0
+//     total = fields.invoices.data.reduce((sum, invoice_id) => {
+//       const invoice = external.invoices.find((inv) => inv.id === invoice_id)
+//       if (invoice) {
+//         const invoiceTotal = parseFloat(invoice.total)
+//         const invoiceWithDiscount = Math.max(0, invoiceTotal - discountAmount)
+//         return sum + invoiceWithDiscount
+//       }
+//       return sum
+//     }, 0)
+//   }
+//   fields.amount.data = total.toFixed(2)
+// }
 watch(
   () => fields.invoices.data,
   () => calculate_total(),

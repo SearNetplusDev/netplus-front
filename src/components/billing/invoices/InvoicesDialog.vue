@@ -42,7 +42,9 @@ const paymentsColumns = [
   { name: 'payment_id', label: 'ID pago', align: 'left', field: 'id' },
   { name: 'payment_date', label: 'Fecha de pago', align: 'left', field: 'payment_date' },
   { name: 'payment_method', label: 'Método de pago', align: 'left' },
-  { name: 'amount', label: 'Monto Aplicado', align: 'left', field: 'id' },
+  { name: 'amount', label: 'Monto Pagado', align: 'left', field: 'id' },
+  { name: 'discount', label: 'Descuento', align: 'left', field: 'discount' },
+  { name: 'discount_name', label: 'Descripción descuento', align: 'left' },
 ]
 const data = reactive({
   invoices: [],
@@ -292,6 +294,28 @@ onMounted(async () => {
                                 $ {{ moneyFormat(cellProps.row.amount) }}
                               </q-td>
                             </template>
+
+                            <!--  Descuento   -->
+                            <template v-slot:body-cell-discount="cellProps">
+                              <q-td :props="cellProps">
+                                <template v-if="cellProps.row.discount">
+                                  <q-badge
+                                    color="blue-9"
+                                    class="text-weight-bold"
+                                    :label="`$ ${moneyFormat(cellProps.row.discount_amount)}`"
+                                  />
+                                </template>
+
+                                <template v-else></template>
+                              </q-td>
+                            </template>
+
+                            <!--  Descripción de descuento   -->
+                            <template v-slot:body-cell-discount_name="cellProps">
+                              <q-td :props="cellProps" class="copy-text">
+                                {{ cellProps.row.discount?.name ?? '' }}
+                              </q-td>
+                            </template>
                           </q-table>
                         </div>
 
@@ -299,36 +323,6 @@ onMounted(async () => {
                         <div v-else class="text-center q-pa-sm">
                           <q-icon name="mdi-cash-remove" size="48px" color="grey-6" />
                           <div class="text-grey-6 q-mt-sm">No hay pagos registrados</div>
-                        </div>
-
-                        <!--  Mostrar descuentos si existen   -->
-                        <div
-                          v-if="props.row.discounts && props.row.discounts.length > 0"
-                          class="q-mt-md"
-                        >
-                          <div class="text-subtitle2 q-mb-sm text-white">Descuentos aplicados</div>
-
-                          <q-list dark bordered separator>
-                            <q-item v-for="discount in props.row.discounts" :key="discount.id">
-                              <q-item-section>
-                                <q-item-label class="text-weight-bold">
-                                  {{ discount.name }}
-                                </q-item-label>
-                                <q-item-label caption>
-                                  {{ discount.description }}
-                                </q-item-label>
-                              </q-item-section>
-                              <q-item-section side>
-                                <q-badge
-                                  color="negative"
-                                  class="text-weight-bold"
-                                  :label="
-                                    '- $' + parseFloat(discount.pivot.applied_amount).toFixed(2)
-                                  "
-                                />
-                              </q-item-section>
-                            </q-item>
-                          </q-list>
                         </div>
                       </div>
                     </q-td>
