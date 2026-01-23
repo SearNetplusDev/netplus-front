@@ -2,15 +2,15 @@
 import { onMounted, reactive, ref } from 'vue'
 import { api } from 'src/utils/api.js'
 import { useLoading } from 'src/utils/loader.js'
-// import { useDateFormatter } from 'src/utils/composables/useDateFormatter.js'
-// import { useClipboard } from 'src/utils/clipboard.js'
+import { useDateFormatter } from 'src/utils/composables/useDateFormatter.js'
+import { useClipboard } from 'src/utils/clipboard.js'
 import { useNotifications } from 'src/utils/notification.js'
 import PrepaymentForm from 'components/billing/prepayments/PrepaymentForm.vue'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
-// const { copy } = useClipboard()
-// const { formatLongDate } = useDateFormatter()
+const { copy } = useClipboard()
+const { formatLongDate } = useDateFormatter()
 const props = defineProps({
   visible: { type: Boolean, required: true },
   client: { type: Number, required: true },
@@ -39,10 +39,10 @@ const getData = async () => {
   showLoading()
   try {
     const {
-      data: { prepayments },
+      data: { list },
     } = await api.post(`${url}`, { client: props.client, _method: 'POST' })
-    if (prepayments) {
-      prepaymentsData.value = prepayments
+    if (list) {
+      prepaymentsData.value = list
     }
   } catch (err) {
     showNotification(
@@ -109,7 +109,60 @@ onMounted(async () => {
               :rows="prepaymentsData"
               row-key="name"
               no-data-label="Sin abonos registrados"
-            ></q-table>
+            >
+              <template v-slot:body-cell-id="props">
+                <q-td key="id" :props="props" class="copy-text">
+                  <div class="text-center">
+                    <div @click="copy(props.row.id)">
+                      {{ props.row.id }}
+                    </div>
+                  </div>
+                </q-td>
+              </template>
+
+              <template v-slot:body-cell-status="props">
+                <q-td key="status" :props="props">
+                  <q-badge
+                    class="text-bold q-pa-xs"
+                    align="middle"
+                    :color="props.row.status?.id ? 'primary' : 'red-10'"
+                    :label="props.row.status?.name"
+                  />
+                </q-td>
+              </template>
+
+              <template v-slot:body-cell-method="props">
+                <q-td key="status" :props="props">
+                  <q-badge
+                    class="text-bold q-pa-xs"
+                    align="middle"
+                    :label="props.row.payment_method?.name"
+                    :style="{
+                      backgroundColor: props.row.payment_method?.badge_color,
+                      color: '#fff',
+                    }"
+                  />
+                </q-td>
+              </template>
+
+              <template v-slot:body-cell-amount="props">
+                <q-td key="amount" :props="props"> $ {{ props.row.amount }} </q-td>
+              </template>
+
+              <template v-slot:body-cell-remaining="props">
+                <q-td key="remaining" :props="props"> $ {{ props.row.remaining_amount }}</q-td>
+              </template>
+
+              <template v-slot:body-cell-date="props">
+                <q-td key="date" :props="props">{{ formatLongDate(props.row.payment_date) }}</q-td>
+              </template>
+
+              <template v-slot:body-cell-user="props">
+                <q-td key="user" :props="props">
+                  {{ props.row.user?.name ?? 'N/A' }}
+                </q-td>
+              </template>
+            </q-table>
           </div>
         </div>
       </q-card-section>

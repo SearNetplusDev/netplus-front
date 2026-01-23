@@ -25,11 +25,14 @@ const states = reactive({
   loading: false,
   title: `Registrar abono`,
 })
-const fields = useFields({
-  amount: createField('Cantidad a abonar', 'text', [
-    validationRules.text_required,
-    validationRules.money_two_decimal,
-  ]),
+const fields = reactive({
+  amount: createField(
+    'Cantidad a abonar',
+    'text',
+    [validationRules.text_required, validationRules.money_two_decimal],
+    false,
+    '####.##',
+  ),
   payment_method: createField('Método de pago', 'select', [validationRules.select_required]),
   comments: createField('Comentarios', 'textarea', [validationRules.text_required]),
   status: createToggle('Estado'),
@@ -46,7 +49,7 @@ const sendData = async () => {
   states.loading = true
   showLoading()
   resetFieldErrors(fields)
-  let request = 'apí/v1/billing/prepayments'
+  let request = 'api/v1/billing/prepayments'
   let params = buildFormData(fields, { _method: 'POST', client: props.client })
 
   try {
@@ -83,6 +86,7 @@ onMounted(async () => {
     transition-show="slide-up"
     transition-hide="slide-down"
     backdrop-filter="blur(4px) saturate(150%)"
+    @hide="emit('hide')"
   >
     <q-card
       dark
@@ -100,11 +104,75 @@ onMounted(async () => {
         <q-form greedy @submit="sendData">
           <div class="row content-start items-start q-pa-sm fit">
             <div
-              class="col-xs-12 col-sm-12 col-md-6 col-lg-6 q-pa-sm"
+              class="col-xs-12 col-sm-12 col-md-4 col-lg-4 q-pa-sm"
               v-for="(field, index) in normalFields"
               :key="index"
             >
-              <template v-if="field.type === 'text'"> </template>
+              <template v-if="field.type === 'text'">
+                <q-input
+                  v-model="field.data"
+                  dark
+                  dense
+                  outlined
+                  clearable
+                  lazy-rules
+                  fill-mask="0"
+                  reverse-fill-mask
+                  v-if="!states.loading"
+                  :label="field.label"
+                  :rules="field.rules"
+                  :error="field.error"
+                  :error-message="field['error-message']"
+                  :disable="field.disabled"
+                  :mask="field.mask"
+                />
+              </template>
+
+              <template v-if="field.type === 'select'">
+                <q-select
+                  v-model="field.data"
+                  dark
+                  dense
+                  outlined
+                  clearable
+                  color="white"
+                  emit-value
+                  map-options
+                  transition-show="flip-up"
+                  transition-hide="flip-down"
+                  lazy-rules
+                  v-if="!states.loading"
+                  :label="field.label"
+                  :rules="field.rules"
+                  :error="field.error"
+                  :error-message="field['error-message']"
+                  :options="external.methods"
+                  :option-value="(opt) => opt.id"
+                  :option-label="(opt) => opt.name"
+                />
+              </template>
+
+              <template v-if="field.type === 'toggle'">
+                <q-toggle
+                  v-model="field.data"
+                  :label="field.label"
+                  checked-icon="check"
+                  unchecked-icon="clear"
+                  size="lg"
+                  color="primary"
+                  v-if="!states.loading"
+                  :error="field.error"
+                  :error-message="field['error-message']"
+                />
+              </template>
+
+              <q-skeleton
+                v-if="states.loading"
+                class="q-my-xs"
+                dark
+                animation="fade"
+                type="QInput"
+              />
             </div>
           </div>
 
@@ -117,14 +185,19 @@ onMounted(async () => {
               <template v-if="field.type === 'textarea'">
                 <q-input
                   v-model="field.data"
-                  outlined
+                  type="textarea"
                   dark
                   dense
-                  type="textarea"
+                  outlined
+                  clearable
+                  rows="4"
+                  color="white"
+                  v-if="!states.loading"
                   :label="field.label"
+                  :rules="field.rules"
                   :error="field.error"
                   :error-message="field['error-message']"
-                  v-if="!states.loading"
+                  :disable="field.disabled || states.loading"
                 />
               </template>
 
@@ -136,6 +209,10 @@ onMounted(async () => {
                 type="QInput"
               />
             </div>
+          </div>
+          <div class="row content-end justify-end">
+            <q-btn flat label="Cancelar" v-close-popup />
+            <q-btn flat label="Ingresar Abono" type="submit" />
           </div>
         </q-form>
       </q-card-section>

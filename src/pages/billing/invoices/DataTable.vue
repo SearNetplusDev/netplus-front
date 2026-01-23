@@ -256,12 +256,6 @@ const reset_dialog = () => {
                 icon="mdi-cash-fast"
                 size="sm"
                 @click="prepayments(props.row.id, `${props.row.name} ${props.row.surname}`)"
-                :disable="
-                  !(
-                    props.row.financial_status === null ||
-                    props.row.financial_status?.status?.id === 3
-                  )
-                "
               >
                 <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
                   Ingresar abono a {{ props.row.name }} {{ props.row.surname }}

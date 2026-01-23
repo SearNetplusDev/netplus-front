@@ -45,6 +45,7 @@ const paymentsColumns = [
   { name: 'amount', label: 'Monto Pagado', align: 'left', field: 'id' },
   { name: 'discount', label: 'Descuento', align: 'left', field: 'discount' },
   { name: 'discount_name', label: 'Descripción descuento', align: 'left' },
+  { name: 'comments', label: 'Observaciones', align: 'left' },
 ]
 const data = reactive({
   invoices: [],
@@ -314,6 +315,13 @@ onMounted(async () => {
                             <template v-slot:body-cell-discount_name="cellProps">
                               <q-td :props="cellProps" class="copy-text">
                                 {{ cellProps.row.discount?.name ?? '' }}
+                              </q-td>
+                            </template>
+
+                            <!--    Observaciones   -->
+                            <template v-slot:body-cell-comments="cellProps">
+                              <q-td :props="cellProps" class="copy-text">
+                                {{ cellProps.row.reference_number }}
                               </q-td>
                             </template>
                           </q-table>
