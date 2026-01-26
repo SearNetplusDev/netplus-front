@@ -5,8 +5,7 @@ import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import InvoicesDialog from 'components/billing/invoices/InvoicesDialog.vue'
-import PaymentDialog from 'components/billing/payments/PaymentDialog.vue'
-import PrepaymentDialog from 'components/billing/prepayments/PrepaymentDialog.vue'
+import GeneralContainer from 'components/billing/GeneralContainer.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -79,21 +78,16 @@ const columns = [
   { name: 'actions', label: '', align: 'center' },
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
-const show_payment_form = ref(false)
+const show_main_dialog = ref(false)
 const show_prepayment_form = ref(false)
-const payments = (itm, name) => {
+const callMainDialog = (itm, name) => {
   currentItem.value = itm
   currentName.value = name
-  show_payment_form.value = true
+  show_main_dialog.value = true
 }
 const invoices = (itm) => {
   currentItem.value = itm
   dataViewer.changeShowForm(2)
-}
-const prepayments = (itm, name) => {
-  currentItem.value = itm
-  currentName.value = name
-  show_prepayment_form.value = true
 }
 watch(showForm, (newVal) => {
   if (newVal === 1) {
@@ -105,7 +99,7 @@ watch(showForm, (newVal) => {
 const reset_dialog = () => {
   currentItem.value = 0
   currentName.value = ''
-  show_payment_form.value = false
+  show_main_dialog.value = false
   show_prepayment_form.value = false
 }
 </script>
@@ -116,20 +110,11 @@ const reset_dialog = () => {
       <BaseDialog :id="currentItem" :content="InvoicesDialog" />
     </template>
 
-    <template v-if="show_payment_form">
-      <PaymentDialog
-        :visible="show_payment_form"
-        :client="currentItem"
+    <template v-if="show_main_dialog">
+      <GeneralContainer
         :name="currentName"
-        @hide="reset_dialog"
-      />
-    </template>
-
-    <template v-if="show_prepayment_form">
-      <PrepaymentDialog
-        :visible="show_prepayment_form"
         :client="currentItem"
-        :name="currentName"
+        :visible="show_main_dialog"
         @hide="reset_dialog"
       />
     </template>
@@ -241,7 +226,7 @@ const reset_dialog = () => {
           <q-td key="actions" :props="props">
             <q-btn-group>
               <q-btn
-                color="grey-7"
+                color="blue-grey-9"
                 icon="mdi-wallet-outline"
                 size="sm"
                 @click="payments(props.row.id, `${props.row.name} ${props.row.surname}`)"
@@ -252,24 +237,13 @@ const reset_dialog = () => {
               </q-btn>
 
               <q-btn
-                color="blue-grey-8"
-                icon="mdi-cash-fast"
-                size="sm"
-                @click="prepayments(props.row.id, `${props.row.name} ${props.row.surname}`)"
-              >
-                <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
-                  Ingresar abono a {{ props.row.name }} {{ props.row.surname }}
-                </q-tooltip>
-              </q-btn>
-
-              <q-btn
                 color="green-10"
-                icon="mdi-account-cash"
+                icon="mdi-cash"
                 size="sm"
-                @click="payments(props.row.id, `${props.row.name} ${props.row.surname}`)"
+                @click="callMainDialog(props.row.id, `${props.row.name} ${props.row.surname}`)"
               >
                 <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
-                  Ingresar pago a {{ props.row.name }} {{ props.row.surname }}
+                  Pagos/Abonos de {{ props.row.name }} {{ props.row.surname }}
                 </q-tooltip>
               </q-btn>
 

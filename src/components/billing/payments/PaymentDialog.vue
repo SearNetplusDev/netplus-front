@@ -11,17 +11,17 @@ import {
   handleSubmissionError,
   buildFormData,
 } from 'src/utils/composables/useFormHandler.js'
+import { useInvoiceOrdering } from 'src/utils/composables/billing/useInvoiceOrdering.js'
+import { useInvoiceStatusHelper } from 'src/utils/composables/billing/useInvoiceStatusHelper.js'
+import { useInvoiceSelectionRules } from 'src/utils/composables/billing/useInvoiceSelectionRules.js'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
 const { validationRules, createField } = useFields()
 const props = defineProps({
-  visible: { type: Boolean, required: true },
   client: { type: Number, required: true },
-  name: { type: String, required: true },
 })
 const states = reactive({
-  is_visible: props.visible,
   loading: false,
   title: `Ingresar pago a ${props.name}`,
 })
@@ -48,13 +48,20 @@ const optionsMap = {
   discount: 'discounts',
 }
 const get_options = (key) => external[optionsMap[key]] || []
+const { sortInvoicesByPriority } = useInvoiceOrdering()
+const status = useInvoiceStatusHelper(external, fields)
+const { isInvoiceDisabled, normalizeSelection } = useInvoiceSelectionRules({
+  ...status,
+  external,
+  fields,
+})
 const get_initial_data = async () => {
   const [invoices, discounts, methods] = await Promise.all([
     getSupportData(`/api/v1/billing/invoices/client/${props.client}`),
     getSupportData('/api/v1/general/billing/discounts/list'),
     getSupportData('/api/v1/general/billing/payment-methods'),
   ])
-  external.invoices = invoices
+  external.invoices = sortInvoicesByPriority(invoices)
   external.discounts = discounts
   external.methods = methods
 }
@@ -63,7 +70,6 @@ const send_data = async () => {
   states.loading = true
   showLoading()
   resetFieldErrors(fields)
-  // let uri = ``
   let request = `api/v1/billing/payments`
   let method = 'POST'
   let params = buildFormData(fields, { _method: method, client: props.client })
@@ -106,26 +112,14 @@ const calculate_total = () => {
   total = Math.max(0, total)
   fields.amount.data = total.toFixed(2)
 }
-
-// const calculate_total = () => {
-//   let total = 0
-//   if (fields.invoices.data && fields.invoices.data.length > 0) {
-//     const discount = fields.discount.data
-//       ? external.discounts.find((disc) => disc.id === fields.discount.data)
-//       : null
-//     const discountAmount = discount ? parseFloat(discount.amount) : 0
-//     total = fields.invoices.data.reduce((sum, invoice_id) => {
-//       const invoice = external.invoices.find((inv) => inv.id === invoice_id)
-//       if (invoice) {
-//         const invoiceTotal = parseFloat(invoice.total)
-//         const invoiceWithDiscount = Math.max(0, invoiceTotal - discountAmount)
-//         return sum + invoiceWithDiscount
-//       }
-//       return sum
-//     }, 0)
-//   }
-//   fields.amount.data = total.toFixed(2)
-// }
+watch(
+  () => fields.invoices.data,
+  (newVal, oldVal) => {
+    fields.invoices.data = normalizeSelection(newVal, oldVal)
+    calculate_total()
+  },
+  { deep: true },
+)
 watch(
   () => fields.invoices.data,
   () => calculate_total(),
@@ -134,151 +128,137 @@ watch(
   () => fields.discount.data,
   () => calculate_total(),
 )
-onMounted(() => {
-  if (props.visible) get_initial_data()
+onMounted(async () => {
+  await get_initial_data()
 })
 </script>
 
 <template>
-  <q-dialog
-    v-model="states.is_visible"
-    persistent
-    transition-show="slide-up"
-    transition-hide="slide-down"
-    backdrop-filter="blur(4px) saturate(150%)"
-    @hide="emit('hide')"
-  >
-    <q-card dark flat style="width: 700px; max-width: 80vw" class="custom-cards">
-      <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6 text-white">{{ states.title }}</div>
-        <q-space />
-        <q-btn icon="close" flat round dense v-close-popup />
-      </q-card-section>
-
-      <q-card-section>
-        <q-form greedy @submit="send_data">
-          <div class="row content-start items-start q-pa-sm fit">
-            <div
-              class="col-xs-12 col-sm-12 col-md-6 col-lg-6 q-pa-sm"
-              v-for="(field, index) in normalFields"
-              :key="index"
-            >
-              <template v-if="field.type === 'multi-select'">
-                <q-select
-                  v-model="field.data"
-                  dark
-                  dense
-                  outlined
-                  color="white"
-                  clearable
-                  emit-value
-                  map-options
-                  transition-show="flip-up"
-                  transition-hide="flip-down"
-                  lazy-rules
-                  multiple
-                  use-chips
-                  stack-label
-                  v-if="!states.loading"
-                  :label="field.label"
-                  :rules="field.rules"
-                  :error="field.error"
-                  :error-message="field['error-message']"
-                  :options="external.invoices"
-                  :option-value="(opt) => opt.id"
-                  :option-label="(opt) => opt.name"
-                />
-              </template>
-
-              <template v-if="field.type === 'select'">
-                <q-select
-                  v-model="field.data"
-                  dark
-                  dense
-                  outlined
-                  clearable
-                  color="white"
-                  emit-value
-                  map-options
-                  transition-show="flip-up"
-                  transition-hide="flip-down"
-                  lazy-rules
-                  v-if="!states.loading"
-                  :label="field.label"
-                  :rules="field.rules"
-                  :error="field.error"
-                  :error-message="field['error-message']"
-                  :options="get_options(index)"
-                  :option-value="(opt) => opt.id"
-                  :option-label="(opt) => opt.name"
-                />
-              </template>
-
-              <template v-if="field.type === 'text'">
-                <q-input
-                  v-model="field.data"
-                  dark
-                  dense
-                  outlined
-                  clearable
-                  lazy-rules
-                  v-if="!states.loading"
-                  :label="field.label"
-                  :rules="field.rules"
-                  :error="field.error"
-                  :error-message="field['error-message']"
-                  :disable="field.disabled"
-                  :mask="field.mask"
-                />
-              </template>
-              <q-skeleton
-                v-if="states.loading"
-                class="q-my-xs"
+  <div class="row wrap full-width">
+    <template v-if="external.invoices.length > 0">
+      <q-form greedy @submit="send_data" class="full-width">
+        <div class="row content-start items-start q-pa-sm">
+          <div
+            class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
+            v-for="(field, index) in normalFields"
+            :key="index"
+          >
+            <template v-if="field.type === 'multi-select'">
+              <q-select
+                v-model="field.data"
                 dark
-                animation="fade"
-                type="QInput"
+                dense
+                outlined
+                color="white"
+                clearable
+                emit-value
+                map-options
+                transition-show="flip-up"
+                transition-hide="flip-down"
+                lazy-rules
+                multiple
+                use-chips
+                stack-label
+                v-if="!states.loading"
+                :label="field.label"
+                :rules="field.rules"
+                :error="field.error"
+                :error-message="field['error-message']"
+                :options="external.invoices"
+                :option-value="(opt) => opt.id"
+                :option-label="(opt) => opt.name"
+                :option-disable="isInvoiceDisabled"
               />
-            </div>
-          </div>
+            </template>
 
-          <div class="row content-start items-start q-pa-sm fit">
-            <div
-              class="col-xs-12 col-sm-12 col-md-12 col-lg-12 q-pa-sm"
-              v-for="(field, index) in textAreaFields"
-              :key="index"
-            >
-              <template v-if="field.type === 'textarea'">
-                <q-input
-                  v-model="field.data"
-                  outlined
-                  dark
-                  dense
-                  type="textarea"
-                  :label="field.label"
-                  :error="field.error"
-                  :error-message="field['error-message']"
-                  v-if="!states.loading"
-                />
-              </template>
-
-              <q-skeleton
-                v-if="states.loading"
-                class="q-my-xs"
+            <template v-if="field.type === 'select'">
+              <q-select
+                v-model="field.data"
                 dark
-                animation="fade"
-                type="QInput"
+                dense
+                outlined
+                clearable
+                color="white"
+                emit-value
+                map-options
+                transition-show="flip-up"
+                transition-hide="flip-down"
+                lazy-rules
+                v-if="!states.loading"
+                :label="field.label"
+                :rules="field.rules"
+                :error="field.error"
+                :error-message="field['error-message']"
+                :options="get_options(index)"
+                :option-value="(opt) => opt.id"
+                :option-label="(opt) => opt.name"
               />
-            </div>
+            </template>
+
+            <template v-if="field.type === 'text'">
+              <q-input
+                v-model="field.data"
+                dark
+                dense
+                outlined
+                clearable
+                lazy-rules
+                v-if="!states.loading"
+                :label="field.label"
+                :rules="field.rules"
+                :error="field.error"
+                :error-message="field['error-message']"
+                :disable="field.disabled"
+                :mask="field.mask"
+              />
+            </template>
+            <q-skeleton v-if="states.loading" class="q-my-xs" dark animation="fade" type="QInput" />
           </div>
 
-          <div class="row content-end justify-end">
-            <q-btn flat label="Cancelar" v-close-popup />
-            <q-btn flat label="Ingresar pago" type="submit" />
+          <div
+            class="col-xs-12 col-sm-12 col-md-12 col-lg-12 q-pa-sm"
+            v-for="(field, index) in textAreaFields"
+            :key="index"
+          >
+            <template v-if="field.type === 'textarea'">
+              <q-input
+                v-model="field.data"
+                outlined
+                dark
+                dense
+                type="textarea"
+                :label="field.label"
+                :error="field.error"
+                :error-message="field['error-message']"
+                v-if="!states.loading"
+              />
+            </template>
+
+            <q-skeleton v-if="states.loading" class="q-my-xs" dark animation="fade" type="QInput" />
           </div>
-        </q-form>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
+
+          <div class="row fit content-end justify-end">
+            <q-btn
+              color="white"
+              icon="save"
+              flat
+              :ripple="{ center: true, color: 'amber' }"
+              label="Almacenar"
+              align="around"
+              type="submit"
+            />
+          </div>
+        </div>
+      </q-form>
+    </template>
+
+    <template v-else>
+      <div class="text-center q-pa-sm full-width">
+        <q-icon name="mdi-file-document-alert-outline" size="48px" color="grey-6" />
+        <div class="text-grey-6 q-mt-sm">Sin facturas disponibles</div>
+      </div>
+    </template>
+  </div>
 </template>
 
 <style scoped></style>
