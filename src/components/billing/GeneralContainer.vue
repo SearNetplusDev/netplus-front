@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import PaymentDialog from 'components/billing/payments/PaymentDialog.vue'
+import PrepaymentDialog from 'components/billing/prepayments/PrepaymentDialog.vue'
 
 const props = defineProps({
   visible: { type: Boolean, required: true },
@@ -47,9 +48,7 @@ const tab = ref('payments')
           </q-tab-panel>
 
           <q-tab-panel name="prepayments">
-            Lorem ipsum dolor sit amet, consectetur adipisicing elit. Accusantium ad aliquam,
-            aperiam culpa cum cupiditate deleniti eligendi eos esse, id laudantium minima
-            perferendis, praesentium quos repellendus sequi veritatis! Dolorum, ut!
+            <prepayment-dialog :client="props.client" />
           </q-tab-panel>
         </q-tab-panels>
       </q-card-section>

@@ -35,6 +35,11 @@ const fields = reactive({
     true,
   ),
   payment_method: createField('Método de pago', 'select', [validationRules.select_required]),
+  cash: createField('Efectivo', 'text', [
+    validationRules.text_required,
+    validationRules.money_two_decimal,
+  ]),
+  change: createField('Cambio', 'text', [], true),
   comments: createField('Observaciones', 'textarea', []),
 })
 const external = reactive({
@@ -112,6 +117,13 @@ const calculate_total = () => {
   total = Math.max(0, total)
   fields.amount.data = total.toFixed(2)
 }
+const calculate_change = () => {
+  const cash = parseFloat(fields.cash.data || 0)
+  const total = parseFloat(fields.amount.data || 0)
+  let change = cash - total
+  change = change < 0 ? 0 : change
+  fields.change.data = change.toFixed(2)
+}
 watch(
   () => fields.invoices.data,
   (newVal, oldVal) => {
@@ -127,6 +139,11 @@ watch(
 watch(
   () => fields.discount.data,
   () => calculate_total(),
+)
+watch(
+  () => [fields.cash.data, fields.amount.data],
+  () => calculate_change(),
+  { deep: true },
 )
 onMounted(async () => {
   await get_initial_data()
