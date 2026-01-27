@@ -6,11 +6,13 @@ import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import InvoicesDialog from 'components/billing/invoices/InvoicesDialog.vue'
 import GeneralContainer from 'components/billing/GeneralContainer.vue'
+import FinancialDialog from 'components/billing/financial_status/FinancialDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const currentItem = ref(0)
 const currentName = ref('')
+const currentClient = ref([])
 const columns = [
   { name: 'id', label: 'ID', sortable: true, align: 'center' },
   {
@@ -79,7 +81,7 @@ const columns = [
 ]
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
 const show_main_dialog = ref(false)
-const show_prepayment_form = ref(false)
+const show_financial_status = ref(false)
 const callMainDialog = (itm, name) => {
   currentItem.value = itm
   currentName.value = name
@@ -88,6 +90,10 @@ const callMainDialog = (itm, name) => {
 const invoices = (itm) => {
   currentItem.value = itm
   dataViewer.changeShowForm(2)
+}
+const financial_status = (itm) => {
+  currentClient.value = itm
+  show_financial_status.value = true
 }
 watch(showForm, (newVal) => {
   if (newVal === 1) {
@@ -99,8 +105,9 @@ watch(showForm, (newVal) => {
 const reset_dialog = () => {
   currentItem.value = 0
   currentName.value = ''
+  currentClient.value = []
   show_main_dialog.value = false
-  show_prepayment_form.value = false
+  show_financial_status.value = false
 }
 </script>
 
@@ -115,6 +122,14 @@ const reset_dialog = () => {
         :name="currentName"
         :client="currentItem"
         :visible="show_main_dialog"
+        @hide="reset_dialog"
+      />
+    </template>
+
+    <template v-if="show_financial_status">
+      <FinancialDialog
+        :data="currentClient"
+        :visible="show_financial_status"
         @hide="reset_dialog"
       />
     </template>
@@ -229,7 +244,7 @@ const reset_dialog = () => {
                 color="blue-grey-9"
                 icon="mdi-wallet-outline"
                 size="sm"
-                @click="payments(props.row.id, `${props.row.name} ${props.row.surname}`)"
+                @click="financial_status(props.row)"
               >
                 <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
                   Estado financiero de {{ props.row.name }} {{ props.row.surname }}
