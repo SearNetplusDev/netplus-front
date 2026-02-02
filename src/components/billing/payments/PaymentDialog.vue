@@ -23,7 +23,6 @@ const props = defineProps({
 })
 const states = reactive({
   loading: false,
-  title: `Ingresar pago a ${props.name}`,
 })
 const fields = reactive({
   invoices: createField('Facturas', 'multi-select', [validationRules.select_required]),
@@ -70,7 +69,17 @@ const get_initial_data = async () => {
   external.discounts = discounts
   external.methods = methods
 }
-const emit = defineEmits(['hide'])
+const clear_data = async () => {
+  fields.invoices.data = null
+  fields.discount.data = null
+  fields.amount.data = null
+  fields.payment_method.data = null
+  fields.cash.data = null
+  fields.change.data = null
+  fields.comments.data = null
+  let invoices = await getSupportData(`/api/v1/billing/invoices/client/${props.client}`)
+  external.invoices = sortInvoicesByPriority(invoices)
+}
 const send_data = async () => {
   states.loading = true
   showLoading()
@@ -82,7 +91,7 @@ const send_data = async () => {
     const { data } = await api.post(request, params)
     if (data.saved) {
       showNotification('Éxito', 'Pago registrado correctamente', 'blue-grey-10')
-      emit('hide')
+      await clear_data()
     } else {
       showNotification('Error', 'Algo ha salido mal.', 'red-10')
     }

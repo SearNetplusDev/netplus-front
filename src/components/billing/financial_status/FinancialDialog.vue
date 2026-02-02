@@ -24,7 +24,7 @@ const financialStatus = [
     data: `$ ${moneyFormat(props.data.financial_status?.overdue_balance ?? 0)}`,
   },
   {
-    title: 'Saldo Acreedor',
+    title: 'Saldo Disponible',
     data: `$ ${moneyFormat(props.data.financial_status?.prepayment_balance ?? 0)}`,
   },
   {
