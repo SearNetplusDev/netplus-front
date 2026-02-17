@@ -17,6 +17,7 @@ const { validationRules, createField, createToggle } = useFields()
 const ui_states = reactive({
   loading: false,
   title: '',
+  isPwd: true,
 })
 const { showNotification } = useNotifications()
 const props = defineProps({
@@ -26,7 +27,7 @@ const url = 'api/v1/infrastructure/network/servers/'
 const fields = reactive({
   name: createField('Nombre', 'text', [validationRules.text_required]),
   user: createField('Usuario', 'text', [validationRules.text_required]),
-  secret: createField('Contraseña', 'text', [validationRules.text_required]),
+  secret: createField('Contraseña', 'password', [validationRules.text_required]),
   ip: createField('Dirección IP', 'text', [
     validationRules.text_required,
     validationRules.valid_ip,
@@ -76,6 +77,7 @@ const sendData = async () => {
     const { data } = await api.post(request, params)
     if (data.saved) {
       showNotification('Éxito', 'Datos almacenados correctamente', 'blue-grey-10')
+      getData()
     } else {
       showNotification('Error', 'Algo ha salido mal', 'red-10')
     }
@@ -176,6 +178,31 @@ onMounted(() => {
                       :error="field.error"
                       :error-message="field['error-message']"
                     />
+                  </div>
+
+                  <div v-if="field.type === 'password'">
+                    <q-input
+                      v-model="field.data"
+                      dark
+                      dense
+                      clearable
+                      outlined
+                      lazy-rules
+                      :type="ui_states.isPwd ? 'password' : 'text'"
+                      :label="field.label"
+                      :rules="field.rules"
+                      :error="field.errors"
+                      :error-message="field['error-message']"
+                      v-if="!ui_states.loading"
+                    >
+                      <template v-slot:append>
+                        <q-icon
+                          :name="ui_states.isPwd ? 'visibility_off' : 'visibility'"
+                          class="cursor-pointer"
+                          @click="ui_states.isPwd = !ui_states.isPwd"
+                        />
+                      </template>
+                    </q-input>
                   </div>
 
                   <div v-if="field.type === 'toggle'">

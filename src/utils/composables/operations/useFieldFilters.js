@@ -1,7 +1,15 @@
 import { computed } from 'vue'
 
 export const useFieldFilters = (fields) => {
-  const NORMAL_FIELD_TYPES = ['select', 'select-filter', 'multi-select', 'text', 'toggle', 'date']
+  const NORMAL_FIELD_TYPES = [
+    'select',
+    'select-filter',
+    'multi-select',
+    'text',
+    'toggle',
+    'date',
+    'password',
+  ]
   const TEXTAREA_FIELD_TYPE = 'textarea'
 
   const normalFields = computed(() => {
