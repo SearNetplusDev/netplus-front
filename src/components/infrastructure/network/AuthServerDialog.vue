@@ -1,81 +1,44 @@
 <script setup>
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, reactive } from 'vue'
 import { api } from 'src/utils/api.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import { useFieldFilters } from 'src/utils/composables/operations/useFieldFilters.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
-const title = ref('')
-const loading = ref(false)
+const { validationRules, createField, createToggle } = useFields()
+const ui_states = reactive({
+  loading: false,
+  title: '',
+})
 const { showNotification } = useNotifications()
 const props = defineProps({
   id: Number,
 })
 const url = 'api/v1/infrastructure/network/servers/'
 const fields = reactive({
-  name: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  user: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Usuario',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  secret: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Clave',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  ip: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Dirección IP',
-    type: 'text',
-    rules: [
-      (val) => (val && val.length > 0) || 'Campo requerido',
-      (val) =>
-        /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
-          val,
-        ) || 'IP no válida',
-    ],
-  },
-  port: {
-    data: null,
-    error: false,
-    'error-message': '',
-    label: 'Puerto',
-    type: 'text',
-    rules: [
-      (val) => !!val || 'Campo requerido',
-      (val) => /^\d{2,4}$/.test(val) || 'Formato incorrecto',
-    ],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    type: 'toggle',
-    label: 'Estado',
-  },
+  name: createField('Nombre', 'text', [validationRules.text_required]),
+  user: createField('Usuario', 'text', [validationRules.text_required]),
+  secret: createField('Contraseña', 'text', [validationRules.text_required]),
+  ip: createField('Dirección IP', 'text', [
+    validationRules.text_required,
+    validationRules.valid_ip,
+  ]),
+  port: createField('Puerto', 'text', [validationRules.text_required, validationRules.valid_port]),
+  status: createToggle('Estado'),
 })
+const { normalFields } = useFieldFilters(fields)
 const getData = () => {
   showLoading()
-  loading.value = true
-  title.value = 'Obteniedo datos, espera un momento...'
+  ui_states.loading = true
+  ui_states.title = 'Obteniendo datos, espera un momento ....'
   let data = new FormData()
   data.append('id', props.id)
   api
@@ -88,61 +51,53 @@ const getData = () => {
       fields.ip.data = itm.ip
       fields.port.data = itm.port
       fields.status.data = itm.status_id
-      title.value = `Editar datos del Servidor: ${itm.name}`
+      ui_states.title = `Editar datos del Servidor: ${itm.name}`
     })
     .catch((err) => {
       showNotification('Error', err, 'red-10')
     })
     .finally(() => {
       setTimeout(() => {
-        loading.value = false
+        ui_states.loading = false
         hideLoading()
-      }, 1000)
+      }, 250)
     })
 }
-const sendData = () => {
-  let request = ''
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
-  title.value = 'Procesando datos, espera un momento...'
-  loading.value = true
+const sendData = async () => {
+  ui_states.loading = true
+  ui_states.title = 'Procesando datos, espera un momento...'
   showLoading()
   resetFieldErrors(fields)
-  params.append('name', fields.name.data)
-  params.append('user', fields.user.data)
-  params.append('secret', fields.secret.data)
-  params.append('ip', fields.ip.data)
-  params.append('port', fields.port.data)
-  params.append('status', status)
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
+  let request = props.id > 0 ? `${url}${props.id}` : url
+  let method = props.id > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
 
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-        title.value = `Editar datos del servidor: ${res.data.server.name}`
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 1000)
-    })
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Éxito', 'Datos almacenados correctamente', 'blue-grey-10')
+    } else {
+      showNotification('Error', 'Algo ha salido mal', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification(
+      'Error',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      ui_states.loading = false
+      hideLoading()
+    }, 150)
+  }
 }
 onMounted(() => {
   if (props.id > 0) {
     getData()
   } else {
-    title.value = 'Registrar nuevo país'
+    ui_states.title = 'Registrar Servidor de Autenticación'
   }
 })
 </script>
@@ -152,11 +107,11 @@ onMounted(() => {
     <q-form greedy @submit="sendData">
       <q-header class="q-header">
         <q-toolbar>
-          <q-toolbar-title>{{ title }}</q-toolbar-title>
+          <q-toolbar-title>{{ ui_states.title }}</q-toolbar-title>
           <q-btn
             flat
             icon="mdi-content-save"
-            :loading="loading"
+            :loading="ui_states.loading"
             :label="props.id === 0 ? 'Almacenar' : 'Actualizar'"
             type="submit"
             color="white"
@@ -204,7 +159,7 @@ onMounted(() => {
               <div class="row wrap full-width justify-start items-start content-start">
                 <div
                   class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-md"
-                  v-for="(field, index) in fields"
+                  v-for="(field, index) in normalFields"
                   :key="index"
                 >
                   <div v-if="field.type === 'text'">
@@ -215,7 +170,7 @@ onMounted(() => {
                       clearable
                       lazy-rules
                       v-model="field.data"
-                      v-if="!loading"
+                      v-if="!ui_states.loading"
                       :label="field.label"
                       :rules="field.rules"
                       :error="field.error"
@@ -231,12 +186,18 @@ onMounted(() => {
                       unchecked-icon="clear"
                       size="lg"
                       color="primary"
-                      v-if="!loading"
+                      v-if="!ui_states.loading"
                       :error="fields.status.error"
                       :error-message="fields.status['error-message']"
                     />
                   </div>
-                  <q-skeleton class="q-my-xs" dark type="QInput" animation="fade" v-if="loading" />
+                  <q-skeleton
+                    class="q-my-xs"
+                    dark
+                    type="QInput"
+                    animation="fade"
+                    v-if="ui_states.loading"
+                  />
                 </div>
               </div>
             </q-card-section>

@@ -36,6 +36,7 @@ export function useFields() {
     },
     only_letters: (val) => /^[a-zA-ZáéíóúÁÉÍÓÚ\s]+$/.test(val) || 'No se permiten números',
     extension_days: (val) => /^[1-5]+$/.test(val) || 'Solo se puede agregar un máximo de 5 días.',
+    valid_port: (val) => /^\d{2,5}$/.test(val) || 'Puerto inválido',
   }
 
   const createField = (label, type, rules = [], disabled = false, mask = '') => ({

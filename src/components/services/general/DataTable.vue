@@ -28,6 +28,7 @@ const columns = [
     label: 'Precio (USD)',
     align: 'center',
     field: (row) => row.internet?.profile?.price,
+    format: (val) => '$ ' + (val != null ? Number(val).toFixed(2) : ''),
   },
   {
     name: 'user',
