@@ -1,16 +1,16 @@
 <script setup>
-import { reactive, onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import { api } from 'src/utils/api.js'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 
 const useDataViewer = useDataviewerStore()
 const props = defineProps(['props'])
-const data = reactive(props.props)
+const data = computed(() => props.props)
 const getOptions = (url, index) => {
   api
     .get(url)
     .then((res) => {
-      data.cols[index].options = res.data.response
+      data.value.cols[index].options = res.data.response
     })
     .catch((err) => {
       console.error(`Filter table error: ${err}`)
@@ -41,7 +41,7 @@ const filterChange = (key, model) => {
 }
 
 onMounted(() => {
-  data.cols.forEach((val, index) => {
+  data.value.cols.forEach((val, index) => {
     if (val.filterURL !== undefined) {
       getOptions(val.filterURL, index)
     }
@@ -50,8 +50,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <q-tr>
-    <q-th v-for="col in data.cols" :key="col.name" class="text-left q-header">
+  <q-tr :props="data">
+    <q-th v-for="col in data.cols" :key="col.name" class="text-left q-header" :props="data">
       <span :class="col.model?.length > 0 ? 'text-amber' : 'text-white'">
         {{ col.label }}
       </span>

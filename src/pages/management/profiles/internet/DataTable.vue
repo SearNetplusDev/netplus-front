@@ -19,6 +19,7 @@ const columns = [
     filterURL: '/api/v1/general/estados',
     options: [],
     align: 'left',
+    sortable: true,
   },
   { name: 'name', label: 'Nombre', align: 'left' },
   { name: 'alias', label: 'Alias', align: 'left' },
