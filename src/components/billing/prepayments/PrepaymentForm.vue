@@ -11,14 +11,18 @@ import {
   handleSubmissionError,
   buildFormData,
 } from 'src/utils/composables/useFormHandler.js'
+import { useDateFormatter } from 'src/utils/composables/useDateFormatter.js'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
 const { validationRules, createField, createToggle } = useFields()
+const { formatLongDate } = useDateFormatter()
 const props = defineProps({
+  prepayment: { type: Number, required: true },
   client: { type: Number, required: true },
   visible: { type: Boolean, required: true },
 })
+const uri = 'api/v1/billing/prepayments/'
 const emit = defineEmits(['hide'])
 const states = reactive({
   isVisible: props.visible,
@@ -44,13 +48,45 @@ const { normalFields, textAreaFields } = useFieldFilters(fields)
 const getInitialData = async () => {
   const [methods] = await Promise.all([getSupportData('/api/v1/general/billing/payment-methods')])
   external.methods = methods
+
+  if (props.prepayment > 0) {
+    await getData()
+  }
+}
+const getData = async () => {
+  states.loading = true
+  showLoading()
+  try {
+    const { data } = await api.post(`${uri}data`, { prepayment: props.prepayment, _method: 'POST' })
+
+    if (data.prepayment) {
+      let item = data.prepayment
+      fields.amount.data = item.amount
+      fields.payment_method.data = item.payment_method_id
+      fields.comments.data = item.comments
+      fields.status.data = item.status_id
+      states.title = `Editar datos del abono registrado el ${formatLongDate(item.payment_date)}`
+    }
+  } catch (err) {
+    showNotification(
+      'Error',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      states.loading = false
+      hideLoading()
+    }, 150)
+  }
 }
 const sendData = async () => {
   states.loading = true
   showLoading()
   resetFieldErrors(fields)
-  let request = 'api/v1/billing/prepayments'
-  let params = buildFormData(fields, { _method: 'POST', client: props.client })
+  let request = props.prepayment > 0 ? `${uri}${props.prepayment}` : uri
+  let method = props.prepayment > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method, client: props.client })
 
   try {
     const { data } = await api.post(request, params)

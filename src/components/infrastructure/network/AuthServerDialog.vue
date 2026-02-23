@@ -14,15 +14,16 @@ import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
 const { validationRules, createField, createToggle } = useFields()
+const props = defineProps({
+  id: Number,
+})
 const ui_states = reactive({
   loading: false,
   title: '',
   isPwd: true,
+  current_item: props.id,
 })
 const { showNotification } = useNotifications()
-const props = defineProps({
-  id: Number,
-})
 const url = 'api/v1/infrastructure/network/servers/'
 const fields = reactive({
   name: createField('Nombre', 'text', [validationRules.text_required]),
@@ -41,7 +42,7 @@ const getData = () => {
   ui_states.loading = true
   ui_states.title = 'Obteniendo datos, espera un momento ....'
   let data = new FormData()
-  data.append('id', props.id)
+  data.append('id', ui_states.current_item)
   api
     .post(`${url}edit`, data)
     .then((res) => {
@@ -77,6 +78,7 @@ const sendData = async () => {
     const { data } = await api.post(request, params)
     if (data.saved) {
       showNotification('Éxito', 'Datos almacenados correctamente', 'blue-grey-10')
+      ui_states.current_item = data.server.id
       getData()
     } else {
       showNotification('Error', 'Algo ha salido mal', 'red-10')

@@ -16,6 +16,7 @@ const props = defineProps({
 })
 const states = reactive({
   loading: false,
+  current_item: 0,
 })
 const columns = [
   { name: 'id', label: 'ID', align: 'center' },
@@ -25,6 +26,7 @@ const columns = [
   { name: 'remaining', label: 'Saldo restante', align: 'left' },
   { name: 'date', label: 'Fecha de registro', align: 'left' },
   { name: 'user', label: 'Usuario', align: 'left' },
+  { name: 'actions', label: '', align: 'center' },
 ]
 const prepaymentsData = ref([])
 const visibleForm = ref(false)
@@ -52,7 +54,12 @@ const getData = async () => {
     }, 150)
   }
 }
+const edit = (itm) => {
+  states.current_item = itm
+  visibleForm.value = true
+}
 const refreshDialog = () => {
+  states.current_item = 0
   visibleForm.value = false
   getData()
 }
@@ -142,6 +149,22 @@ onMounted(async () => {
                 {{ props.row.user?.name ?? 'N/A' }}
               </q-td>
             </template>
+
+            <template v-slot:body-cell-actions="props">
+              <q-td key="actions" :props="props">
+                <q-btn-group>
+                  <q-btn color="primary" icon="edit" size="sm" @click="edit(props.row.id)">
+                    <q-tooltip
+                      transition-show="fade"
+                      transition-hide="slide-down"
+                      class="bg-grey-10"
+                    >
+                      Editar Abono
+                    </q-tooltip>
+                  </q-btn>
+                </q-btn-group>
+              </q-td>
+            </template>
           </q-table>
         </div>
       </div>
@@ -149,7 +172,12 @@ onMounted(async () => {
   </q-card>
 
   <template v-if="visibleForm">
-    <prepayment-form :client="props.client" :visible="visibleForm" @hide="refreshDialog" />
+    <prepayment-form
+      :prepayment="states.current_item"
+      :client="props.client"
+      :visible="visibleForm"
+      @hide="refreshDialog"
+    />
   </template>
 </template>
 
