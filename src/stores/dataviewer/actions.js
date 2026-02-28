@@ -62,7 +62,7 @@ export const actions = {
           order_column: pag.sortBy,
           order_direction: pag.descending ? 'desc' : 'asc',
           filter_match: pag.filter_match,
-          limit: pag.rowsPerPage,
+          limit: pag.rowsPerPage === 0 ? 500 : pag.rowsPerPage,
           page: pag.page,
           total: pag.rowsNumber,
         }

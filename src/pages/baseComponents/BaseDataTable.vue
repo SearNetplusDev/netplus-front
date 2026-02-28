@@ -49,6 +49,8 @@ const onRequest = (prop) => {
       @request="onRequest"
       v-model:pagination="paginate"
       no-data-label="Sin resultados"
+      rows-per-page-label="Registros por página"
+      :rows-per-page-options="[3, 5, 7, 10, 15, 20, 25, 50, 75, 100]"
     >
       <template v-slot:header="props">
         <FilterTableComponent :props="props" />
