@@ -190,19 +190,8 @@ onMounted(() => {
 
 <template>
   <div class="q-pa-xs filter-component" style="border-radius: 20px">
+    <!-- Botones superiores - IGUAL que antes -->
     <div class="q-pa-sm fit row justify-end items-center">
-      <!--      <div class="col-auto" v-if="filterCandidates.length > 1">-->
-      <!--        <q-btn-toggle-->
-      <!--          v-model="pagination.filter_match"-->
-      <!--          toggle-color="primary"-->
-      <!--          :options="[-->
-      <!--            { label: 'Y (AND)', value: 'and' },-->
-      <!--            { label: 'O (OR)', value: 'or' },-->
-      <!--          ]"-->
-      <!--          @update:model-value="applyFilter"-->
-      <!--        />-->
-      <!--      </div>-->
-
       <div class="col-auto">
         <q-btn-group flat>
           <q-btn
@@ -246,183 +235,206 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Filtros - CON TODOS LOS TEMPLATES ORIGINALES -->
     <div
       class="q-ma-xs-sm q-ma-sm-sm q-ma-md q-ma-lg-md"
       v-for="(f, i) in filterCandidates"
       :key="f.id"
     >
-      <div
-        class="col-xs-12 col-sm-12 col-md-4 col-lg-4 row wrap justify-start items-start content-start"
-      >
-        <!--    Select filter column  -->
-        <div class="col-xs-12 col-sm-12 col-md-4 col-lg-4 q-pa-none q-ma-none">
-          <div class="row">
-            <div class="col-7 q-pl-xs center q-px-md">
-              <q-select
-                dense
-                dark
-                v-model="filterCandidates[i].columnData"
-                :options="filterGroups"
-                label="Filtro"
-                color="white"
-                transition-show="flip-up"
-                transition-hide="flip-down"
-                options-selected-class="text-deep-orange"
-              >
-                <template v-slot:option="{ opt }">
-                  <q-expansion-item
-                    expand-separator
+      <div class="row">
+        <!-- Contenedor principal del filtro -->
+        <div class="col">
+          <div class="row items-start">
+            <!-- Select filter column - CON TODO EL TEMPLATE ORIGINAL -->
+            <div class="col-xs-12 col-sm-12 col-md-4 col-lg-4 q-pa-none q-ma-none">
+              <div class="row">
+                <div class="col-7 q-pl-xs center q-px-md">
+                  <q-select
+                    dense
+                    dark
+                    v-model="filterCandidates[i].columnData"
+                    :options="filterGroups"
+                    label="Filtro"
+                    color="white"
+                    transition-show="flip-up"
+                    transition-hide="flip-down"
+                    options-selected-class="text-deep-orange"
+                  >
+                    <!-- TEMPLATE ORIGINAL para las opciones -->
+                    <template v-slot:option="{ opt }">
+                      <q-expansion-item
+                        expand-separator
+                        dark
+                        dense
+                        group="section"
+                        :default-opened="opt['opened']"
+                        header-class="text-weight-bold"
+                        :label="opt['name']"
+                      >
+                        <q-item
+                          dense
+                          clickable
+                          v-ripple
+                          v-close-popup
+                          v-for="j in opt['filters']"
+                          :key="j.name"
+                          @click="changeColumn(i, j)"
+                        >
+                          <q-item-section>
+                            <q-item-label>{{ j.title }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </q-expansion-item>
+                    </template>
+
+                    <!-- TEMPLATE ORIGINAL para el selected -->
+                    <template v-slot:selected>
+                      {{ getTitle(filterCandidates[i].columnData) }}
+                    </template>
+                  </q-select>
+                </div>
+
+                <!-- Filter Operator - CON SU ESTRUCTURA ORIGINAL -->
+                <div class="q-pl-xs center q-px-md col-5" v-if="f.column">
+                  <q-select
                     dark
                     dense
-                    group="section"
-                    :default-opened="opt['opened']"
-                    header-class="text-weight-bold"
-                    :label="opt['name']"
-                  >
-                    <q-item
-                      dense
-                      clickable
-                      v-ripple
-                      v-close-popup
-                      v-for="j in opt['filters']"
-                      :key="j.name"
-                      @click="changeColumn(i, j)"
+                    v-model="filterCandidates[i].operatorData"
+                    emit-value
+                    map-options
+                    label="Operador"
+                    color="white"
+                    :options="fetchOperator(f)"
+                    :option-value="(opt) => JSON.stringify(opt)"
+                    :option-label="(opt) => opt.title"
+                    @update:model-value="selectOperator(i)"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Inputs de búsqueda - CON TODA LA LÓGICA ORIGINAL -->
+            <div class="col-xs-10 col-sm-10 col-md-7 center q-pa-none q-ma-none">
+              <div class="row q-pa-none" v-if="f.column && f.operator">
+                <!-- Búsqueda simple -->
+                <q-input
+                  v-model="f.query_1"
+                  dark
+                  dense
+                  color="white"
+                  class="col-12 q-pa-none q-px-md"
+                  v-if="validateF(f)"
+                  v-on:keyup.enter="applyFilter"
+                />
+
+                <!-- Búsqueda por fecha simple -->
+                <div class="q-pa-none col-12" v-if="f.operator?.component === 'date'">
+                  <q-btn text-color="white" flat icon="event" :label="dateQuery">
+                    <q-popup-proxy
+                      ref="qDateProxy"
+                      transition-show="flip-down"
+                      transition-hide="flip-up"
                     >
-                      <q-item-section>
-                        <q-item-label>{{ j.title }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-expansion-item>
-                </template>
+                      <q-date minimal dark v-model="dateQuery" mask="YYYY-MM-DD" :locale="locale">
+                        <div class="row items-center justify-end">
+                          <q-btn flat v-close-popup label="Cerrar" />
+                        </div>
+                      </q-date>
+                    </q-popup-proxy>
+                  </q-btn>
+                </div>
 
-                <template v-slot:selected>
-                  {{ getTitle(filterCandidates[i].columnData) }}
-                  <!--                  {{ getTitle(filterCandidates[i].value.columnData) }}-->
-                </template>
-              </q-select>
-            </div>
+                <!-- Rangos de fecha -->
+                <div class="col-12 q-pl-xs" v-if="f.operator?.component === 'date_double'">
+                  <q-btn text-color="white" dark flat icon="event" :label="dateBetweenText">
+                    <q-popup-proxy
+                      ref="qDateProxy"
+                      transition-show="flip-up"
+                      transition-hide="flip-down"
+                    >
+                      <q-date
+                        minimal
+                        dark
+                        v-model="dateBetween"
+                        range
+                        :locale="locale"
+                        mask="YYYY-MM-DD"
+                      >
+                        <div class="row items-center justify-end">
+                          <q-btn v-close-popup label="Cerrar" flat />
+                        </div>
+                      </q-date>
+                    </q-popup-proxy>
+                  </q-btn>
+                </div>
 
-            <!--    Filter Operator   -->
-            <div class="q-pl-xs center q-px-md col-5" v-if="f.column">
-              <q-select
-                dark
-                dense
-                v-model="filterCandidates[i].operatorData"
-                emit-value
-                map-options
-                label="Operador"
-                color="white"
-                :options="fetchOperator(f)"
-                :option-value="(opt) => JSON.stringify(opt)"
-                :option-label="(opt) => opt.title"
-                @update:model-value="selectOperator(i)"
-              />
-            </div>
-          </div>
-        </div>
+                <!-- Búsqueda con dos campos -->
+                <q-input
+                  dark
+                  dense
+                  color="white"
+                  class="col-6 q-pl-xs q-px-md"
+                  v-if="f.operator?.component === 'double'"
+                  v-model="f.query_1"
+                />
+                <q-input
+                  dark
+                  dense
+                  color="white"
+                  class="col-6 q-pl-xs q-px-md"
+                  v-if="f.operator?.component === 'double'"
+                  v-on:keyup.enter="applyFilter"
+                  v-model="f.query_2"
+                />
 
-        <div class="col-xs-10 col-sm-10 col-md-7 center q-pa-none q-ma-none">
-          <!--    Busqueda simple   -->
-          <div class="row q-pa-none" v-if="f.column && f.operator">
-            <q-input
-              v-model="f.query_1"
-              dark
-              dense
-              color="white"
-              class="col-12 q-pa-none q-px-md"
-              v-if="validateF(f)"
-              v-on:keyup.enter="applyFilter"
-            />
-            <!--    Fin busqueda simple   -->
-
-            <!--    Busqueda por fecha simple   -->
-            <div class="q-pa-none col-12" v-if="f.operator.component === 'date'">
-              <q-btn text-color="white" flat icon="event" :label="dateQuery">
-                <q-popup-proxy
-                  ref="qDateProxy"
-                  transition-show="flip-down"
-                  transition-hide="flip-up"
-                >
-                  <q-date minimal dark v-model="dateQuery" mask="YYYY-MM-DD" :locale="locale">
-                    <div class="row items-center justify-end">
-                      <q-btn flat v-close-popup label="Cerrar" />
-                    </div>
-                  </q-date>
-                </q-popup-proxy>
-              </q-btn>
-            </div>
-            <!--    Fin busqueda por fecha simple   -->
-
-            <!--    Rangos de fecha   -->
-            <div class="col-12 q-pl-xs" v-if="f.operator.component === 'date_double'">
-              <q-btn text-color="white" dark flat icon="event" :label="dateBetweenText">
-                <q-popup-proxy
-                  ref="qDateProxy"
-                  transition-show="flip-up"
-                  transition-hide="flip-down"
-                >
-                  <q-date
-                    minimal
+                <!-- Select de opciones -->
+                <div class="q-pl-xs q-px-md col-5" v-if="f.operator?.component === 'options'">
+                  <q-select
+                    v-model="f.query_1"
                     dark
-                    v-model="dateBetween"
-                    range
-                    :locale="locale"
-                    mask="YYYY-MM-DD"
-                  >
-                    <div class="row items-center justify-end">
-                      <q-btn v-close-popup label="Cerrar" flat />
-                    </div>
-                  </q-date>
-                </q-popup-proxy>
-              </q-btn>
-            </div>
-            <!--    Fin rangos de fecha   -->
-
-            <!--    Búsqueda con dos campos   -->
-            <q-input
-              dark
-              dense
-              color="white"
-              class="col-6 q-pl-xs q-px-md"
-              v-if="f.operator.component === 'double'"
-              v-model="f.query_1"
-            />
-            <q-input
-              dark
-              dense
-              color="white"
-              class="col-6 q-pl-xs q-px-md"
-              v-if="f.operator.component === 'double'"
-              v-on:keyup.enter="applyFilter"
-              v-model="f.query_2"
-            />
-            <!--    Fin busqueda con dos campos   -->
-
-            <div class="q-pl-xs q-px-md col-5" v-if="f.operator.component === 'options'">
-              <q-select
-                v-model="f.query_1"
-                dark
-                dense
-                emit-value
-                map-options
-                label=""
-                color="white"
-                :options="JSON.parse(f.columnData).options"
-              />
+                    dense
+                    emit-value
+                    map-options
+                    label=""
+                    color="white"
+                    :options="JSON.parse(f.columnData).options"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!--    Remover filtro    -->
-        <div class="filter-remove center col-xs-2 col-sm-2 col-md-1 q-pa-none q-ma-none" v-if="f">
-          <q-field dense borderless class="q-pa-none q-ma-none q-px-md">
-            <q-btn color="red-10" size="sm" icon="delete_forever" @click="removeFilter(f, i)" />
-          </q-field>
+        <!-- Botón eliminar -->
+        <div class="col-auto" v-if="f">
+          <div class="delete-button-container">
+            <q-field dense borderless class="q-pa-none q-ma-none">
+              <q-btn color="white" size="sm" icon="delete_forever" @click="removeFilter(f, i)" flat>
+                <q-tooltip
+                  class="bg-grey-10"
+                  anchor="bottom middle"
+                  self="top middle"
+                  :offset="[10, 10]"
+                >
+                  Quitar filtro
+                </q-tooltip>
+              </q-btn>
+            </q-field>
+          </div>
         </div>
-        <!--  Fin remover filtro    -->
       </div>
     </div>
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.delete-button-container {
+  transform: translateY(12px); /* Ajusta este valor */
+}
+
+@media (max-width: 599px) {
+  .delete-button-container {
+    transform: translateY(0);
+  }
+}
+</style>
