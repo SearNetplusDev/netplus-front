@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, reactive } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
@@ -9,7 +9,7 @@ import MainDialog from 'components/services/MainDialog.vue'
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const currentItem = ref(0)
-const columns = [
+const columns = reactive([
   { name: 'id', label: 'ID', sortable: true, align: 'center' },
   {
     name: 'status',
@@ -62,7 +62,7 @@ const columns = [
   },
   { name: 'services', label: 'Total Servicios', align: 'center' },
   { name: 'actions', label: '', align: 'center' },
-]
+])
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
 const edit = (itm) => {
   currentItem.value = itm

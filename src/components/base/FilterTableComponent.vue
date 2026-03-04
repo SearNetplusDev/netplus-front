@@ -1,20 +1,20 @@
 <script setup>
-import { onMounted, computed } from 'vue'
+import { onMounted } from 'vue'
 import { api } from 'src/utils/api.js'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 
 const useDataViewer = useDataviewerStore()
-const props = defineProps(['props'])
-const data = computed(() => props.props)
-const getOptions = (url, index) => {
-  api
-    .get(url)
-    .then((res) => {
-      data.value.cols[index].options = res.data.response
-    })
-    .catch((err) => {
-      console.error(`Filter table error: ${err}`)
-    })
+const props = defineProps({
+  slotProps: Object,
+  columns: Array,
+})
+const getOptions = async (url, col) => {
+  try {
+    const res = await api.get(url)
+    col.options = res.data.response
+  } catch (err) {
+    console.error(`Filter error: ${err}`)
+  }
 }
 
 const filterChange = (key, model) => {
@@ -41,17 +41,17 @@ const filterChange = (key, model) => {
 }
 
 onMounted(() => {
-  data.value.cols.forEach((val, index) => {
-    if (val.filterURL !== undefined) {
-      getOptions(val.filterURL, index)
+  props.columns.forEach((col) => {
+    if (col.filterURL) {
+      getOptions(col.filterURL, col)
     }
   })
 })
 </script>
 
 <template>
-  <q-tr :props="data">
-    <q-th v-for="col in data.cols" :key="col.name" class="text-left q-header" :props="data">
+  <q-tr :props="slotProps">
+    <q-th v-for="col in columns" :key="col.name" class="text-left q-header">
       <span :class="col.model?.length > 0 ? 'text-amber' : 'text-white'">
         {{ col.label }}
       </span>
@@ -77,7 +77,7 @@ onMounted(() => {
                 :label="option.name"
                 size="xs"
                 :color="col.model?.includes(option.id) ? 'positive' : 'negative'"
-                @click="filterChange(col.name, col.model)"
+                @update:model-value="(val) => filterChange(col.name, val)"
               />
             </q-item-section>
           </q-item>

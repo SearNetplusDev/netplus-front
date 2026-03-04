@@ -52,8 +52,8 @@ const onRequest = (prop) => {
       rows-per-page-label="Registros por página"
       :rows-per-page-options="[3, 5, 7, 10, 15, 20, 25, 50, 75, 100]"
     >
-      <template v-slot:header="props">
-        <FilterTableComponent :props="props" />
+      <template v-slot:header="slotProps">
+        <FilterTableComponent :slot-props="slotProps" :columns="columns" />
       </template>
       <template v-slot:body="props">
         <slot name="body" :props="props" />

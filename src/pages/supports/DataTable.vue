@@ -11,7 +11,7 @@ import LogDialog from 'components/supports/LogDialog.vue'
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const currentItem = ref(0)
-const columns = [
+const columns = reactive([
   { name: 'id', label: 'ID', sortable: true, align: 'center' },
   {
     name: 'status',
@@ -83,7 +83,7 @@ const columns = [
     align: 'left',
   },
   { name: 'actions', label: '', align: 'center' },
-]
+])
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
 const uiStates = reactive({
   visiblePDF: false,

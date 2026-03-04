@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, reactive } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { date } from 'quasar'
 import { useClipboard } from 'src/utils/clipboard.js'
@@ -14,7 +14,7 @@ const currentItem = ref(0)
 const showForm = computed(() => useDataViewer.get_dataViewer.showForm)
 const showDeleteItem = ref(false)
 const deleteProps = ref([])
-const columns = [
+const columns = reactive([
   { name: 'id', label: 'ID', sortable: true, align: 'center' },
   {
     name: 'status',
@@ -38,7 +38,7 @@ const columns = [
   },
   { name: 'register_date', label: 'Fecha de registro', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
-]
+])
 const edit = (itm) => {
   currentItem.value = itm
   useDataViewer.changeShowForm(2)
