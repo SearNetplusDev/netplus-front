@@ -1,102 +1,47 @@
 <script setup>
-import { reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { api } from 'src/utils/api.js'
-import { getSupportData } from 'src/utils/composables/getData.js'
 import { useLoading } from 'src/utils/loader.js'
+import { useDateFormatter } from 'src/utils/composables/useDateFormatter.js'
+import { useClipboard } from 'src/utils/clipboard.js'
 import { useNotifications } from 'src/utils/notification.js'
-import { useFields } from 'src/utils/composables/useFields.js'
-import { useFieldFilters } from 'src/utils/composables/operations/useFieldFilters.js'
-import {
-  resetFieldErrors,
-  handleSubmissionError,
-  buildFormData,
-} from 'src/utils/composables/useFormHandler.js'
-import { useInvoiceOrdering } from 'src/utils/composables/billing/useInvoiceOrdering.js'
-import { useInvoiceStatusHelper } from 'src/utils/composables/billing/useInvoiceStatusHelper.js'
-import { useInvoiceSelectionRules } from 'src/utils/composables/billing/useInvoiceSelectionRules.js'
+import PaymentForm from 'components/billing/payments/PaymentForm.vue'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
-const { validationRules, createField } = useFields()
+const { copy } = useClipboard()
+const { formatLongDate } = useDateFormatter()
 const props = defineProps({
   client: { type: Number, required: true },
 })
-const states = reactive({
+const ui_states = reactive({
   loading: false,
+  current_item: 0,
+  visible_form: false,
 })
-const fields = reactive({
-  invoices: createField('Facturas', 'multi-select', [validationRules.select_required]),
-  discount: createField('Descuento', 'select', []),
-  amount: createField(
-    'Total a pagar',
-    'text',
-    [validationRules.text_required, validationRules.money_two_decimal],
-    true,
-  ),
-  payment_method: createField('Método de pago', 'select', [validationRules.select_required]),
-  cash: createField('Efectivo', 'text', [
-    validationRules.text_required,
-    validationRules.money_two_decimal,
-  ]),
-  change: createField('Cambio', 'text', [], true),
-  comments: createField('Observaciones', 'textarea', []),
-})
-const external = reactive({
-  invoices: [],
-  discounts: [],
-  methods: [],
-})
-const { normalFields, textAreaFields } = useFieldFilters(fields)
-const optionsMap = {
-  payment_method: 'methods',
-  discount: 'discounts',
-}
-const get_options = (key) => external[optionsMap[key]] || []
-const { sortInvoicesByPriority } = useInvoiceOrdering()
-const status = useInvoiceStatusHelper(external, fields)
-const { isInvoiceDisabled, normalizeSelection } = useInvoiceSelectionRules({
-  ...status,
-  external,
-  fields,
-})
-const get_initial_data = async () => {
-  const [invoices, discounts, methods] = await Promise.all([
-    getSupportData(`/api/v1/billing/invoices/client/${props.client}`),
-    getSupportData('/api/v1/general/billing/discounts/list'),
-    getSupportData('/api/v1/general/billing/payment-methods'),
-  ])
-  external.invoices = sortInvoicesByPriority(invoices)
-  external.discounts = discounts
-  external.methods = methods
-}
-const clear_data = async () => {
-  fields.invoices.data = null
-  fields.discount.data = null
-  fields.amount.data = null
-  fields.payment_method.data = null
-  fields.cash.data = null
-  fields.change.data = null
-  fields.comments.data = null
-  let invoices = await getSupportData(`/api/v1/billing/invoices/client/${props.client}`)
-  external.invoices = sortInvoicesByPriority(invoices)
-}
-const send_data = async () => {
-  states.loading = true
+const columns = [
+  { name: 'id', label: 'ID', align: 'center' },
+  { name: 'status', label: 'Estado', align: 'center' },
+  { name: 'method', label: 'Método de pago', align: 'center' },
+  { name: 'amount', label: 'Cantidad pagada', align: 'left' },
+  { name: 'date', label: 'Fecha de pago', align: 'left' },
+  { name: 'user', label: 'Ingresado por', align: 'left' },
+  { name: 'actions', label: '', align: 'center' },
+]
+const payments_data = ref([])
+const url = `api/v1/billing/payments/list`
+const get_data = async () => {
+  ui_states.loading = true
   showLoading()
-  resetFieldErrors(fields)
-  let request = `api/v1/billing/payments`
-  let method = 'POST'
-  let params = buildFormData(fields, { _method: method, client: props.client })
+
   try {
-    const { data } = await api.post(request, params)
-    if (data.saved) {
-      showNotification('Éxito', 'Pago registrado correctamente', 'blue-grey-10')
-      await clear_data()
-    } else {
-      showNotification('Error', 'Algo ha salido mal.', 'red-10')
+    const {
+      data: { list },
+    } = await api.post(url, { client: props.client, _method: 'POST' })
+    if (list) {
+      payments_data.value = list
     }
   } catch (err) {
-    handleSubmissionError(err, fields)
     showNotification(
       'Error',
       err.response?.data?.message ?? err.message ?? 'Error inesperado',
@@ -104,187 +49,142 @@ const send_data = async () => {
     )
   } finally {
     setTimeout(() => {
-      states.loading = false
+      ui_states.loading = false
       hideLoading()
     }, 150)
   }
 }
-const calculate_total = () => {
-  let total = 0
-  if (fields.invoices.data && fields.invoices.data.length > 0) {
-    total = fields.invoices.data.reduce((sum, invoice_id) => {
-      const invoice = external.invoices.find((inv) => inv.id === invoice_id)
-      return sum + (invoice ? parseFloat(invoice.total) : 0)
-    }, 0)
-  }
-
-  if (fields.discount.data) {
-    const discount = external.discounts.find((disc) => disc.id === fields.discount.data)
-    if (discount) total -= parseFloat(discount.amount)
-  }
-
-  total = Math.max(0, total)
-  fields.amount.data = total.toFixed(2)
+const refresh_dialog = async () => {
+  ui_states.current_item = 0
+  ui_states.visible_form = false
+  await get_data()
 }
-const calculate_change = () => {
-  const cash = parseFloat(fields.cash.data || 0)
-  const total = parseFloat(fields.amount.data || 0)
-  let change = cash - total
-  change = change < 0 ? 0 : change
-  fields.change.data = change.toFixed(2)
+const generate_dte = async (payment_id) => {
+  ui_states.loading = true
+  showLoading()
+  const uri = `api/v1/accounting/dte/create/1`
+  try {
+    const { data } = await api.post(uri, { payment: payment_id, _method: 'POST' })
+    showNotification('Código Generación', data.identificacion.codigoGeneracion, 'grey-10')
+    showNotification('Número de Control', data.identificacion.numeroControl, 'grey-10')
+  } catch (err) {
+    showNotification(
+      'Error',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      ui_states.loading = false
+      hideLoading()
+    }, 150)
+  }
 }
-watch(
-  () => fields.invoices.data,
-  (newVal, oldVal) => {
-    fields.invoices.data = normalizeSelection(newVal, oldVal)
-    calculate_total()
-  },
-  { deep: true },
-)
-watch(
-  () => fields.invoices.data,
-  () => calculate_total(),
-)
-watch(
-  () => fields.discount.data,
-  () => calculate_total(),
-)
-watch(
-  () => [fields.cash.data, fields.amount.data],
-  () => calculate_change(),
-  { deep: true },
-)
 onMounted(async () => {
-  await get_initial_data()
+  await get_data()
 })
 </script>
 
 <template>
-  <div class="row wrap full-width">
-    <template v-if="external.invoices.length > 0">
-      <q-form greedy @submit="send_data" class="full-width">
-        <div class="row content-start items-start q-pa-sm">
-          <div
-            class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
-            v-for="(field, index) in normalFields"
-            :key="index"
-          >
-            <template v-if="field.type === 'multi-select'">
-              <q-select
-                v-model="field.data"
-                dark
-                dense
-                outlined
-                color="white"
-                clearable
-                emit-value
-                map-options
-                transition-show="flip-up"
-                transition-hide="flip-down"
-                lazy-rules
-                multiple
-                use-chips
-                stack-label
-                v-if="!states.loading"
-                :label="field.label"
-                :rules="field.rules"
-                :error="field.error"
-                :error-message="field['error-message']"
-                :options="external.invoices"
-                :option-value="(opt) => opt.id"
-                :option-label="(opt) => opt.name"
-                :option-disable="isInvoiceDisabled"
-              />
-            </template>
-
-            <template v-if="field.type === 'select'">
-              <q-select
-                v-model="field.data"
-                dark
-                dense
-                outlined
-                clearable
-                color="white"
-                emit-value
-                map-options
-                transition-show="flip-up"
-                transition-hide="flip-down"
-                lazy-rules
-                v-if="!states.loading"
-                :label="field.label"
-                :rules="field.rules"
-                :error="field.error"
-                :error-message="field['error-message']"
-                :options="get_options(index)"
-                :option-value="(opt) => opt.id"
-                :option-label="(opt) => opt.name"
-              />
-            </template>
-
-            <template v-if="field.type === 'text'">
-              <q-input
-                v-model="field.data"
-                dark
-                dense
-                outlined
-                clearable
-                lazy-rules
-                v-if="!states.loading"
-                :label="field.label"
-                :rules="field.rules"
-                :error="field.error"
-                :error-message="field['error-message']"
-                :disable="field.disabled"
-                :mask="field.mask"
-              />
-            </template>
-            <q-skeleton v-if="states.loading" class="q-my-xs" dark animation="fade" type="QInput" />
-          </div>
-
-          <div
-            class="col-xs-12 col-sm-12 col-md-12 col-lg-12 q-pa-sm"
-            v-for="(field, index) in textAreaFields"
-            :key="index"
-          >
-            <template v-if="field.type === 'textarea'">
-              <q-input
-                v-model="field.data"
-                outlined
-                dark
-                dense
-                type="textarea"
-                :label="field.label"
-                :error="field.error"
-                :error-message="field['error-message']"
-                v-if="!states.loading"
-              />
-            </template>
-
-            <q-skeleton v-if="states.loading" class="q-my-xs" dark animation="fade" type="QInput" />
-          </div>
-
-          <div class="row fit content-end justify-end">
-            <q-btn
-              color="white"
-              icon="save"
-              flat
-              :ripple="{ center: true, color: 'amber' }"
-              label="Almacenar"
-              align="around"
-              type="submit"
-            />
-          </div>
-        </div>
-      </q-form>
-    </template>
-
-    <template v-else>
-      <div class="text-center q-pa-sm full-width">
-        <q-icon name="mdi-file-document-alert-outline" size="48px" color="grey-6" />
-        <div class="text-grey-6 q-mt-sm">Sin facturas disponibles</div>
+  <q-card dark flat class="custom-cards" style="border: none !important">
+    <q-card-section>
+      <div class="row fit content-end justify-end">
+        <q-btn
+          color="white"
+          icon="add"
+          flat
+          :ripple="{ center: true, color: 'amber' }"
+          label="registrar pago"
+          align="around"
+          @click="ui_states.visible_form = true"
+        />
       </div>
-    </template>
-  </div>
+    </q-card-section>
+
+    <q-card-section>
+      <div class="row fit full-width content-start justify-start q-pa-md">
+        <div class="col-12">
+          <q-table
+            dark
+            flat
+            binary-state-sort
+            class="secondary-table"
+            :columns="columns"
+            :rows="payments_data"
+            row-key="name"
+            no-data-label="Sin pagos registrados"
+          >
+            <template v-slot:body-cell-id="props">
+              <q-td key="id" :props="props" class="copy-text">
+                <div class="text-center">
+                  <span @click="copy(props.row.id)">{{ props.row.id }}</span>
+                </div>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-status="props">
+              <q-td key="status" :props="props">
+                <q-badge
+                  class="text-bold q-pa-xs"
+                  align="middle"
+                  :color="props.row.status?.id ? 'primary' : 'red-10'"
+                  :label="props.row.status?.name"
+                />
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-method="props">
+              <q-td key="method" :props="props">
+                <q-badge
+                  class="text-bold q-pa-xs"
+                  align="middle"
+                  :label="props.row.payment_method?.name"
+                  :style="{ backgroundColor: props.row.payment_method?.badge_color, color: '#FFF' }"
+                />
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-amount="props">
+              <q-td key="amount" :props="props"> $ {{ props.row.amount }} </q-td>
+            </template>
+
+            <template v-slot:body-cell-date="props">
+              <q-td key="date" :props="props"> {{ formatLongDate(props.row.payment_date) }} </q-td>
+            </template>
+
+            <template v-slot:body-cell-user="props">
+              <q-td key="user" :props="props">{{ props.row.user?.name ?? 'N/A' }}</q-td>
+            </template>
+
+            <template v-slot:body-cell-actions="props">
+              <q-td key="actions" :props="props">
+                <q-btn-group>
+                  <q-btn
+                    color="blue-grey-7"
+                    icon="mdi-receipt-text-send-outline"
+                    size="sm"
+                    @click="generate_dte(props.row.id)"
+                  >
+                    <q-tooltip
+                      transition-show="fade"
+                      transition-hide="slide-down"
+                      class="bg-grey-10"
+                    >
+                      Generar DTE
+                    </q-tooltip>
+                  </q-btn>
+                </q-btn-group>
+              </q-td>
+            </template>
+          </q-table>
+        </div>
+      </div>
+    </q-card-section>
+  </q-card>
+
+  <template v-if="ui_states.visible_form">
+    <payment-form :client="props.client" :visible="ui_states.visible_form" @hide="refresh_dialog" />
+  </template>
 </template>
 
-<style scoped></style>
+<style lang="sass" scoped></style>

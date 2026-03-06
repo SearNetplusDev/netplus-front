@@ -119,7 +119,7 @@ onMounted(async () => {
             </template>
 
             <template v-slot:body-cell-method="props">
-              <q-td key="status" :props="props">
+              <q-td key="method" :props="props">
                 <q-badge
                   class="text-bold q-pa-xs"
                   align="middle"
