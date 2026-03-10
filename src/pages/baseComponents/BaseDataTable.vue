@@ -24,7 +24,7 @@ const onRequest = (prop) => {
   let pagination = {
     sortBy: sortBy,
     descending: descending,
-    filter_match: paginate.value.filterMatch,
+    filter_match: paginate.value.filter_match,
     page: page,
     rowsPerPage: rowsPerPage,
     rowsNumber: rowsNumber,

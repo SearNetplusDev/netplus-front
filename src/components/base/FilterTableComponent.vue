@@ -51,7 +51,7 @@ onMounted(() => {
 
 <template>
   <q-tr :props="slotProps">
-    <q-th v-for="col in columns" :key="col.name" class="text-left q-header">
+    <q-th v-for="col in columns" :key="col.name" :props="slotProps" class="text-left q-header">
       <span :class="col.model?.length > 0 ? 'text-amber' : 'text-white'">
         {{ col.label }}
       </span>
