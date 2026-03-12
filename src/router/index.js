@@ -15,6 +15,7 @@ import infrastructure from 'src/router/infrastructure.js'
 import services from 'src/router/services.js'
 import supports from 'src/router/supports.js'
 import operations from 'src/router/operations.js'
+import accounting from 'src/router/accounting.js'
 import { useAuthStore } from 'stores/auth.js'
 import { Notify } from 'quasar'
 
@@ -47,6 +48,7 @@ export default defineRouter(function (/* { store, ssrContext } */) {
       ...infrastructure,
       ...supports,
       ...operations,
+      ...accounting,
     ],
 
     // Leave this as is and make changes in quasar.conf.js instead!

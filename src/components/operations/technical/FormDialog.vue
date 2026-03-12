@@ -163,7 +163,7 @@ onMounted(async () => {
             type="submit"
             color="white"
           >
-            <template #loading>
+            <template v-slot:loading>
               <q-spinner-gears class="on-left" />
             </template>
           </q-btn>
