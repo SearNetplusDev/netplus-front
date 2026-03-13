@@ -56,5 +56,42 @@ export function useFields() {
     label,
   })
 
-  return { validationRules, createField, createToggle }
+  const createDynamicList = (label, columns = []) => {
+    const buildRow = (lineNumber) =>
+      columns.reduce(
+        (acc, col) => {
+          acc[col.key] = ''
+          return acc
+        },
+        { _line: lineNumber },
+      )
+
+    return {
+      data: [buildRow(1)],
+      error: false,
+      label,
+      type: 'dynamic-list',
+      columns,
+      addItem() {
+        this.data.push(buildRow(this.data.length + 1))
+      },
+      removeItem(index) {
+        this.data.splice(index, 1)
+        this.data.forEach((row, i) => (row._line = i + 1))
+      },
+      resolvePayload() {
+        return this.data.map((row) => {
+          const computed = {}
+          this.columns
+            .filter((col) => col.type === 'computed')
+            .forEach((col) => {
+              computed[col.key] = col.computed(row)
+            })
+          return { ...row, ...computed }
+        })
+      },
+    }
+  }
+
+  return { validationRules, createField, createToggle, createDynamicList }
 }

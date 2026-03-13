@@ -11,6 +11,7 @@ export const useFieldFilters = (fields) => {
     'password',
   ]
   const TEXTAREA_FIELD_TYPE = 'textarea'
+  const DYNAMIC_FIELD = 'dynamic-list'
 
   const normalFields = computed(() => {
     return Object.fromEntries(
@@ -24,9 +25,15 @@ export const useFieldFilters = (fields) => {
     )
   })
 
+  const dynamicFields = computed(() => {
+    return Object.fromEntries(
+      Object.entries(fields).filter(([, field]) => field.type === DYNAMIC_FIELD),
+    )
+  })
+
   const getFieldsByType = (type) => {
     return Object.fromEntries(Object.entries(fields).filter(([, field]) => field.type === type))
   }
 
-  return { normalFields, textAreaFields, getFieldsByType }
+  return { normalFields, textAreaFields, dynamicFields, getFieldsByType }
 }
