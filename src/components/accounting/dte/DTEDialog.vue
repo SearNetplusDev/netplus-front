@@ -1,6 +1,9 @@
 <script setup>
-import { reactive } from 'vue'
+import { onMounted, reactive } from 'vue'
+import { api } from 'src/utils/api.js'
 import { useFields } from 'src/utils/composables/useFields.js'
+import { useNotifications } from 'src/utils/notification.js'
+import { getSupportData } from 'src/utils/composables/getData.js'
 import { useFieldFilters } from 'src/utils/composables/operations/useFieldFilters.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
@@ -11,9 +14,11 @@ const states = reactive({
   title: 'Emitir Documento Tributario Electrónico',
   loading: false,
 })
+const { showNotification } = useNotifications()
 const { createField, createDynamicList, validationRules } = useFields()
 const fields = reactive({
-  client: createField('Cliente', 'text', [validationRules.text_required]),
+  type: createField('Tipo de DTE', 'select', [validationRules.text_required]),
+  client: createField('Cliente', 'select-filter', [validationRules.text_required]),
   documentBody: createDynamicList('Datos', [
     {
       key: 'description',
@@ -34,6 +39,18 @@ const fields = reactive({
       rules: [validationRules.text_required],
     },
     {
+      key: 'iva',
+      label: 'IVA',
+      type: 'computed',
+      computed: (row) => {
+        const price = parseFloat(row.unit_price) || 0
+        const qty = parseFloat(row.quantity) || 0
+        const total = price * qty
+        const iva = (total / 1.13) * 0.13
+        return iva.toFixed(2)
+      },
+    },
+    {
       key: 'total',
       label: 'Total',
       type: 'computed',
@@ -46,12 +63,55 @@ const fields = reactive({
   ]),
 })
 const { normalFields, dynamicFields } = useFieldFilters(fields)
+const external = reactive({
+  types: [],
+  client: [],
+})
+const initial_data = async () => {
+  states.loading = true
+
+  try {
+    const [types] = await Promise.all([await getSupportData('/api/v1/general/billing/documents')])
+    external.types = types
+  } catch (err) {
+    showNotification(
+      'Error',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      states.loading = false
+    }, 150)
+  }
+}
+const searchClient = async (val, update) => {
+  if (!val || val.length < 4) {
+    update(() => (external.client = []))
+  }
+
+  update(async () => {
+    try {
+      const { data } = await api.post('/api/v1/clients/search', { client: val, _method: 'POST' })
+      external.client = data.clients || []
+    } catch (err) {
+      showNotification(
+        'Error',
+        err.response?.data?.message ?? err.message ?? 'Error inesperado',
+        'red-10',
+      )
+    }
+  })
+}
 const emitDocument = async () => {
   const payload = fields.documentBody.resolvePayload()
   console.log(`ID: ${props.id}`)
-  // console.log('Payload: ', JSON.stringify(fields.documentBody.data))
   console.log('Payload: ', JSON.stringify(payload))
+  console.log('Fields: ', JSON.stringify(fields))
 }
+onMounted(async () => {
+  await initial_data()
+})
 </script>
 
 <template>
@@ -87,21 +147,56 @@ const emitDocument = async () => {
                 :key="index"
                 class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
               >
-                <template v-if="field.type === 'text'">
-                  <q-input
+                <template v-if="field.type === 'select'">
+                  <q-select
                     v-model="field.data"
-                    dark
                     dense
+                    dark
                     outlined
                     clearable
+                    color="white"
+                    emit-value
+                    map-options
+                    transition-show="jump-up"
+                    transition-hide="jump-down"
                     lazy-rules
                     v-if="!states.loading"
                     :label="field.label"
                     :rules="field.rules"
                     :error="field.error"
                     :error-message="field['error-message']"
+                    :options="external.types"
+                    :option-value="(option) => option.id"
+                    :option-label="(option) => option.name"
                     :disable="field.disabled"
-                    :mask="field.mask"
+                  />
+                </template>
+
+                <template v-if="field.type === 'select-filter'">
+                  <q-select
+                    v-model="field.data"
+                    dense
+                    dark
+                    outlined
+                    clearable
+                    color="white"
+                    emit-value
+                    map-options
+                    transition-show="jump-up"
+                    transition-hide="jump-down"
+                    lazy-rules
+                    use-input
+                    input-debounce="0"
+                    v-if="!states.loading"
+                    :label="field.label"
+                    :rules="field.rules"
+                    :error="field.error"
+                    :error-message="field['error-message']"
+                    :options="external.client"
+                    :option-value="(option) => option.id"
+                    :option-label="(option) => option.name"
+                    @filter="searchClient"
+                    :disable="field.disabled"
                   />
                 </template>
 
