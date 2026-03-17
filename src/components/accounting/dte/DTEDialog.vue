@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
 import { api } from 'src/utils/api.js'
 import { useFields } from 'src/utils/composables/useFields.js'
 import { useNotifications } from 'src/utils/notification.js'
@@ -37,6 +37,18 @@ const fields = reactive({
       label: 'Cantidad',
       type: 'text',
       rules: [validationRules.text_required],
+    },
+    {
+      key: 'neto',
+      label: 'Valor Neto',
+      type: 'computed',
+      computed: (row) => {
+        const price = parseFloat(row.unit_price) || 0
+        const qty = parseFloat(row.quantity) || 0
+        const total = price * qty
+        const neto = total / 1.13
+        return neto.toFixed(2)
+      },
     },
     {
       key: 'iva',
@@ -103,6 +115,23 @@ const searchClient = async (val, update) => {
     }
   })
 }
+const totals = computed(() => {
+  const rows = fields.documentBody.data
+  const columns = fields.documentBody.columns
+  const netoCol = columns.find((c) => c.key === 'neto')
+  const ivaCol = columns.find((c) => c.key === 'iva')
+  const totalCol = columns.find((c) => c.key === 'total')
+
+  return rows.reduce(
+    (acc, row) => {
+      acc.neto += parseFloat(netoCol?.computed(row) ?? 0)
+      acc.iva += parseFloat(ivaCol?.computed(row) ?? 0)
+      acc.total += parseFloat(totalCol?.computed(row) ?? 0)
+      return acc
+    },
+    { neto: 0, iva: 0, total: 0 },
+  )
+})
 const emitDocument = async () => {
   const payload = fields.documentBody.resolvePayload()
   console.log(`ID: ${props.id}`)
@@ -282,6 +311,29 @@ onMounted(async () => {
                   </div>
                 </div>
               </template>
+            </q-card-section>
+
+            <q-separator dark class="q-ma-sm" />
+
+            <!--    Totales     -->
+            <q-card-section class="row justify-end q-pa-sm q-gutter-md">
+              <div class="text-white text-caption text-right">
+                <div class="text-weight-bold q-mb-xs">Valor Neto</div>
+                <div class="text-h6">$ {{ totals.neto.toFixed(2) }}</div>
+              </div>
+
+              <q-separator dark vertical />
+
+              <div class="text-white text-caption text-right">
+                <div class="text-weight-bold q-mb-xs">IVA (13%)</div>
+                <div class="text-h6">$ {{ totals.iva.toFixed(2) }}</div>
+              </div>
+
+              <q-separator dark vertical />
+              <div class="text-white text-caption text-right">
+                <div class="text-weight-bold q-mb-xs">Total</div>
+                <div class="text-h6">$ {{ totals.total.toFixed(2) }}</div>
+              </div>
             </q-card-section>
           </q-card>
         </q-page>
