@@ -75,7 +75,7 @@ watch(showForm, (newVal) => {
 <template>
   <div>
     <template v-if="showForm !== 0">
-      <base-dialog :id="states.currentItem" :content="DTEDialog" />
+      <base-dialog :content="DTEDialog" />
     </template>
 
     <template v-if="states.visiblePDF">
