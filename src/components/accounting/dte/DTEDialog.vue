@@ -17,6 +17,7 @@ const RELATED_DOCS_REQUIRED = [3, 4, 5, 6, 8]
 const fields = reactive({
   type: createField('Tipo de DTE', 'select', [validationRules.text_required]),
   client: createField('Cliente', 'select-filter', [validationRules.text_required]),
+  discount: createField('Descuento', 'text', [validationRules.money_two_decimal]),
   documentBody: createDynamicList('Datos', [
     {
       key: 'description',
@@ -127,7 +128,7 @@ const totals = computed(() => {
   const ivaCol = columns.find((c) => c.key === 'iva')
   const totalCol = columns.find((c) => c.key === 'total')
 
-  return rows.reduce(
+  const subtotals = rows.reduce(
     (acc, row) => {
       acc.neto += parseFloat(netoCol?.computed(row) ?? 0)
       acc.iva += parseFloat(ivaCol?.computed(row) ?? 0)
@@ -136,6 +137,15 @@ const totals = computed(() => {
     },
     { neto: 0, iva: 0, total: 0 },
   )
+
+  const discountAmount = parseFloat(fields.discount.data) || 0
+  const factor = subtotals.total > 0 ? (subtotals.total - discountAmount) / subtotals.total : 1
+  return {
+    neto: subtotals.neto * factor,
+    iva: subtotals.iva * factor,
+    total: subtotals.total - discountAmount,
+    discountAmount,
+  }
 })
 const relatedDocuments = reactive(
   createDynamicList('Documentos Relacionados', [
@@ -192,6 +202,7 @@ const emitDocument = async () => {
       totals: {
         neto: totals.value.neto.toFixed(2),
         iva: totals.value.iva.toFixed(2),
+        discount: totals.value.discountAmount.toFixed(2),
         total: totals.value.total.toFixed(2),
       },
       ...(requiresRelatedDocuments.value && {
@@ -330,6 +341,22 @@ onMounted(async () => {
                     :option-label="(option) => option.name"
                     @filter="searchClient"
                     :disable="field.disabled"
+                  />
+                </template>
+
+                <template v-if="field.type === 'text'">
+                  <q-input
+                    v-model="field.data"
+                    dense
+                    dark
+                    outlined
+                    clearable
+                    color="white"
+                    v-if="!states.loading"
+                    :label="field.label"
+                    :rules="field.rules"
+                    :error="field.error"
+                    :error-message="field['error-message']"
                   />
                 </template>
 
@@ -502,6 +529,13 @@ onMounted(async () => {
               <div class="text-white text-caption text-right">
                 <div class="text-weight-bold q-mb-xs">IVA (13%)</div>
                 <div class="text-h6">$ {{ totals.iva.toFixed(2) }}</div>
+              </div>
+
+              <q-separator dark vertical />
+
+              <div class="text-white text-caption text-right">
+                <div class="text-weight-bold q-mb-xs">Descuento</div>
+                <div class="text-h6">$ {{ totals.discountAmount.toFixed(2) }}</div>
               </div>
 
               <q-separator dark vertical />
