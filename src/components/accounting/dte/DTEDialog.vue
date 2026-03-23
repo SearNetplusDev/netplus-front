@@ -14,10 +14,55 @@ const states = reactive({
 const { showNotification } = useNotifications()
 const { createField, createDynamicList, validationRules } = useFields()
 const RELATED_DOCS_REQUIRED = [3, 4, 5, 6, 8]
+const PAYMENT_CONDITION_REQUIRED = [1, 2, 4, 5, 7, 9, 10]
+const paymentConditionOptions = [
+  { id: 1, name: 'Contado' },
+  { id: 2, name: 'Crédito' },
+  { id: 3, name: 'Otros' },
+]
+const searchClient = async (val, update) => {
+  if (!val || val.length < 4) {
+    update(() => (fields.client.options = []))
+  }
+
+  update(async () => {
+    try {
+      const { data } = await api.post('/api/v1/clients/search', { client: val, _method: 'POST' })
+      fields.client.options = data.clients || []
+    } catch (err) {
+      showNotification(
+        'Error',
+        err.response?.data?.message ?? err.message ?? 'Error inesperado',
+        'red-10',
+      )
+    }
+  })
+}
 const fields = reactive({
-  type: createField('Tipo de DTE', 'select', [validationRules.text_required]),
-  client: createField('Cliente', 'select-filter', [validationRules.text_required]),
+  type: createField('Tipo de DTE', 'select', [validationRules.text_required], false, '', {
+    options: [],
+    optionValue: (option) => option.id,
+    optionLabel: (option) => option.name,
+  }),
+  client: createField('Cliente', 'select-filter', [validationRules.text_required], false, '', {
+    options: [],
+    optionValue: (option) => option.id,
+    optionLabel: (option) => option.name,
+    filter: searchClient,
+  }),
   discount: createField('Descuento', 'text', [validationRules.money_two_decimal]),
+  payment_condition: createField(
+    'Condición de Operación',
+    'select',
+    [validationRules.select_required],
+    false,
+    '',
+    {
+      options: paymentConditionOptions,
+      optionValue: (option) => option.id,
+      optionLabel: (option) => option.name,
+    },
+  ),
   documentBody: createDynamicList('Datos', [
     {
       key: 'description',
@@ -80,17 +125,13 @@ const fields = reactive({
   ]),
 })
 const { normalFields, dynamicFields } = useFieldFilters(fields)
-const external = reactive({
-  types: [],
-  client: [],
-})
 const relatedDocumentOptions = reactive({})
 const initial_data = async () => {
   states.loading = true
 
   try {
     const [types] = await Promise.all([await getSupportData('/api/v1/general/billing/documents')])
-    external.types = types
+    fields.type.options = types
   } catch (err) {
     showNotification(
       'Error',
@@ -103,24 +144,7 @@ const initial_data = async () => {
     }, 150)
   }
 }
-const searchClient = async (val, update) => {
-  if (!val || val.length < 4) {
-    update(() => (external.client = []))
-  }
 
-  update(async () => {
-    try {
-      const { data } = await api.post('/api/v1/clients/search', { client: val, _method: 'POST' })
-      external.client = data.clients || []
-    } catch (err) {
-      showNotification(
-        'Error',
-        err.response?.data?.message ?? err.message ?? 'Error inesperado',
-        'red-10',
-      )
-    }
-  })
-}
 const totals = computed(() => {
   const rows = fields.documentBody.data
   const columns = fields.documentBody.columns
@@ -158,6 +182,9 @@ const relatedDocuments = reactive(
   ]),
 )
 const requiresRelatedDocuments = computed(() => RELATED_DOCS_REQUIRED.includes(fields.type.data))
+const requiresPaymentCondition = computed(() =>
+  PAYMENT_CONDITION_REQUIRED.includes(fields.type.data),
+)
 const searchRelatedDocument = (rowIndex) => async (val, update) => {
   if (!val || val.length < 18) {
     update(() => (relatedDocumentOptions[rowIndex] = []))
@@ -290,6 +317,7 @@ onMounted(async () => {
                 v-for="(field, index) in normalFields"
                 :key="index"
                 class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
+                v-show="index !== 'payment_condition' || requiresPaymentCondition"
               >
                 <template v-if="field.type === 'select'">
                   <q-select
@@ -309,9 +337,9 @@ onMounted(async () => {
                     :rules="field.rules"
                     :error="field.error"
                     :error-message="field['error-message']"
-                    :options="external.types"
-                    :option-value="(option) => option.id"
-                    :option-label="(option) => option.name"
+                    :options="field.options ?? []"
+                    :option-value="field.optionValue"
+                    :option-label="field.optionLabel"
                     :disable="field.disabled"
                   />
                 </template>
@@ -336,10 +364,10 @@ onMounted(async () => {
                     :rules="field.rules"
                     :error="field.error"
                     :error-message="field['error-message']"
-                    :options="external.client"
-                    :option-value="(option) => option.id"
-                    :option-label="(option) => option.name"
-                    @filter="searchClient"
+                    :options="field.options ?? []"
+                    :option-value="field.optionValue"
+                    :option-label="field.optionLabel"
+                    @filter="field.filter"
                     :disable="field.disabled"
                   />
                 </template>

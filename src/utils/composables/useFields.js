@@ -39,7 +39,7 @@ export function useFields() {
     valid_port: (val) => /^\d{2,5}$/.test(val) || 'Puerto inválido',
   }
 
-  const createField = (label, type, rules = [], disabled = false, mask = '') => ({
+  const createField = (label, type, rules = [], disabled = false, mask = '', config = {}) => ({
     data: null,
     error: false,
     label,
@@ -47,6 +47,7 @@ export function useFields() {
     rules,
     disabled,
     mask,
+    ...config,
   })
 
   const createToggle = (label) => ({
