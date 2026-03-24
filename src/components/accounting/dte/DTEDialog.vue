@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { api } from 'src/utils/api.js'
 import { useFields } from 'src/utils/composables/useFields.js'
 import { useNotifications } from 'src/utils/notification.js'
@@ -15,11 +15,19 @@ const { showNotification } = useNotifications()
 const { createField, createDynamicList, validationRules } = useFields()
 const RELATED_DOCS_REQUIRED = [3, 4, 5, 6, 8]
 const PAYMENT_CONDITION_REQUIRED = [1, 2, 4, 5, 7, 9, 10]
+const FISCAL_CREDIT_ID = 2
 const paymentConditionOptions = [
   { id: 1, name: 'Contado' },
   { id: 2, name: 'Crédito' },
   { id: 3, name: 'Otros' },
 ]
+const emissionTypeOptions = [
+  { id: 1, name: 'Manual' },
+  { id: 2, name: 'Por factura' },
+]
+const emissionType = ref(null)
+const invoiceOptions = ref([])
+const loadingInvoices = ref(false)
 const searchClient = async (val, update) => {
   if (!val || val.length < 4) {
     update(() => (fields.client.options = []))
@@ -37,6 +45,27 @@ const searchClient = async (val, update) => {
       )
     }
   })
+}
+const loadClientInvoices = async () => {
+  if (!fields.client.data) {
+    invoiceOptions.value = []
+    return
+  }
+  loadingInvoices.value = true
+  try {
+    const { data } = await api.post('', { client_id: fields.client.data, _method: 'POST' })
+    invoiceOptions.value = data.invoices || []
+  } catch (err) {
+    showNotification(
+      'Error',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      loadingInvoices.value = false
+    }, 150)
+  }
 }
 const fields = reactive({
   type: createField('Tipo de DTE', 'select', [validationRules.text_required], false, '', {
@@ -185,6 +214,9 @@ const requiresRelatedDocuments = computed(() => RELATED_DOCS_REQUIRED.includes(f
 const requiresPaymentCondition = computed(() =>
   PAYMENT_CONDITION_REQUIRED.includes(fields.type.data),
 )
+const isCreditoFiscal = computed(() => fields.type.data === FISCAL_CREDIT_ID)
+const showManualBody = computed(() => !isCreditoFiscal.value || emissionType.value === 1)
+const showInvoices = computed(() => isCreditoFiscal.value && emissionType.value === 2)
 const searchRelatedDocument = (rowIndex) => async (val, update) => {
   if (!val || val.length < 18) {
     update(() => (relatedDocumentOptions[rowIndex] = []))
@@ -272,14 +304,37 @@ const emitDocument = async () => {
     }, 150)
   }
 }
+//    Watchers Iniciales
 watch(
   () => fields.type.data,
   () => {
+    emissionType.value = null
+    invoiceOptions.value = []
     relatedDocuments.data.splice(0)
     relatedDocuments.addItem()
     Object.keys(relatedDocumentOptions).forEach((k) => delete relatedDocumentOptions[k])
   },
 )
+
+//  Watch al cambiar cliente
+watch(
+  () => fields.client.data,
+  () => {
+    invoiceOptions.value = []
+    if (isCreditoFiscal.value && emissionType.value === 2) {
+      loadClientInvoices()
+    }
+  },
+)
+
+//  Watch al cambiar el tipo de emisión
+watch(emissionType, (val) => {
+  if (val === 2) {
+    loadClientInvoices()
+  } else {
+    invoiceOptions.value = []
+  }
+})
 onMounted(async () => {
   await initial_data()
 })
@@ -460,88 +515,167 @@ onMounted(async () => {
               </q-card-section>
               <q-separator dark class="q-mx-sm" />
             </template>
+            <!--    Fin Documentos relacionados   --->
 
-            <!--    Campos dinámicos    -->
-            <q-card-section v-for="(field, index) in dynamicFields" :key="index">
-              <p class="text-white text-weight-medium q-mb-sm">Cuerpo del documento</p>
-
-              <div
-                class="row q-gutter-xs q-mb-xs text-white text-caption text-weight-bold"
-                v-if="!states.loading"
-              >
-                <div class="col-1 text-center">#</div>
-                <div v-for="col in field.columns" :key="col.key" :class="col.colClass ?? 'col'">
-                  {{ col.label }}
-                </div>
-                <div class="col-1" />
-              </div>
-
-              <template v-if="!states.loading">
-                <div
-                  v-for="(row, rowIndex) in field.data"
-                  :key="rowIndex"
-                  class="row items-center q-gutter-xs q-mb-sm"
-                >
-                  <div class="col-1 text-center text-white text-caption">{{ row._line }}</div>
-
-                  <div
-                    v-for="col in field.columns"
-                    :key="col.key"
-                    :class="[col.colClass ?? 'col', 'q-px-sm']"
-                  >
-                    <!--    Inputs solo lectura   -->
-                    <q-input
-                      v-if="col.type === 'computed'"
-                      dense
+            <!--    Tipo de emisión   -->
+            <template v-if="isCreditoFiscal">
+              <q-card-section>
+                <p class="text-white text-weight-medium q-mb-sm">Tipo de emisión</p>
+                <div class="row">
+                  <div class="col-xs-12 col-sm-6 col-md-4 col-lg-3 q-pa-sm">
+                    <q-select
+                      v-model="emissionType"
                       dark
-                      outlined
-                      disable
-                      hide-bottom-space
-                      :model-value="col.computed(row)"
-                      :label="col.label"
-                    />
-
-                    <!--  Editables   -->
-                    <q-input
-                      v-else
                       dense
-                      dark
                       outlined
                       clearable
+                      color="white"
+                      emit-value
+                      map-options
+                      transition-show="jump-up"
+                      transition-hide="jump-down"
                       lazy-rules
-                      v-model="row[col.key]"
-                      :label="col.label"
-                      :type="col.type"
-                      :rules="col.rules"
-                      :mask="col.mask"
-                      hide-bottom-space
-                    />
-                  </div>
-
-                  <div class="col-1 row justify-center q-gutter-xs">
-                    <q-btn
-                      v-if="rowIndex === field.data.length - 1"
-                      round
-                      dense
-                      color="primary"
-                      icon="mdi-plus"
-                      size="sm"
-                      @click="field.addItem()"
-                    />
-
-                    <q-btn
-                      v-if="rowIndex > 0"
-                      round
-                      dense
-                      color="negative"
-                      icon="mdi-minus"
-                      size="sm"
-                      @click="field.removeItem(rowIndex)"
+                      label="Tipo de emisión"
+                      :options="emissionTypeOptions"
+                      option-value="id"
+                      optionLabel="name"
+                      :rules="[(val) => !!val || 'Selecciona tipo de emisión']"
                     />
                   </div>
                 </div>
-              </template>
-            </q-card-section>
+              </q-card-section>
+              <q-separator dark class="q-mx-sm" />
+            </template>
+            <!--    Fin Tipo de emisión   -->
+
+            <!--    Facturas del cliente    -->
+            <template v-if="showInvoices">
+              <q-card-section>
+                <p class="text-white text-weight-medium q-mb-sm">Listado de facturas</p>
+
+                <!--    Cargando    -->
+                <div class="row q-gutter-sm" v-if="loadingInvoices">
+                  <q-skeleton dark type="QInput" class="col-12" animation="fade" />
+                  <q-skeleton dark type="QInput" class="col-12" animation="fade" />
+                </div>
+                <!--    Fin Cargando    -->
+
+                <!--    Sin Facturas    -->
+                <div
+                  v-else-if="invoiceOptions.length === 0"
+                  class="text-grey-5 text-caption q-pa-sm"
+                >
+                  Sin facturas disponibles
+                </div>
+                <!--    Fin Sin Facturas    -->
+
+                <!--    Listado de facturas   -->
+                <div v-else class="row q-gutter-sm">
+                  <div
+                    v-for="invoice in invoiceOptions"
+                    :key="invoice.id"
+                    class="col-xs-12 col-sm-6 col-md-4"
+                  >
+                    <q-card flat dark bordered class="q-pa-sm cursor-pointer custom-cards">
+                      <div class="text-white text-caption text-weight-bold">
+                        {{ invoice }}
+                      </div>
+                      <div class="text-grey-4 text-caption q-mt-xs">
+                        {{ invoice }}
+                      </div>
+                    </q-card>
+                  </div>
+                </div>
+                <!--    Fin Listado de facturas   -->
+              </q-card-section>
+              <q-separator dark class="q-mx-sm" />
+            </template>
+            <!--    Fin Facturas del cliente    -->
+
+            <!--    Campos dinámicos    -->
+            <template v-if="showManualBody">
+              <q-card-section v-for="(field, index) in dynamicFields" :key="index">
+                <p class="text-white text-weight-medium q-mb-sm">Cuerpo del documento</p>
+
+                <div
+                  class="row q-gutter-xs q-mb-xs text-white text-caption text-weight-bold"
+                  v-if="!states.loading"
+                >
+                  <div class="col-1 text-center">#</div>
+                  <div v-for="col in field.columns" :key="col.key" :class="col.colClass ?? 'col'">
+                    {{ col.label }}
+                  </div>
+                  <div class="col-1" />
+                </div>
+
+                <template v-if="!states.loading">
+                  <div
+                    v-for="(row, rowIndex) in field.data"
+                    :key="rowIndex"
+                    class="row items-center q-gutter-xs q-mb-sm"
+                  >
+                    <div class="col-1 text-center text-white text-caption">{{ row._line }}</div>
+
+                    <div
+                      v-for="col in field.columns"
+                      :key="col.key"
+                      :class="[col.colClass ?? 'col', 'q-px-sm']"
+                    >
+                      <!--    Inputs solo lectura   -->
+                      <q-input
+                        v-if="col.type === 'computed'"
+                        dense
+                        dark
+                        outlined
+                        disable
+                        hide-bottom-space
+                        :model-value="col.computed(row)"
+                        :label="col.label"
+                      />
+
+                      <!--  Editables   -->
+                      <q-input
+                        v-else
+                        dense
+                        dark
+                        outlined
+                        clearable
+                        lazy-rules
+                        v-model="row[col.key]"
+                        :label="col.label"
+                        :type="col.type"
+                        :rules="col.rules"
+                        :mask="col.mask"
+                        hide-bottom-space
+                      />
+                    </div>
+
+                    <div class="col-1 row justify-center q-gutter-xs">
+                      <q-btn
+                        v-if="rowIndex === field.data.length - 1"
+                        round
+                        dense
+                        color="primary"
+                        icon="mdi-plus"
+                        size="sm"
+                        @click="field.addItem()"
+                      />
+
+                      <q-btn
+                        v-if="rowIndex > 0"
+                        round
+                        dense
+                        color="negative"
+                        icon="mdi-minus"
+                        size="sm"
+                        @click="field.removeItem(rowIndex)"
+                      />
+                    </div>
+                  </div>
+                </template>
+              </q-card-section>
+            </template>
+            <!--    Fin Campos dinámicos    -->
 
             <q-separator dark class="q-ma-sm" />
 
@@ -572,6 +706,8 @@ onMounted(async () => {
                 <div class="text-h6">$ {{ totals.total.toFixed(2) }}</div>
               </div>
             </q-card-section>
+
+            <!--    Fin Totales     -->
           </q-card>
         </q-page>
       </q-page-container>
