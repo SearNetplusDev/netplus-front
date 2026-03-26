@@ -27,6 +27,7 @@ const emissionTypeOptions = [
 ]
 const emissionType = ref(null)
 const invoiceOptions = ref([])
+const selectedInvoices = ref([])
 const loadingInvoices = ref(false)
 const searchClient = async (val, update) => {
   if (!val || val.length < 4) {
@@ -53,7 +54,10 @@ const loadClientInvoices = async () => {
   }
   loadingInvoices.value = true
   try {
-    const { data } = await api.post('', { client_id: fields.client.data, _method: 'POST' })
+    const { data } = await api.post('/api/v1/accounting/client/invoices', {
+      client_id: fields.client.data,
+      _method: 'POST',
+    })
     invoiceOptions.value = data.invoices || []
   } catch (err) {
     showNotification(
@@ -175,21 +179,36 @@ const initial_data = async () => {
 }
 
 const totals = computed(() => {
-  const rows = fields.documentBody.data
-  const columns = fields.documentBody.columns
-  const netoCol = columns.find((c) => c.key === 'neto')
-  const ivaCol = columns.find((c) => c.key === 'iva')
-  const totalCol = columns.find((c) => c.key === 'total')
+  let subtotals = { neto: 0, iva: 0, total: 0 }
+  if (showInvoices.value) {
+    //  Modo emitir por facturas
+    subtotals = selectedInvoices.value.reduce(
+      (acc, invoice) => {
+        acc.neto += parseFloat(invoice.subtotal) || 0
+        acc.iva += parseFloat(invoice.iva) || 0
+        acc.total += parseFloat(invoice.total_amount) || 0
+        return acc
+      },
+      { neto: 0, iva: 0, total: 0 },
+    )
+  } else {
+    //  Modo Manual
+    const rows = fields.documentBody.data
+    const columns = fields.documentBody.columns
+    const netoCol = columns.find((c) => c.key === 'neto')
+    const ivaCol = columns.find((c) => c.key === 'iva')
+    const totalCol = columns.find((c) => c.key === 'total')
 
-  const subtotals = rows.reduce(
-    (acc, row) => {
-      acc.neto += parseFloat(netoCol?.computed(row) ?? 0)
-      acc.iva += parseFloat(ivaCol?.computed(row) ?? 0)
-      acc.total += parseFloat(totalCol?.computed(row) ?? 0)
-      return acc
-    },
-    { neto: 0, iva: 0, total: 0 },
-  )
+    subtotals = rows.reduce(
+      (acc, row) => {
+        acc.neto += parseFloat(netoCol?.computed(row) ?? 0)
+        acc.iva += parseFloat(ivaCol?.computed(row) ?? 0)
+        acc.total += parseFloat(totalCol?.computed(row) ?? 0)
+        return acc
+      },
+      { neto: 0, iva: 0, total: 0 },
+    )
+  }
 
   const discountAmount = parseFloat(fields.discount.data) || 0
   const factor = subtotals.total > 0 ? (subtotals.total - discountAmount) / subtotals.total : 1
@@ -251,13 +270,27 @@ const removeRelatedDocument = (rowIndex) => {
   Object.assign(relatedDocumentOptions, newOptions)
   delete relatedDocumentOptions[relatedDocuments.data.length]
 }
+const toggleInvoice = (invoice) => {
+  const idx = selectedInvoices.value.findIndex((i) => i.id === invoice.id)
+
+  if (idx === -1) {
+    selectedInvoices.value.push(invoice)
+  } else {
+    selectedInvoices.value.splice(idx, 1)
+  }
+}
+const isInvoiceSelected = (invoice) => {
+  return selectedInvoices.value.some((i) => i.id === invoice.id)
+}
 const emitDocument = async () => {
   states.loading = true
   try {
     const payload = {
       type_id: fields.type.data,
       client_id: fields.client.data,
-      items: fields.documentBody.resolvePayload(),
+      items: showInvoices.value
+        ? selectedInvoices.value.map((inv) => ({ invoice_id: inv.id }))
+        : fields.documentBody.resolvePayload(),
       totals: {
         neto: totals.value.neto.toFixed(2),
         iva: totals.value.iva.toFixed(2),
@@ -321,6 +354,7 @@ watch(
   () => fields.client.data,
   () => {
     invoiceOptions.value = []
+    selectedInvoices.value = []
     if (isCreditoFiscal.value && emissionType.value === 2) {
       loadClientInvoices()
     }
@@ -329,6 +363,7 @@ watch(
 
 //  Watch al cambiar el tipo de emisión
 watch(emissionType, (val) => {
+  selectedInvoices.value = []
   if (val === 2) {
     loadClientInvoices()
   } else {
@@ -565,30 +600,74 @@ onMounted(async () => {
                   v-else-if="invoiceOptions.length === 0"
                   class="text-grey-5 text-caption q-pa-sm"
                 >
-                  Sin facturas disponibles
+                  Sin créditos fiscales disponibles
                 </div>
                 <!--    Fin Sin Facturas    -->
 
                 <!--    Listado de facturas   -->
-                <div v-else class="row q-gutter-sm">
+                <div v-else class="row">
                   <div
                     v-for="invoice in invoiceOptions"
                     :key="invoice.id"
-                    class="col-xs-12 col-sm-6 col-md-4"
+                    class="col-xs-12 col-sm-12 col-md-3 col-lg-3 q-pa-xs"
                   >
-                    <q-card flat dark bordered class="q-pa-sm cursor-pointer custom-cards">
-                      <div class="text-white text-caption text-weight-bold">
-                        {{ invoice }}
+                    <q-card
+                      flat
+                      dark
+                      bordered
+                      class="q-pa-sm cursor-pointer"
+                      :class="isInvoiceSelected(invoice) ? 'bg-grey-10' : 'custom-cards'"
+                      @click="toggleInvoice(invoice)"
+                    >
+                      <div class="row items-center justify-between q-mb-xs">
+                        <div class="text-white text-caption text-weight-bold">
+                          {{ invoice.period?.name }}
+                        </div>
+                        <q-icon
+                          :name="
+                            isInvoiceSelected(invoice)
+                              ? 'mdi-checkbox-marked-circle'
+                              : 'mdi-checkbox-blank-circle-outline'
+                          "
+                          :color="isInvoiceSelected(invoice) ? 'white' : 'grey-5'"
+                        />
                       </div>
-                      <div class="text-grey-4 text-caption q-mt-xs">
-                        {{ invoice }}
+
+                      <div class="text-grey-4 text-caption">
+                        <div class="row">
+                          <div v-for="item in invoice.items" :key="item.id">
+                            {{ item.description }}
+                          </div>
+                        </div>
+                        <div class="row justify-between q-mt-sm">
+                          <span>Subtotal</span>
+                          <span>$ {{ parseFloat(invoice.subtotal).toFixed(2) }}</span>
+                        </div>
+
+                        <div class="row justify-between">
+                          <span>I.V.A.</span>
+                          <span>$ {{ parseFloat(invoice.iva).toFixed(2) }}</span>
+                        </div>
+
+                        <q-separator dark class="q-my-xs" />
+
+                        <div class="row justify-between text-white text-weight-bold">
+                          <span>Total</span>
+                          <span>$ {{ parseFloat(invoice.total_amount).toFixed(2) }}</span>
+                        </div>
                       </div>
                     </q-card>
                   </div>
                 </div>
+
+                <div
+                  v-if="selectedInvoices.length > 0"
+                  class="text-grey-4 text-caption q-mt-sm q-pa-xs"
+                >
+                  {{ selectedInvoices.length }} factura(s) seleccionada(s)
+                </div>
                 <!--    Fin Listado de facturas   -->
               </q-card-section>
-              <q-separator dark class="q-mx-sm" />
             </template>
             <!--    Fin Facturas del cliente    -->
 
