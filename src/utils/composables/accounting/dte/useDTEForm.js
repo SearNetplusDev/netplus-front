@@ -6,6 +6,7 @@ import { api } from 'src/utils/api.js'
 
 const RELATED_DOCS_REQUIRED = [3, 4, 5, 6, 8]
 const PAYMENT_CONDITION_REQUIRED = [1, 2, 4, 5, 7, 9, 10]
+const PAYMENT_METHOD_REQUIRED = [1, 2, 9, 10, 11]
 export const FISCAL_CREDIT_ID = 2
 
 const paymentConditionOptions = [
@@ -58,6 +59,18 @@ export function useDTEForm() {
       '',
       {
         options: paymentConditionOptions,
+        optionValue: (option) => option.id,
+        optionLabel: (option) => option.name,
+      },
+    ),
+    payment_method: createField(
+      'Método de pago',
+      'select',
+      [validationRules.text_required],
+      false,
+      '',
+      {
+        options: [],
         optionValue: (option) => option.id,
         optionLabel: (option) => option.name,
       },
@@ -127,6 +140,7 @@ export function useDTEForm() {
   const requiresPaymentConditions = computed(() =>
     PAYMENT_CONDITION_REQUIRED.includes(fields.type.data),
   )
+  const requiresPaymentMethod = computed(() => PAYMENT_METHOD_REQUIRED.includes(fields.type.data))
   const isCreditoFiscal = computed(() => fields.type.data === FISCAL_CREDIT_ID)
   const showManualBody = computed(() => !isCreditoFiscal.value || emissionType.value === 1)
   const showInvoices = computed(() => isCreditoFiscal.value && emissionType.value === 2)
@@ -179,6 +193,7 @@ export function useDTEForm() {
     emissionType,
     requiresRelatedDocuments,
     requiresPaymentConditions,
+    requiresPaymentMethod,
     isCreditoFiscal,
     showManualBody,
     showInvoices,

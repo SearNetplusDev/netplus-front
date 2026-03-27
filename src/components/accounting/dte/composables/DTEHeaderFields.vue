@@ -1,21 +1,10 @@
 <script setup>
 defineProps({
-  fields: {
-    type: Object,
-    required: true,
-  },
-  normalFields: {
-    type: Object,
-    required: true,
-  },
-  requiresPaymentCondition: {
-    type: Boolean,
-    default: false,
-  },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
+  fields: { type: Object, required: true },
+  normalFields: { type: Object, required: true },
+  requiresPaymentCondition: { type: Boolean, default: false },
+  requiresPaymentMethod: { type: Boolean, default: false },
+  loading: { type: Boolean, default: false },
 })
 </script>
 
@@ -25,7 +14,10 @@ defineProps({
       v-for="(field, index) in normalFields"
       :key="index"
       class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
-      v-show="index !== 'payment_condition' || requiresPaymentCondition"
+      v-show="
+        (index !== 'payment_condition' || requiresPaymentCondition) &&
+        (index !== 'payment_method' || requiresPaymentMethod)
+      "
     >
       <template v-if="field.type === 'select'">
         <q-select

@@ -27,6 +27,7 @@ const {
   emissionType,
   requiresRelatedDocuments,
   requiresPaymentConditions,
+  requiresPaymentMethod,
   isCreditoFiscal,
   showManualBody,
   showInvoices,
@@ -57,8 +58,12 @@ const initial_data = async () => {
   console.info('XD')
   states.loading = true
   try {
-    const [types] = await Promise.all([getSupportData('/api/v1/general/billing/documents')])
+    const [types, paymentMethods] = await Promise.all([
+      getSupportData('/api/v1/general/billing/documents'),
+      getSupportData('/api/v1/general/billing/payment-methods'),
+    ])
     fields.type.options = types
+    fields.payment_method.options = paymentMethods
   } catch (err) {
     showNotification(
       'Error',
@@ -89,6 +94,12 @@ const emitDocument = async () => {
       },
       ...(requiresRelatedDocuments.value && {
         related_documents: relatedDocuments.resolvePayload(),
+      }),
+      ...(requiresPaymentConditions.value && {
+        payment_condition: fields.payment_condition.data,
+      }),
+      ...(requiresPaymentMethod.value && {
+        payment_method: fields.payment_method.data,
       }),
     }
 
@@ -148,6 +159,15 @@ watch(emissionType, (val) => {
   }
 })
 
+//  Watch: cambio de cliente
+watch(
+  () => fields.client.data,
+  () => {
+    resetInvoices()
+    resetRelatedDocs()
+  },
+)
+
 onMounted(async () => {
   await initial_data()
 })
@@ -183,6 +203,7 @@ onMounted(async () => {
               :fields="fields"
               :normal-fields="normalFields"
               :requires-payment-condition="requiresPaymentConditions"
+              :requires-payment-method="requiresPaymentMethod"
               :loading="states.loading"
             />
             <q-separator dark class="q-mx-sm" />
