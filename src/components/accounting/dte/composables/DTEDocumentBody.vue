@@ -42,6 +42,25 @@ defineProps({
             v-if="col.type === 'computed'"
           />
 
+          <!--    Select    -->
+          <q-select
+            v-else-if="col.type === 'select'"
+            v-model="row[col.key]"
+            dense
+            dark
+            outlined
+            clearable
+            emit-value
+            map-options
+            lazy-rules
+            hide-bottom-space
+            :label="col.label"
+            :rules="col.rules"
+            :options="col.options ?? []"
+            :option-value="col.optionValue"
+            :option-label="col.optionLabel"
+          />
+
           <!--    Editables   -->
           <q-input
             v-model="row[col.key]"

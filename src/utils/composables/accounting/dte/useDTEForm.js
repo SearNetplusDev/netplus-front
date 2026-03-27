@@ -50,7 +50,9 @@ export function useDTEForm() {
       optionLabel: (option) => option.name,
       filter: searchClient,
     }),
-    discount: createField('Descuento', 'text', [validationRules.money_two_decimal]),
+    discount: createField('Descuento', 'text', [validationRules.money_two_decimal], false, '', {
+      data: '0.00',
+    }),
     payment_condition: createField(
       'Condición de operación',
       'select',
@@ -80,7 +82,7 @@ export function useDTEForm() {
         key: 'description',
         label: 'Descripción',
         type: 'text',
-        colClass: 'col-4',
+        colClass: 'col-3',
         rules: [validationRules.text_required],
       },
       {
@@ -96,6 +98,21 @@ export function useDTEForm() {
         type: 'text',
         colClass: 'col',
         rules: [validationRules.text_required],
+      },
+      {
+        key: 'item_type',
+        label: 'Tipo de ítem',
+        type: 'select',
+        colClass: 'col-2',
+        rules: [validationRules.select_required],
+        options: [
+          { id: 1, name: 'Bienes' },
+          { id: 2, name: 'Servicios' },
+          { id: 3, name: 'Ambos' },
+          { id: 4, name: 'Otros tributos' },
+        ],
+        optionValue: (option) => option.id,
+        optionLabel: (option) => option.name,
       },
       {
         key: 'neto',
