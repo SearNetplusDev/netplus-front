@@ -84,7 +84,7 @@ const emitDocument = async () => {
       type_id: fields.type.data,
       client_id: fields.client.data,
       items: showInvoices.value
-        ? selectedInvoices.value.map((inv) => ({ invoice_id: inv.id }))
+        ? selectedInvoices.value.map((inv) => inv.id)
         : fields.documentBody.resolvePayload(),
       totals: {
         neto: totals.value.neto.toFixed(2),
