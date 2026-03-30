@@ -13,6 +13,7 @@ const { copy } = useClipboard()
 const { formatLongDate } = useDateFormatter()
 const props = defineProps({
   client: { type: Number, required: true },
+  dte_type: { type: Number, required: true },
 })
 const ui_states = reactive({
   loading: false,
@@ -62,7 +63,7 @@ const refresh_dialog = async () => {
 const generate_dte = async (payment_id) => {
   ui_states.loading = true
   showLoading()
-  const uri = `api/v1/accounting/dte/create/1`
+  const uri = `api/v1/accounting/dte/create/${props.dte_type}`
   try {
     const { data } = await api.post(uri, { payment: payment_id, _method: 'POST' })
     showNotification('Código Generación', data.identificacion.codigoGeneracion, 'grey-10')

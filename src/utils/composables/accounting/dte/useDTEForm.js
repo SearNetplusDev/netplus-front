@@ -7,6 +7,7 @@ import { api } from 'src/utils/api.js'
 const RELATED_DOCS_REQUIRED = [3, 4, 5, 6, 8]
 const PAYMENT_CONDITION_REQUIRED = [1, 2, 4, 5, 7, 9, 10]
 const PAYMENT_METHOD_REQUIRED = [1, 2, 9, 10, 11]
+const RETAINED_IVA_REQUIRED = [1, 2]
 export const FISCAL_CREDIT_ID = 2
 
 const paymentConditionOptions = [
@@ -153,6 +154,7 @@ export function useDTEForm() {
   })
   const { normalFields, dynamicFields } = useFieldFilters(fields)
   const emissionType = ref(null)
+  const retainedIva = ref(false)
   const requiresRelatedDocuments = computed(() => RELATED_DOCS_REQUIRED.includes(fields.type.data))
   const requiresPaymentConditions = computed(() =>
     PAYMENT_CONDITION_REQUIRED.includes(fields.type.data),
@@ -161,6 +163,7 @@ export function useDTEForm() {
   const isCreditoFiscal = computed(() => fields.type.data === FISCAL_CREDIT_ID)
   const showManualBody = computed(() => !isCreditoFiscal.value || emissionType.value === 1)
   const showInvoices = computed(() => isCreditoFiscal.value && emissionType.value === 2)
+  const showRetainedIva = computed(() => RETAINED_IVA_REQUIRED.includes(fields.type.data))
   const computedTotals = (selectedInvoices) =>
     computed(() => {
       let subtotals = { neto: 0, iva: 0, total: 0 }
@@ -195,10 +198,14 @@ export function useDTEForm() {
 
       const discountAmount = parseFloat(fields.discount.data) || 0
       const factor = subtotals.total > 0 ? (subtotals.total - discountAmount) / subtotals.total : 1
+      const neto = subtotals.neto * factor
+      const iva = subtotals.iva * factor
+      const ivaRetenido = retainedIva?.value ? neto * 0.01 : 0
       return {
-        neto: subtotals.neto * factor,
-        iva: subtotals.iva * factor,
-        total: subtotals.total - discountAmount,
+        neto,
+        iva,
+        ivaRetenido,
+        total: neto + iva - ivaRetenido - discountAmount,
         discountAmount,
       }
     })
@@ -208,12 +215,14 @@ export function useDTEForm() {
     normalFields,
     dynamicFields,
     emissionType,
+    retainedIva,
     requiresRelatedDocuments,
     requiresPaymentConditions,
     requiresPaymentMethod,
     isCreditoFiscal,
     showManualBody,
     showInvoices,
+    showRetainedIva,
     computedTotals,
   }
 }

@@ -12,6 +12,7 @@ const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const currentItem = ref(0)
 const currentName = ref('')
+const currentDocument = ref(0)
 const currentClient = ref([])
 const columns = reactive([
   { name: 'id', label: 'ID', sortable: true, align: 'center' },
@@ -82,9 +83,10 @@ const columns = reactive([
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
 const show_main_dialog = ref(false)
 const show_financial_status = ref(false)
-const callMainDialog = (itm, name) => {
+const callMainDialog = (itm, name, document) => {
   currentItem.value = itm
   currentName.value = name
+  currentDocument.value = document
   show_main_dialog.value = true
 }
 const invoices = (itm) => {
@@ -106,6 +108,7 @@ const reset_dialog = () => {
   currentItem.value = 0
   currentName.value = ''
   currentClient.value = []
+  currentDocument.value = 0
   show_main_dialog.value = false
   show_financial_status.value = false
 }
@@ -122,6 +125,7 @@ const reset_dialog = () => {
         :name="currentName"
         :client="currentItem"
         :visible="show_main_dialog"
+        :document_type="currentDocument"
         @hide="reset_dialog"
       />
     </template>
@@ -255,7 +259,13 @@ const reset_dialog = () => {
                 color="green-10"
                 icon="mdi-cash"
                 size="sm"
-                @click="callMainDialog(props.row.id, `${props.row.name} ${props.row.surname}`)"
+                @click="
+                  callMainDialog(
+                    props.row.id,
+                    `${props.row.name} ${props.row.surname}`,
+                    props.row.document_type_id,
+                  )
+                "
               >
                 <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
                   Pagos/Abonos de {{ props.row.name }} {{ props.row.surname }}

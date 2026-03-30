@@ -7,6 +7,7 @@ const props = defineProps({
   visible: { type: Boolean, required: true },
   client: { type: Number, required: true },
   name: { type: String, required: true },
+  document_type: { type: Number, required: true },
 })
 const emit = defineEmits(['hide'])
 const states = reactive({
@@ -44,7 +45,7 @@ const tab = ref('payments')
 
         <q-tab-panels v-model="tab" animated class="bg-transparent">
           <q-tab-panel name="payments">
-            <payment-dialog :client="props.client" />
+            <payment-dialog :client="props.client" :dte_type="props.document_type" />
           </q-tab-panel>
 
           <q-tab-panel name="prepayments">

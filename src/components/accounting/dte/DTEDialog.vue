@@ -25,12 +25,14 @@ const {
   normalFields,
   dynamicFields,
   emissionType,
+  retainedIva,
   requiresRelatedDocuments,
   requiresPaymentConditions,
   requiresPaymentMethod,
   isCreditoFiscal,
   showManualBody,
   showInvoices,
+  showRetainedIva,
   computedTotals,
 } = useDTEForm()
 
@@ -52,7 +54,7 @@ const {
   reset: resetRelatedDocs,
 } = useDTERelatedDocs()
 
-const totals = computedTotals(selectedInvoices)
+const totals = computedTotals(selectedInvoices, retainedIva)
 
 const initial_data = async () => {
   console.info('XD')
@@ -91,6 +93,9 @@ const emitDocument = async () => {
         iva: totals.value.iva.toFixed(2),
         discount: totals.value.discountAmount.toFixed(2),
         total: totals.value.total.toFixed(2),
+        ...(showRetainedIva.value && {
+          iva_retenido: totals.value.ivaRetenido.toFixed(2),
+        }),
       },
       ...(requiresRelatedDocuments.value && {
         related_documents: relatedDocuments.resolvePayload(),
@@ -237,6 +242,19 @@ onMounted(async () => {
               <DTEDocumentBody :dynamic-fields="dynamicFields" :loading="states.loading" />
             </template>
 
+            <div v-if="showRetainedIva" class="row justify-end q-px-sm q-pb-xs">
+              <q-toggle
+                v-model="retainedIva"
+                dark
+                label="I.V.A Retenido"
+                left-label
+                checked-icon="check"
+                unchecked-icon="clear"
+                size="lg"
+                color="primary"
+              />
+            </div>
+
             <q-separator dark class="q-ma-sm" />
 
             <q-card-section class="row justify-end q-pa-sm q-gutter-md">
@@ -248,11 +266,20 @@ onMounted(async () => {
               <q-separator dark vertical />
 
               <div class="text-white text-caption text-right">
-                <div class="text-weight-bold q-mb-xs">IVA (13%)</div>
+                <div class="text-weight-bold q-mb-xs">I.V.A. (13%)</div>
                 <div class="text-h6">$ {{ totals.iva.toFixed(2) }}</div>
               </div>
 
               <q-separator dark vertical />
+
+              <template v-if="showRetainedIva && retainedIva">
+                <div class="text-white text-caption text-right">
+                  <div class="text-weight-bold q-mb-xs">I.V.A. Retenido (1%)</div>
+                  <div class="text-h6">$ {{ totals.ivaRetenido.toFixed(2) }}</div>
+                </div>
+
+                <q-separator dark vertical />
+              </template>
 
               <div class="text-white text-caption text-right">
                 <div class="text-weight-bold q-mb-xs">Descuento</div>
