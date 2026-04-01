@@ -83,7 +83,6 @@ const emitDocument = async () => {
   states.loading = true
   try {
     const payload = {
-      type_id: fields.type.data,
       client_id: fields.client.data,
       items: showInvoices.value
         ? selectedInvoices.value.map((inv) => inv.id)
@@ -108,7 +107,7 @@ const emitDocument = async () => {
       }),
     }
 
-    await api.post('/api/accounting/dte', payload)
+    await api.post(`/api/v1/accounting/dte/create/${fields.type.data}`, payload)
     showNotification('Éxito', 'Documento emitido correctamente', 'blue-grey-10')
   } catch (err) {
     if (err.response?.status === 422) {

@@ -166,47 +166,33 @@ export function useDTEForm() {
   const showRetainedIva = computed(() => RETAINED_IVA_REQUIRED.includes(fields.type.data))
   const computedTotals = (selectedInvoices) =>
     computed(() => {
-      let subtotals = { neto: 0, iva: 0, total: 0 }
+      let gravado = 0
 
       if (showInvoices.value) {
-        subtotals = selectedInvoices.value.reduce(
-          (acc, invoice) => {
-            acc.neto += parseFloat(invoice.subtotal) || 0
-            acc.iva += parseFloat(invoice.iva) || 0
-            acc.total += parseFloat(invoice.total_amount) || 0
-            return acc
-          },
-          { neto: 0, iva: 0, total: 0 },
-        )
+        gravado = selectedInvoices.value.reduce((acc, invoice) => {
+          return acc + (parseFloat(invoice.total_amount) || 0)
+        }, 0)
       } else {
-        const rows = fields.documentBody.data
-        const columns = fields.documentBody.columns
-        const netoCol = columns.find((c) => c.key === 'neto')
-        const ivaCol = columns.find((c) => c.key === 'iva')
-        const totalCol = columns.find((c) => c.key === 'total')
-
-        subtotals = rows.reduce(
-          (acc, row) => {
-            acc.neto += parseFloat(netoCol?.computed(row) ?? 0)
-            acc.iva += parseFloat(ivaCol?.computed(row) ?? 0)
-            acc.total += parseFloat(totalCol?.computed(row) ?? 0)
-            return acc
-          },
-          { neto: 0, iva: 0, total: 0 },
-        )
+        const totalCol = fields.documentBody.columns.find((c) => c.key === 'total')
+        gravado = fields.documentBody.data.reduce((acc, row) => {
+          return acc + (parseFloat(totalCol?.computed(row) ?? 0) || 0)
+        }, 0)
       }
 
       const discountAmount = parseFloat(fields.discount.data) || 0
-      const factor = subtotals.total > 0 ? (subtotals.total - discountAmount) / subtotals.total : 1
-      const neto = subtotals.neto * factor
-      const iva = subtotals.iva * factor
-      const ivaRetenido = retainedIva?.value ? neto * 0.01 : 0
+      const gravadoConDescuento = gravado - discountAmount
+      const neto = gravadoConDescuento / 1.13
+      const iva = neto * 0.13
+      const ivaRetenido = retainedIva?.value && gravadoConDescuento >= 100 ? neto * 0.01 : 0
+      const total = neto + iva - ivaRetenido
+
       return {
+        gravado,
         neto,
         iva,
         ivaRetenido,
-        total: neto + iva - ivaRetenido - discountAmount,
         discountAmount,
+        total,
       }
     })
 
