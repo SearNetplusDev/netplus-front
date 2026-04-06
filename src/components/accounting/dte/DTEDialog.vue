@@ -82,7 +82,12 @@ const initial_data = async () => {
 const emitDocument = async () => {
   states.loading = true
   try {
+    const sourceMap = {
+      1: 'manual',
+      2: 'invoices',
+    }
     const payload = {
+      source: sourceMap[emissionType.value] ?? 1,
       client_id: fields.client.data,
       items: showInvoices.value
         ? selectedInvoices.value.map((inv) => inv.id)
