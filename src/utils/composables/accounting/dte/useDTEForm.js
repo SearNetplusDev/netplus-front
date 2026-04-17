@@ -196,6 +196,19 @@ export function useDTEForm() {
       }
     })
 
+  const reset = () => {
+    fields.type.data = null
+    fields.client.data = null
+    fields.client.options = []
+    fields.discount.data = '0.00'
+    fields.payment_condition.data = null
+    fields.payment_method.data = null
+    fields.documentBody.data.splice(0)
+    fields.documentBody.addItem()
+    emissionType.value = null
+    retainedIva.value = false
+  }
+
   return {
     fields,
     normalFields,
@@ -210,5 +223,6 @@ export function useDTEForm() {
     showInvoices,
     showRetainedIva,
     computedTotals,
+    reset,
   }
 }

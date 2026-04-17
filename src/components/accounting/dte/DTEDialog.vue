@@ -34,6 +34,7 @@ const {
   showInvoices,
   showRetainedIva,
   computedTotals,
+  reset: resetForm,
 } = useDTEForm()
 
 const {
@@ -87,7 +88,7 @@ const emitDocument = async () => {
       2: 'invoices',
     }
     const payload = {
-      source: sourceMap[emissionType.value] ?? 1,
+      source: sourceMap[emissionType.value] ?? 'manual',
       client_id: fields.client.data,
       items: showInvoices.value
         ? selectedInvoices.value.map((inv) => inv.id)
@@ -114,6 +115,7 @@ const emitDocument = async () => {
 
     await api.post(`/api/v1/accounting/dte/create/${fields.type.data}`, payload)
     showNotification('Éxito', 'Documento emitido correctamente', 'blue-grey-10')
+    resetAll()
   } catch (err) {
     if (err.response?.status === 422) {
       const errors = err.response?.data?.errors || {}
@@ -148,6 +150,11 @@ const emitDocument = async () => {
   }
 }
 
+const resetAll = () => {
+  resetForm()
+  resetInvoices()
+  resetRelatedDocs()
+}
 //  Watch: cambio del tipo de DTE
 watch(
   () => fields.type.data,
