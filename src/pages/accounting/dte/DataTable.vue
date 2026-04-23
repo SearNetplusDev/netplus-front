@@ -36,6 +36,7 @@ const columns = reactive([
   { name: 'client', label: 'Cliente', align: 'left' },
   { name: 'control', label: 'Número de control', align: 'left' },
   { name: 'generation', label: 'Código de generación', align: 'left' },
+  { name: 'amount', label: 'Total', align: 'left' },
   { name: 'date', label: 'Fecha de emisión', align: 'left' },
   {
     name: 'user',
@@ -97,19 +98,19 @@ watch(showForm, (newVal) => {
           <!--  Estado    -->
           <q-td key="status" :props="props">
             <q-badge
-              :color="props.row.status?.id ? 'primary' : 'red-10'"
-              :label="props.row.status?.name"
+              :color="props.row.status_id ? 'primary' : 'red-10'"
+              :label="props.row.status_id ? 'Emitido' : 'Anulado'"
               class="text-center text-weight-bold q-py-xs"
             />
           </q-td>
 
           <!--    Tipo    -->
-          <q-td key="type" :props="props">
-            {{ props.row.type?.name }}
+          <q-td key="type" :props="props" class="copy-text text-left">
+            {{ props.row.dte_type?.name }}
           </q-td>
 
           <!--    Cliente    -->
-          <q-td key="client" :props="props">
+          <q-td key="client" :props="props" class="copy-text text-left">
             {{ props.row.client?.name }} {{ props.row.client?.surname }}
           </q-td>
 
@@ -133,9 +134,14 @@ watch(showForm, (newVal) => {
             {{ props.row.generation_code }}
           </q-td>
 
+          <!--    Total   -->
+          <q-td key="amount" :props="props" class="text-left copy-text">
+            $ {{ props.row.total_amount }}
+          </q-td>
+
           <!--    Fecha de emisión    -->
           <q-td key="date" :props="props" class="text-left copy-text">
-            {{ formatLongDate(props.row.issue_date) }}
+            {{ formatLongDate(props.row.generation_datetime) }}
           </q-td>
 
           <!--    Generado por    -->
@@ -153,7 +159,7 @@ watch(showForm, (newVal) => {
                 @click="printDTE(props.row.id)"
               >
                 <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
-                  Imprimir DTE {{ props.row.control_number }}
+                  Imprimir {{ props.row.control_number }}
                 </q-tooltip>
               </q-btn>
 

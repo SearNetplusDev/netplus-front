@@ -66,8 +66,10 @@ const generate_dte = async (payment_id) => {
   const uri = `api/v1/accounting/dte/create/${props.dte_type}`
   try {
     const { data } = await api.post(uri, { payment: payment_id, _method: 'POST' })
-    showNotification('Código Generación', data.identificacion.codigoGeneracion, 'grey-10')
-    showNotification('Número de Control', data.identificacion.numeroControl, 'grey-10')
+    const payment = payments_data.value.find((p) => p.id === payment_id)
+    if (payment) payment.dte = data
+    showNotification('Código Generación', data.control_number, 'grey-10')
+    showNotification('Número de Control', data.generation_code, 'grey-10')
   } catch (err) {
     showNotification(
       'Error',
@@ -164,6 +166,7 @@ onMounted(async () => {
                     color="blue-grey-7"
                     icon="mdi-receipt-text-send-outline"
                     size="sm"
+                    :disable="!!props.row.dte"
                     @click="generate_dte(props.row.id)"
                   >
                     <q-tooltip
