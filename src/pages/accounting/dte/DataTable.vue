@@ -80,11 +80,7 @@ watch(showForm, (newVal) => {
     </template>
 
     <template v-if="states.visiblePDF">
-      <PDFDialog
-        :id="states.currentItem"
-        :visible="states.visiblePDF"
-        @hide="refreshPDFComponent"
-      />
+      <PDFDialog :visible="states.visiblePDF" :uri="states.pdfUrl" @hide="refreshPDFComponent" />
     </template>
 
     <base-data-table :columns="columns">
