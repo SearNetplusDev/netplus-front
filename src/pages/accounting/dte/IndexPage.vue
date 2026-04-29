@@ -19,7 +19,7 @@ const filter = {
         { title: 'Número de control', name: 'control_number', type: 'string' },
         { title: 'Código generación', name: 'generation_code', type: 'string' },
         { title: 'Sello de recepción', name: 'reception_code', type: 'string' },
-        { title: 'Fecha de emisión', name: 'generation_date', type: 'date' },
+        { title: 'Fecha de emisión', name: 'generation_datetime', type: 'date' },
       ],
     },
     {

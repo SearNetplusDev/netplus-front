@@ -6,6 +6,7 @@ import { useDateFormatter } from 'src/utils/composables/useDateFormatter.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import { useNotifications } from 'src/utils/notification.js'
 import PaymentForm from 'components/billing/payments/PaymentForm.vue'
+import PDFDialog from 'components/base/widgets/PDFDialog.vue'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
@@ -19,6 +20,8 @@ const ui_states = reactive({
   loading: false,
   current_item: 0,
   visible_form: false,
+  visible_pdf: false,
+  pdf_uri: '',
 })
 const columns = [
   { name: 'id', label: 'ID', align: 'center' },
@@ -58,6 +61,7 @@ const get_data = async () => {
 const refresh_dialog = async () => {
   ui_states.current_item = 0
   ui_states.visible_form = false
+  ui_states.visible_pdf = false
   await get_data()
 }
 const generate_dte = async (payment_id) => {
@@ -82,6 +86,11 @@ const generate_dte = async (payment_id) => {
       hideLoading()
     }, 150)
   }
+}
+const printDTE = (id) => {
+  ui_states.current_item = id
+  ui_states.visible_pdf = true
+  ui_states.pdf_uri = `/api/v1/accounting/dte/print/${ui_states.current_item}`
 }
 onMounted(async () => {
   await get_data()
@@ -162,21 +171,40 @@ onMounted(async () => {
             <template v-slot:body-cell-actions="props">
               <q-td key="actions" :props="props">
                 <q-btn-group>
-                  <q-btn
-                    color="blue-grey-7"
-                    icon="mdi-receipt-text-send-outline"
-                    size="sm"
-                    :disable="!!props.row.dte"
-                    @click="generate_dte(props.row.id)"
-                  >
-                    <q-tooltip
-                      transition-show="fade"
-                      transition-hide="slide-down"
-                      class="bg-grey-10"
+                  <template v-if="!props.row.dte">
+                    <q-btn
+                      color="blue-grey-7"
+                      icon="mdi-receipt-text-send-outline"
+                      size="sm"
+                      :disable="!!props.row.dte"
+                      @click="generate_dte(props.row.id)"
                     >
-                      Generar DTE
-                    </q-tooltip>
-                  </q-btn>
+                      <q-tooltip
+                        transition-show="fade"
+                        transition-hide="slide-down"
+                        class="bg-grey-10"
+                      >
+                        Generar DTE
+                      </q-tooltip>
+                    </q-btn>
+                  </template>
+
+                  <template v-if="!!props.row.dte">
+                    <q-btn
+                      color="primary"
+                      icon="mdi-printer"
+                      size="sm"
+                      @click="printDTE(props.row.dte.id)"
+                    >
+                      <q-tooltip
+                        transition-show="fade"
+                        transition-hide="slide-down"
+                        class="bg-grey-10"
+                      >
+                        Imprimir DTE
+                      </q-tooltip>
+                    </q-btn>
+                  </template>
                 </q-btn-group>
               </q-td>
             </template>
@@ -188,6 +216,14 @@ onMounted(async () => {
 
   <template v-if="ui_states.visible_form">
     <payment-form :client="props.client" :visible="ui_states.visible_form" @hide="refresh_dialog" />
+  </template>
+
+  <template v-if="ui_states.visible_pdf">
+    <p-d-f-dialog
+      :visible="ui_states.visible_pdf"
+      :uri="ui_states.pdf_uri"
+      @hide="refresh_dialog"
+    />
   </template>
 </template>
 

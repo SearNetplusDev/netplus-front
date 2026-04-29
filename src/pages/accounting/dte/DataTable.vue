@@ -58,7 +58,7 @@ const states = reactive({
 const printDTE = (id) => {
   states.visiblePDF = true
   states.currentItem = id
-  states.pdfUrl = `/api/v1/accounting/dte/print/${id}`
+  states.pdfUrl = `/api/v1/accounting/dte/print/${states.currentItem}`
 }
 const refreshPDFComponent = () => {
   states.visiblePDF = false
