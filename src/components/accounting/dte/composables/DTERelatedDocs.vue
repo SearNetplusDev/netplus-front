@@ -55,7 +55,7 @@ defineProps({
           :rules="col.rules"
           :options="relatedDocumentOptions[rowIndex] ?? []"
           :option-value="(option) => option.id"
-          :option-label="(option) => option.control_number"
+          :option-label="(option) => option.label"
           @filter="(val, update) => searchRelatedDocument(rowIndex)(val, update)"
         >
           <template v-slot:no-option>
