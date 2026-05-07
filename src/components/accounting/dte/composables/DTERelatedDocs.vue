@@ -66,27 +66,27 @@ defineProps({
         </q-select>
       </div>
 
-      <div class="col-1 row justify-center q-gutter-xs">
-        <q-btn
-          round
-          dense
-          color="primary"
-          icon="mdi-plus"
-          size="sm"
-          v-if="rowIndex === relatedDocuments.data.length - 1"
-          @click="relatedDocuments.addItem()"
-        />
+      <!--      <div class="col-1 row justify-center q-gutter-xs">-->
+      <!--        <q-btn-->
+      <!--          round-->
+      <!--          dense-->
+      <!--          color="primary"-->
+      <!--          icon="mdi-plus"-->
+      <!--          size="sm"-->
+      <!--          v-if="rowIndex === relatedDocuments.data.length - 1"-->
+      <!--          @click="relatedDocuments.addItem()"-->
+      <!--        />-->
 
-        <q-btn
-          v-if="rowIndex > 0"
-          round
-          dense
-          color="negative"
-          icon="mdi-minus"
-          size="sm"
-          @click="relatedDocuments.removeItem(rowIndex)"
-        />
-      </div>
+      <!--        <q-btn-->
+      <!--          v-if="rowIndex > 0"-->
+      <!--          round-->
+      <!--          dense-->
+      <!--          color="negative"-->
+      <!--          icon="mdi-minus"-->
+      <!--          size="sm"-->
+      <!--          @click="relatedDocuments.removeItem(rowIndex)"-->
+      <!--        />-->
+      <!--      </div>-->
     </div>
   </q-card-section>
 </template>
