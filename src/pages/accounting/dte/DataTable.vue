@@ -7,6 +7,7 @@ import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import DTEDialog from 'components/accounting/dte/DTEDialog.vue'
 import PDFDialog from 'components/base/widgets/PDFDialog.vue'
+import AnulateDTEComponent from 'components/base/AnulateDTEComponent.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -54,15 +55,28 @@ const states = reactive({
   visiblePDF: false,
   currentItem: 0,
   pdfUrl: '',
+  showAnulateDialog: false,
+  anulateProps: {},
 })
 const printDTE = (id) => {
   states.visiblePDF = true
   states.currentItem = id
   states.pdfUrl = `/api/v1/accounting/dte/print/${states.currentItem}`
 }
+const showAnulateDialog = (id, type, control_number) => {
+  states.showAnulateDialog = true
+  states.anulateProps = {
+    title: `Anular ${type} - ${control_number}`,
+    id: id,
+  }
+}
 const refreshPDFComponent = () => {
   states.visiblePDF = false
   states.currentItem = 0
+}
+const resetAnulateItem = () => {
+  states.anulateProps.id = 0
+  states.showAnulateDialog = false
 }
 watch(showForm, (newVal) => {
   if (newVal === 1) {
@@ -81,6 +95,14 @@ watch(showForm, (newVal) => {
 
     <template v-if="states.visiblePDF">
       <PDFDialog :visible="states.visiblePDF" :uri="states.pdfUrl" @hide="refreshPDFComponent" />
+    </template>
+
+    <template v-if="states.showAnulateDialog">
+      <AnulateDTEComponent
+        :data="states.anulateProps"
+        :visible="states.showAnulateDialog"
+        @hide-dialog="resetAnulateItem"
+      />
     </template>
 
     <base-data-table :columns="columns">
@@ -159,7 +181,14 @@ watch(showForm, (newVal) => {
                 </q-tooltip>
               </q-btn>
 
-              <q-btn color="red-10" icon="mdi-receipt-text-remove-outline" size="sm">
+              <q-btn
+                color="red-10"
+                icon="mdi-receipt-text-remove-outline"
+                size="sm"
+                @click="
+                  showAnulateDialog(props.row.id, props.row.dte_type.name, props.row.control_number)
+                "
+              >
                 <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
                   Anular DTE {{ props.row.control_number }}
                 </q-tooltip>
