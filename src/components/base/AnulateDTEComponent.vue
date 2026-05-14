@@ -57,13 +57,18 @@ const send_invalidation = async () => {
   ui_states.loading = true
   showLoading()
   resetFieldErrors(fields)
-  let uri = `/api/v1/accounting/dte/invalidate`
-  let params = buildFormData(fields, { _method: 'POST', dte_id: props.data.id })
+  let uri = `/api/v1/accounting/dte/create/12`
+  let params = buildFormData(fields, {
+    _method: 'POST',
+    dte_id: props.data.id,
+    source: 'invalidation',
+  })
   try {
     const { data } = await api.post(uri, params)
     if (data) {
       showNotification('Éxito', 'DTE anulado correctamente', 'blue-grey-10')
       dataViewer.fetch({ force: true })
+      isVisible.value = false
     } else {
       showNotification('Error', 'Algo ha salido mal.', 'red-10')
     }
