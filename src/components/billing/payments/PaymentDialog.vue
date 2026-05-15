@@ -7,6 +7,7 @@ import { useClipboard } from 'src/utils/clipboard.js'
 import { useNotifications } from 'src/utils/notification.js'
 import PaymentForm from 'components/billing/payments/PaymentForm.vue'
 import PDFDialog from 'components/base/widgets/PDFDialog.vue'
+import AnulateDTEComponent from 'components/base/AnulateDTEComponent.vue'
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
@@ -22,6 +23,8 @@ const ui_states = reactive({
   visible_form: false,
   visible_pdf: false,
   pdf_uri: '',
+  invalidation_dialog: false,
+  invalidation_props: {},
 })
 const columns = [
   { name: 'id', label: 'ID', align: 'center' },
@@ -62,6 +65,8 @@ const refresh_dialog = async () => {
   ui_states.current_item = 0
   ui_states.visible_form = false
   ui_states.visible_pdf = false
+  ui_states.invalidation_dialog = false
+  ui_states.invalidation_props = {}
   await get_data()
 }
 const generate_dte = async (payment_id) => {
@@ -91,6 +96,13 @@ const printDTE = (id) => {
   ui_states.current_item = id
   ui_states.visible_pdf = true
   ui_states.pdf_uri = `/api/v1/accounting/dte/print/${ui_states.current_item}`
+}
+const showInvalidationDialog = (id, type, control_number) => {
+  ui_states.invalidation_dialog = true
+  ui_states.invalidation_props = {
+    title: `Anular ${type} - ${control_number}`,
+    id: id,
+  }
 }
 onMounted(async () => {
   await get_data()
@@ -204,6 +216,28 @@ onMounted(async () => {
                         Imprimir DTE
                       </q-tooltip>
                     </q-btn>
+
+                    <q-btn
+                      color="red-10"
+                      icon="mdi-receipt-text-remove-outline"
+                      size="sm"
+                      :disabled="props.row.dte.invalidation"
+                      @click="
+                        showInvalidationDialog(
+                          props.row.dte?.id,
+                          props.row.dte?.dte_type?.name,
+                          props.row.dte?.control_number,
+                        )
+                      "
+                    >
+                      <q-tooltip
+                        transition-show="fade"
+                        transition-hide="slide-down"
+                        class="bg-grey-10"
+                      >
+                        Anular DTE {{ props.row.dte.control_number }}
+                      </q-tooltip>
+                    </q-btn>
                   </template>
                 </q-btn-group>
               </q-td>
@@ -223,6 +257,14 @@ onMounted(async () => {
       :visible="ui_states.visible_pdf"
       :uri="ui_states.pdf_uri"
       @hide="refresh_dialog"
+    />
+  </template>
+
+  <template v-if="ui_states.invalidation_dialog">
+    <AnulateDTEComponent
+      :data="ui_states.invalidation_props"
+      :visible="ui_states.invalidation_dialog"
+      @hide-dialog="refresh_dialog"
     />
   </template>
 </template>

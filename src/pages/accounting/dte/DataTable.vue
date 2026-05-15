@@ -1,8 +1,11 @@
 <script setup>
 import { reactive, computed, watch } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
+import { api } from 'src/utils/api.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import { useDateFormatter } from 'src/utils/composables/useDateFormatter.js'
+import { useLoading } from 'src/utils/loader.js'
+import { useNotifications } from 'src/utils/notification.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import DTEDialog from 'components/accounting/dte/DTEDialog.vue'
@@ -12,6 +15,8 @@ import AnulateDTEComponent from 'components/base/AnulateDTEComponent.vue'
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const { formatLongDate } = useDateFormatter()
+const { showLoading, hideLoading } = useLoading()
+const { showNotification } = useNotifications()
 const columns = reactive([
   { name: 'id', label: 'ID', sortable: true, align: 'center' },
   {
@@ -77,6 +82,29 @@ const refreshPDFComponent = () => {
 const resetAnulateItem = () => {
   states.anulateProps.id = 0
   states.showAnulateDialog = false
+}
+const sendMail = async (id) => {
+  showLoading()
+  let uri = '/api/v1/accounting/dte/resend/mail'
+  let params = { dte_id: id, _method: 'POST' }
+  try {
+    const { data } = await api.post(uri, params)
+    if (data) {
+      showNotification('Éxito', 'Se ha reenviado el correo de notificación.', 'blue-grey-10')
+    } else {
+      showNotification('Error', 'Algo ha salido mal.', 'red-10')
+    }
+  } catch (err) {
+    showNotification(
+      'Error',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      hideLoading()
+    }, 150)
+  }
 }
 watch(showForm, (newVal) => {
   if (newVal === 1) {
@@ -182,12 +210,24 @@ watch(showForm, (newVal) => {
               </q-btn>
 
               <q-btn
+                color="blue-10"
+                icon="mdi-email-fast"
+                size="sm"
+                @click="sendMail(props.row.id)"
+              >
+                <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
+                  Reenviar correo
+                </q-tooltip>
+              </q-btn>
+
+              <q-btn
                 color="red-10"
                 icon="mdi-receipt-text-remove-outline"
                 size="sm"
                 @click="
                   showAnulateDialog(props.row.id, props.row.dte_type.name, props.row.control_number)
                 "
+                :disabled="props.row.invalidation"
               >
                 <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
                   Anular DTE {{ props.row.control_number }}
