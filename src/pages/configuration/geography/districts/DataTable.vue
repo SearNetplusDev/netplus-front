@@ -24,6 +24,7 @@ const columns = reactive([
     align: 'left',
   },
   { name: 'name', label: 'Nombre', align: 'left' },
+  { name: 'code', label: 'Código', align: 'left' },
   {
     name: 'municipality',
     label: 'Municipio',
@@ -108,6 +109,16 @@ watch(showForm, (newVal) => {
             @click="copy(props.row?.name)"
           >
             {{ props.row?.name }}
+          </q-td>
+
+          <!--    Code    -->
+          <q-td
+            key="code"
+            class="text-left copy-text"
+            :props="props"
+            @click="copy(props.row?.code)"
+          >
+            {{ props.row?.code }}
           </q-td>
 
           <!--    Municipality    -->

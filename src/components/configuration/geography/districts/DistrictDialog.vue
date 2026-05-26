@@ -3,7 +3,12 @@ import { onMounted, ref, reactive } from 'vue'
 import { api } from 'src/utils/api.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useLoading } from 'src/utils/loader.js'
-import { resetFieldErrors, handleSubmissionError } from 'src/utils/composables/useFormHandler.js'
+import { useFields } from 'src/utils/composables/useFields.js'
+import {
+  resetFieldErrors,
+  handleSubmissionError,
+  buildFormData,
+} from 'src/utils/composables/useFormHandler.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import FooterComponent from 'components/base/widgets/FooterComponent.vue'
 
@@ -11,41 +16,17 @@ const { showLoading, hideLoading } = useLoading()
 const title = ref('')
 const loading = ref(false)
 const { showNotification } = useNotifications()
+const { validationRules, createField, createToggle } = useFields()
 const props = defineProps({
   id: Number,
 })
 const url = 'api/v1/configuration/geography/districts/'
 const fields = reactive({
-  name: {
-    data: '',
-    error: false,
-    'error-message': '',
-    label: 'Nombre',
-    type: 'text',
-    rules: [(val) => (val && val.length > 0) || 'Campo requerido'],
-  },
-  state: {
-    data: '',
-    error: false,
-    'error-message': '',
-    label: 'Departamento',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  municipality: {
-    data: '',
-    error: false,
-    'error-message': '',
-    label: 'Municipio',
-    type: 'select',
-    rules: [(val) => (val !== null && val !== '') || 'Campo requerido'],
-  },
-  status: {
-    data: false,
-    error: false,
-    'error-message': '',
-    type: 'toggle',
-  },
+  name: createField('Nombre', 'text', [validationRules.text_required]),
+  code: createField('Código', 'text', [validationRules.text_required]),
+  state: createField('Departamento', 'select', [validationRules.select_required]),
+  municipality: createField('Municipio', 'select', [validationRules.select_required]),
+  status: createToggle('Estado'),
 })
 const external = reactive({
   states: [],
@@ -65,6 +46,7 @@ const getData = () => {
       fields.municipality.data = itm.municipality_id
       fields.state.data = itm.state_id
       fields.status.data = itm.status_id
+      fields.code.data = itm.code
       title.value = `Editar datos del distrito:  ${itm.name}`
       if (itm) changeState(false)
     })
@@ -78,40 +60,36 @@ const getData = () => {
       }, 1000)
     })
 }
-const sendData = () => {
-  let request = ''
-  let status = fields.status.data ? 1 : 0
-  let params = new FormData()
-  title.value = 'Procesando datos, espera un momento...'
-  loading.value = true
+const sendData = async () => {
   showLoading()
   resetFieldErrors(fields)
-  params.append('name', fields.name.data)
-  params.append('municipality', fields.municipality.data)
-  params.append('state', fields.state.data)
-  params.append('status', status)
-  props.id > 0 ? params.append('_method', 'PUT') : params.append('_method', 'POST')
-  props.id > 0 ? (request = `${url}${props.id}`) : (request = url)
 
-  api
-    .post(request, params)
-    .then((res) => {
-      if (res.data.saved) {
-        showNotification('Exito', 'Registro almacenado correctamente', 'blue-grey-10')
-      } else {
-        showNotification('Error', 'Verifica la información ingresada', 'teal-10')
-      }
-    })
-    .catch((err) => {
-      handleSubmissionError(err, fields)
-      showNotification('Error', err, 'red-10')
-    })
-    .finally(() => {
-      setTimeout(() => {
-        loading.value = false
-        hideLoading()
-      }, 1000)
-    })
+  let request = props.id > 0 ? `${url}${props.id}` : url
+  let method = props.id > 0 ? 'PUT' : 'POST'
+  let params = buildFormData(fields, { _method: method })
+  title.value = 'Procesando datos, espera un momento...'
+  loading.value = true
+  try {
+    const { data } = await api.post(request, params)
+    if (data.saved) {
+      showNotification('Éxito', 'Información procesada correctamente.', 'blue-grey-10')
+      title.value = `Editar datos del distrito: ${data.district.name}`
+    } else {
+      showNotification('Error', 'Algo ha salido mal.', 'red-10')
+    }
+  } catch (err) {
+    handleSubmissionError(err, fields)
+    showNotification(
+      'Error',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      loading.value = false
+      hideLoading()
+    }, 150)
+  }
 }
 const getOptions = (key) => {
   return (
