@@ -220,19 +220,48 @@ watch(showForm, (newVal) => {
                 </q-tooltip>
               </q-btn>
 
-              <q-btn
-                color="red-10"
-                icon="mdi-receipt-text-remove-outline"
-                size="sm"
-                @click="
-                  showAnulateDialog(props.row.id, props.row.dte_type.name, props.row.control_number)
-                "
-                :disabled="props.row.invalidation"
-              >
-                <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
-                  Anular DTE {{ props.row.control_number }}
-                </q-tooltip>
-              </q-btn>
+              <q-btn-dropdown color="teal-9" size="sm" label="Eventos">
+                <q-list>
+                  <q-item
+                    v-if="!props.row.invalidation"
+                    clickable
+                    v-close-popup
+                    @click="
+                      showAnulateDialog(
+                        props.row.id,
+                        props.row.dte_type.name,
+                        props.row.control_number,
+                      )
+                    "
+                  >
+                    <q-item-section avatar>
+                      <q-avatar
+                        icon="mdi-file-document-remove"
+                        color="negative"
+                        text-color="white"
+                      />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Invalidar {{ props.row.dte_type?.name }}</q-item-label>
+                      <q-item-label caption>{{ props.row.control_number }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item
+                    v-if="[1, 10].includes(props.row.document_type_id) && !props.row.invalidation"
+                    clickable
+                    v-close-popup
+                  >
+                    <q-item-section avatar>
+                      <q-avatar icon="mdi-cash-refund" color="negative" text-color="white" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label>Devolución en {{ props.row.dte_type?.name }}</q-item-label>
+                      <q-item-label caption>{{ props.row.control_number }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-btn-dropdown>
             </q-btn-group>
           </q-td>
         </q-tr>
