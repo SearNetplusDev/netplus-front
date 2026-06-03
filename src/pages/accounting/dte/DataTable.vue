@@ -11,6 +11,7 @@ import BaseDialog from 'components/base/BaseDialog.vue'
 import DTEDialog from 'components/accounting/dte/DTEDialog.vue'
 import PDFDialog from 'components/base/widgets/PDFDialog.vue'
 import AnulateDTEComponent from 'components/base/AnulateDTEComponent.vue'
+import RefundDialog from 'components/accounting/dte/events/RefundDialog.vue'
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -62,6 +63,8 @@ const states = reactive({
   pdfUrl: '',
   showAnulateDialog: false,
   anulateProps: {},
+  showRefundDialog: false,
+  refundProps: {},
 })
 const printDTE = (id) => {
   states.visiblePDF = true
@@ -82,6 +85,10 @@ const refreshPDFComponent = () => {
 const resetAnulateItem = () => {
   states.anulateProps.id = 0
   states.showAnulateDialog = false
+}
+const resetRefundItem = () => {
+  states.refundProps.id = 0
+  states.showRefundDialog = false
 }
 const sendMail = async (id) => {
   showLoading()
@@ -104,6 +111,13 @@ const sendMail = async (id) => {
     setTimeout(() => {
       hideLoading()
     }, 150)
+  }
+}
+const showRefundDialog = (id, type, control_number) => {
+  states.showRefundDialog = true
+  states.refundProps = {
+    title: `Reembolso en ${type} - ${control_number}`,
+    id: id,
   }
 }
 watch(showForm, (newVal) => {
@@ -130,6 +144,14 @@ watch(showForm, (newVal) => {
         :data="states.anulateProps"
         :visible="states.showAnulateDialog"
         @hide-dialog="resetAnulateItem"
+      />
+    </template>
+
+    <template v-if="states.showRefundDialog">
+      <RefundDialog
+        :data="states.refundProps"
+        v-model:visible="states.showRefundDialog"
+        @hide-dialog="resetRefundItem"
       />
     </template>
 
@@ -251,6 +273,13 @@ watch(showForm, (newVal) => {
                     v-if="[1, 10].includes(props.row.document_type_id) && !props.row.invalidation"
                     clickable
                     v-close-popup
+                    @click="
+                      showRefundDialog(
+                        props.row.id,
+                        props.row.dte_type?.name,
+                        props.row.control_number,
+                      )
+                    "
                   >
                     <q-item-section avatar>
                       <q-avatar icon="mdi-cash-refund" color="negative" text-color="white" />
