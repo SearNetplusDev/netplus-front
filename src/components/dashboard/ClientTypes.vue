@@ -1,10 +1,10 @@
 <script setup>
-import { reactive, onMounted, ref } from 'vue'
-import VueApexCharts from 'vue3-apexcharts'
+import { reactive, onMounted, ref, defineAsyncComponent } from 'vue'
 import { api } from 'src/utils/api.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
 
+const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
 const chartOptions = reactive({
@@ -87,12 +87,7 @@ onMounted(async () => {
 
 <template>
   <q-card flat class="custom-cards">
-    <VueApexCharts
-      v-if="chartSeries.length"
-      type="pie"
-      :options="chartOptions"
-      :series="chartSeries"
-    />
+    <ApexChart v-if="chartSeries.length" type="pie" :options="chartOptions" :series="chartSeries" />
   </q-card>
 </template>
 

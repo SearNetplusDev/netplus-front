@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, computed, watch } from 'vue'
+import { reactive, computed, watch, defineAsyncComponent } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { api } from 'src/utils/api.js'
 import { useClipboard } from 'src/utils/clipboard.js'
@@ -9,9 +9,14 @@ import { useNotifications } from 'src/utils/notification.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import DTEDialog from 'components/accounting/dte/DTEDialog.vue'
-import PDFDialog from 'components/base/widgets/PDFDialog.vue'
-import AnulateDTEComponent from 'components/base/AnulateDTEComponent.vue'
-import RefundDialog from 'components/accounting/dte/events/RefundDialog.vue'
+
+const PDFDialog = defineAsyncComponent(() => import('components/base/widgets/PDFDialog.vue'))
+const AnulateDTEComponent = defineAsyncComponent(
+  () => import('components/base/AnulateDTEComponent.vue'),
+)
+const RefundDialog = defineAsyncComponent(
+  () => import('components/accounting/dte/events/RefundDialog.vue'),
+)
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -113,11 +118,12 @@ const sendMail = async (id) => {
     }, 150)
   }
 }
-const showRefundDialog = (id, type, control_number) => {
+const showRefundDialog = (id, type, control_number, json) => {
   states.showRefundDialog = true
   states.refundProps = {
     title: `Reembolso en ${type} - ${control_number}`,
     id: id,
+    json: json,
   }
 }
 watch(showForm, (newVal) => {
@@ -278,6 +284,7 @@ watch(showForm, (newVal) => {
                         props.row.id,
                         props.row.dte_type?.name,
                         props.row.control_number,
+                        props.row.json_body,
                       )
                     "
                   >

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 
 const dataViewer = useDataviewerStore()
@@ -17,6 +17,71 @@ const states = reactive({
 })
 const cancel = () => {
   emit('hide-dialog')
+}
+const json_dte = props.data.json
+const columns = [
+  {
+    name: 'numItem',
+    required: true,
+    label: 'N°',
+    align: 'left',
+    field: (row) => row.numItem,
+    format: (val) => `${val}`,
+    sortable: true,
+  },
+  {
+    name: 'cantidad',
+    required: true,
+    label: 'Cantidad',
+    align: 'left',
+    field: (row) => row.cantidad,
+    format: (val) => `${val}`,
+    sortable: true,
+  },
+  {
+    name: 'descripcion',
+    required: true,
+    label: 'Descripción',
+    align: 'left',
+    field: (row) => row.descripcion,
+    format: (val) => `${val}`,
+    sortable: false,
+  },
+  {
+    name: 'unitPrice',
+    required: true,
+    label: 'Precio Unitario',
+    align: 'left',
+    field: (row) => row.precioUni,
+    format: (val) => formatMoney(val),
+    sortable: false,
+  },
+  {
+    name: 'ventaGravada',
+    required: true,
+    label: 'Venta Gravada',
+    align: 'left',
+    field: (row) => row.ventaGravada ?? row.compra,
+    format: (val) => formatMoney(val),
+    sortable: false,
+  },
+]
+const formatMoney = (val) => {
+  if (val === null || val === undefined || val === '') {
+    return '$0.00'
+  }
+  return new Intl.NumberFormat('es-SV', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(val))
+}
+const selected = ref([])
+const getSelectedString = () => {
+  return selected.value.length === 0
+    ? ''
+    : `${selected.value.length} ítem${selected.value.length > 1 ? 's' : ''}seleccionados de ${json_dte.cuerpoDocumento.length}`
 }
 const sendData = async () => {
   states.loading = true
@@ -41,7 +106,35 @@ const sendData = async () => {
 
       <q-card-section class="text-subtitle1">
         <div class="row wrap full-width">
-          <q-form greedy @submit="sendData" class="full-width"> {{ props.data.id }}<br /> </q-form>
+          <q-form greedy @submit="sendData" class="full-width">
+            <div class="row wrap full-width">
+              <q-table
+                :rows="json_dte.cuerpoDocumento"
+                :columns="columns"
+                flat
+                dense
+                title="Selecciona los ítems a devolver"
+                row-key="numItem"
+                :selected-rows-label="getSelectedString"
+                selection="multiple"
+                v-model:selected="selected"
+                class="secondary-table full-width"
+                binary-state-sort
+              >
+                <template #body-cell-cantidad="props">
+                  <q-td :props="props">
+                    {{ props.row.cantidad }}
+
+                    <q-popup-edit v-model="props.row.cantidad" buttons v-slot="scope">
+                      <q-input v-model="scope.value" type="text" dense autofocus mask="###" />
+                    </q-popup-edit>
+                  </q-td>
+                </template>
+              </q-table>
+
+              <div class="q-mt-md">Seleccionados: {{ JSON.stringify(selected) }}</div>
+            </div>
+          </q-form>
         </div>
       </q-card-section>
 
