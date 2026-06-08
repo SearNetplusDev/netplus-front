@@ -118,11 +118,12 @@ const sendMail = async (id) => {
     }, 150)
   }
 }
-const showRefundDialog = (id, type, control_number, json) => {
+const showRefundDialog = (id, type_id, type, control_number, json) => {
   states.showRefundDialog = true
   states.refundProps = {
     title: `Reembolso en ${type} - ${control_number}`,
     id: id,
+    type: type_id,
     json: json,
   }
 }
@@ -282,6 +283,7 @@ watch(showForm, (newVal) => {
                     @click="
                       showRefundDialog(
                         props.row.id,
+                        props.row.document_type_id,
                         props.row.dte_type?.name,
                         props.row.control_number,
                         props.row.json_body,

@@ -1,8 +1,13 @@
 <script setup>
 import { computed, reactive, ref, onMounted } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
+import { api } from 'src/utils/api.js'
+import { useLoading } from 'src/utils/loader.js'
+import { useNotifications } from 'src/utils/notification.js'
 
 const dataViewer = useDataviewerStore()
+const { showLoading, hideLoading } = useLoading()
+const { showNotification } = useNotifications()
 const props = defineProps({
   data: { type: Object, required: true },
   visible: { type: Boolean, required: true },
@@ -16,6 +21,7 @@ const states = reactive({
   loading: false,
 })
 const cancel = () => {
+  isVisible.value = false
   emit('hide-dialog')
 }
 const json_dte = reactive(JSON.parse(JSON.stringify(props.data.json)))
@@ -131,7 +137,41 @@ const getSelectedString = () => {
 }
 const sendData = async () => {
   states.loading = true
-  dataViewer.fetch({ force: true })
+  showLoading()
+
+  if (selected.value.length === 0) {
+    showNotification('Error', 'Debes seleccionar al menos un elemento', 'orange-10')
+    hideLoading()
+    return
+  }
+
+  try {
+    let uri = `/api/v1/accounting/dte/refund/`
+    const { data } = await api.post(uri, {
+      _method: 'POST',
+      dte_id: props.data.id,
+      dte_type: props.data.type,
+      items: selected.value,
+    })
+    if (data) {
+      showNotification('Éxito', 'Reembolso aplicado correctamente.', 'blue-grey-10')
+      dataViewer.fetch({ force: true })
+      cancel()
+    } else {
+      showNotification('Error', 'Algo ha salido mal.', 'red-10')
+    }
+  } catch (err) {
+    showNotification(
+      'Error',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      hideLoading()
+      states.loading = false
+    }, 150)
+  }
 }
 onMounted(() => {
   json_dte.cuerpoDocumento.forEach((row) => {
@@ -217,7 +257,14 @@ onMounted(() => {
       </q-card-section>
 
       <q-card-actions align="right">
-        <q-btn icon="mdi-check" label="procesar" color="primary" type="submit" @click="sendData" />
+        <q-btn
+          icon="mdi-check"
+          label="procesar"
+          color="primary"
+          type="submit"
+          @click="sendData"
+          :disable="selected.length === 0"
+        />
         <q-btn icon="mdi-cancel" label="Cancelar" color="negative" @click="cancel" />
       </q-card-actions>
     </q-card>
