@@ -15,15 +15,12 @@ const { showNotification } = useNotifications()
 const { showLoading, hideLoading } = useLoading()
 const { createField, createToggle, validationRules } = useFields()
 const props = defineProps({
-  id: {
-    type: Number,
-    required: true,
-  },
+  id: { type: Number, required: true },
 })
-const url = 'api/v1/billing/options/payment/methods/'
-const uiStates = reactive({
+const url = '/api/v1/accounting/options/events/'
+const states = reactive({
   loading: false,
-  title: 'Agregar Método de pago',
+  title: 'Agregar Evento',
 })
 const fields = reactive({
   name: createField('Nombre', 'text', [validationRules.text_required]),
@@ -32,21 +29,20 @@ const fields = reactive({
   status: createToggle('Estado'),
 })
 const getData = async () => {
-  uiStates.loading = true
-  uiStates.title = 'Obteniendo datos, espera un momento ...'
+  states.loading = true
+  states.title = 'Obteniendo datos, espera un momento ...'
   showLoading()
-
   try {
     const {
-      data: { method },
+      data: { event },
     } = await api.post(`${url}edit`, { id: props.id })
 
-    if (method) {
-      fields.name.data = method.name
-      fields.code.data = method.code
-      fields.color.data = method.badge_color
-      fields.status.data = method.status_id
-      uiStates.title = `Modificar información de ${method.name}`
+    if (event) {
+      fields.name.data = event.name
+      fields.code.data = event.code
+      fields.color.data = event.color
+      fields.status.data = event.status
+      states.title = `Modificar información de ${event.name}`
     }
   } catch (err) {
     showNotification(
@@ -56,14 +52,14 @@ const getData = async () => {
     )
   } finally {
     setTimeout(() => {
-      uiStates.loading = false
+      states.loading = false
       hideLoading()
     }, 150)
   }
 }
 const sendData = async () => {
-  uiStates.loading = true
-  uiStates.title = 'Procesando datos, espera un momento ...'
+  states.loading = true
+  states.title = 'Procesando datos, espera un momento ...'
   showLoading()
   resetFieldErrors(fields)
   let request = props.id > 0 ? `${url}${props.id}` : url
@@ -72,7 +68,7 @@ const sendData = async () => {
   try {
     const { data } = await api.post(request, params)
     if (data.saved) {
-      uiStates.title = `Modificar la información del método de pago:  ${data.method?.name}`
+      states.title = `Modificar datos del evento ${data.event?.name}`
       showNotification('Éxito', 'Registro almacenado correctamente', 'blue-grey-10')
     } else {
       showNotification('Error', 'Verifica la información ingresada', 'red-10')
@@ -81,13 +77,13 @@ const sendData = async () => {
     handleSubmissionError(err, fields)
     showNotification(
       'Error',
-      err.response?.data?.message || err.message || 'Error inesperado',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
       'red-10',
     )
-    uiStates.title = 'ERROR'
+    states.title = 'ERROR'
   } finally {
     setTimeout(() => {
-      uiStates.loading = false
+      states.loading = false
       hideLoading()
     }, 150)
   }
@@ -102,11 +98,11 @@ onMounted(async () => {
     <q-form greedy @submit="sendData">
       <q-header class="q-header">
         <q-toolbar>
-          <q-toolbar-title>{{ uiStates.title }}</q-toolbar-title>
+          <q-toolbar-title>{{ states.title }}</q-toolbar-title>
           <q-btn
             flat
             icon="mdi-content-save"
-            :loading="uiStates.loading"
+            :loading="states.loading"
             :label="props.id === 0 ? 'Almacenar' : 'Actualizar'"
             type="submit"
             color="white"
@@ -132,9 +128,9 @@ onMounted(async () => {
                     <template v-slot:separator>
                       <q-icon size="1.5em" name="chevron_right" color="white" />
                     </template>
-                    <q-breadcrumbs-el label="Facturación" icon="paid" />
-                    <q-breadcrumbs-el label="Opciones" icon="construction" />
-                    <q-breadcrumbs-el label="Métodos de pago" icon="mdi-cash-fast" />
+                    <q-breadcrumbs-el label="Contabilidad" icon="mdi-bank" />
+                    <q-breadcrumbs-el label="Opciones" icon="mdi-cogs" />
+                    <q-breadcrumbs-el label="Eventos" icon="mdi-format-list-group" />
                   </q-breadcrumbs>
                 </div>
               </div>
@@ -143,13 +139,12 @@ onMounted(async () => {
 
             <q-separator dark class="q-my-sm" />
 
-            <!--  Input Content   -->
             <q-card-section>
               <div class="row wrap full-width justify-start items-start content-start">
                 <div
-                  class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
                   v-for="(field, index) in fields"
                   :key="index"
+                  class="col-xs-12 col-sm-12 col-md-4 col-lg-3 q-pa-sm"
                 >
                   <template v-if="field.type === 'text'">
                     <q-input
@@ -160,12 +155,12 @@ onMounted(async () => {
                       clearable
                       color="white"
                       lazy-rules
-                      v-if="!uiStates.loading"
+                      v-if="!states.loading"
                       :label="field.label"
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
-                      :disable="field.disabled || uiStates.loading"
+                      :disable="field.disabled || states.loading"
                     />
                   </template>
 
@@ -176,11 +171,11 @@ onMounted(async () => {
                       dark
                       outlined
                       :label="field.label"
-                      v-if="!uiStates.loading"
+                      v-if="!states.loading"
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
-                      :disable="field.disabled || uiStates.loading"
+                      :disable="field.disabled || states.loading"
                     >
                       <template v-slot:append>
                         <q-icon name="colorize" class="cursor-pointer">
@@ -199,7 +194,7 @@ onMounted(async () => {
                         backgroundColor: field.data,
                         color: '#fff',
                       }"
-                      v-if="!uiStates.loading"
+                      v-if="!states.loading"
                     />
                   </template>
 
@@ -211,7 +206,7 @@ onMounted(async () => {
                       unchecked-icon="clear"
                       size="lg"
                       color="primary"
-                      v-if="!uiStates.loading"
+                      v-if="!states.loading"
                       :error="fields.status.error"
                       :error-message="fields.status['error-message']"
                     />
@@ -222,12 +217,11 @@ onMounted(async () => {
                     dark
                     type="QInput"
                     animation="fade"
-                    v-if="uiStates.loading"
+                    v-if="states.loading"
                   />
                 </div>
               </div>
             </q-card-section>
-            <!--  End input Content   -->
           </q-card>
         </q-page>
       </q-page-container>

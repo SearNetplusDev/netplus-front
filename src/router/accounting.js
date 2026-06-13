@@ -14,6 +14,12 @@ const accounting = [
           permissions: [55],
         },
       },
+      {
+        path: 'opciones/eventos',
+        name: 'contabilidad.opciones.eventos',
+        component: () => import('pages/accounting/options/events/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Eventos tributarios', permissions: [56, 57] },
+      },
     ],
   },
 ]
