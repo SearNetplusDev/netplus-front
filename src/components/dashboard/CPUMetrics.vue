@@ -16,11 +16,7 @@ const chartOptions = reactive({
     foreColor: '#e2e8f0',
   },
   labels: ['CPU', 'Memoria', 'Almacenamiento'],
-  colors: [
-    '#00B4D8',
-    '#48CAE4',
-    '#90E0EF',
-  ],
+  colors: ['#00B4D8', '#48CAE4', '#90E0EF'],
   title: {
     text: '',
     align: 'center',
@@ -82,11 +78,7 @@ const getData = async () => {
       ]
 
       chartOptions.colors = [...dynamicColors]
-      chartOptions.title.text = system.board_name
-
-      console.log('Series: ', chartSeries.value)
-      console.log(`Colores: ${dynamicColors}`)
-      console.log(`Colores Opcion: ${chartOptions.colors}`)
+      chartOptions.title.text = `Estado de equipo ${system.board_name}`
     } else {
       showNotification('Error', 'Algo ha salido mal.', 'red-10')
     }
