@@ -30,10 +30,8 @@ const columns = reactive([
     label: 'Estado',
     filterable: true,
     model: [],
-    options: [
-      { name: 'Emitido', id: 1 },
-      { name: 'Anulado', id: 0 },
-    ],
+    filterURL: '/api/v1/general/dte/status',
+    options: [],
     align: 'center',
   },
   {
@@ -173,9 +171,9 @@ watch(showForm, (newVal) => {
           <!--  Estado    -->
           <q-td key="status" :props="props">
             <q-badge
-              :color="props.row.status_id ? 'primary' : 'red-10'"
-              :label="props.row.status_id ? 'Emitido' : 'Anulado'"
+              :label="props.row.status?.name"
               class="text-center text-weight-bold q-py-xs"
+              :style="{ backgroundColor: props.row?.status?.badge_color, color: '#fff' }"
             />
           </q-td>
 
