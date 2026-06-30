@@ -17,6 +17,7 @@ const AnulateDTEComponent = defineAsyncComponent(
 const RefundDialog = defineAsyncComponent(
   () => import('components/accounting/dte/events/RefundDialog.vue'),
 )
+const ItemsDialog = defineAsyncComponent(() => import('components/accounting/dte/ItemsDialog.vue'))
 
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
@@ -68,6 +69,8 @@ const states = reactive({
   anulateProps: {},
   showRefundDialog: false,
   refundProps: {},
+  showItemsDialog: false,
+  itemsProps: {},
 })
 const printDTE = (id) => {
   states.visiblePDF = true
@@ -92,6 +95,10 @@ const resetAnulateItem = () => {
 const resetRefundItem = () => {
   states.refundProps.id = 0
   states.showRefundDialog = false
+}
+const resetItemsDialog = () => {
+  states.itemsProps.id = 0
+  states.showItemsDialog = false
 }
 const sendMail = async (id) => {
   showLoading()
@@ -122,6 +129,14 @@ const showRefundDialog = (id, type_id, type, control_number, json) => {
     title: `Reembolso en ${type} - ${control_number}`,
     id: id,
     type: type_id,
+    json: json,
+  }
+}
+const showItemsDialog = (id, doctype, control_number, json) => {
+  states.showItemsDialog = true
+  states.itemsProps = {
+    title: `Elementos facturados en ${doctype} ${control_number}`,
+    id: id,
     json: json,
   }
 }
@@ -157,6 +172,14 @@ watch(showForm, (newVal) => {
         :data="states.refundProps"
         v-model:visible="states.showRefundDialog"
         @hide-dialog="resetRefundItem"
+      />
+    </template>
+
+    <template v-if="states.showItemsDialog">
+      <items-dialog
+        :data="states.itemsProps"
+        v-model:visible="states.showItemsDialog"
+        @hide-dialog="resetItemsDialog"
       />
     </template>
 
@@ -225,6 +248,24 @@ watch(showForm, (newVal) => {
           <!--    Acciones    -->
           <q-td key="actions" :props="props">
             <q-btn-group>
+              <q-btn
+                color="green-10"
+                icon="mdi-invoice-list-outline"
+                size="sm"
+                @click="
+                  showItemsDialog(
+                    props.row.id,
+                    props.row.dte_type?.name,
+                    props.row.control_number,
+                    props.row.json_body,
+                  )
+                "
+              >
+                <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
+                  Ver elementos de {{ props.row.control_number }}
+                </q-tooltip>
+              </q-btn>
+
               <q-btn
                 color="blue-grey-9"
                 icon="mdi-printer"

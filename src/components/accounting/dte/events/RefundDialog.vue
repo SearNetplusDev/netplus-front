@@ -2,12 +2,14 @@
 import { computed, reactive, ref, onMounted } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { api } from 'src/utils/api.js'
+import { useMoneyFormatter } from 'src/utils/composables/accounting/useMoneyFormatter.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
 
 const dataViewer = useDataviewerStore()
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
+const { formatMoney } = useMoneyFormatter()
 const props = defineProps({
   data: { type: Object, required: true },
   visible: { type: Boolean, required: true },
@@ -73,17 +75,6 @@ const columns = [
     sortable: false,
   },
 ]
-const formatMoney = (val) => {
-  if (val === null || val === undefined || val === '') {
-    return '$0.00'
-  }
-  return new Intl.NumberFormat('es-SV', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number(val))
-}
 const onSaveAmount = (row, newVal) => {
   const parsed = parseInt(newVal, 10)
   const max = originalQuantities[row.numItem]
