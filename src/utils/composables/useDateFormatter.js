@@ -41,10 +41,23 @@ export function useDateFormatter(locale = 'es-SV') {
     })
   }
 
+  const formatLongDateTime = (date) => {
+    return formatDate(date, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    })
+  }
+
   return {
     formatDate,
     formatDateTime,
     formatShortDate,
     formatLongDate,
+    formatLongDateTime,
   }
 }

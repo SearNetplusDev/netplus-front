@@ -2,9 +2,13 @@
 import { reactive } from 'vue'
 import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
+import RealtimeDialog from 'components/monitoring/internet/RealtimeDialog.vue'
 
 const { copy } = useClipboard()
-// const currentItem = ref(0)
+const ui_states = reactive({
+  pppoe_user: null,
+  showNavigation: false,
+})
 const columns = reactive([
   {
     name: 'financial_status',
@@ -22,10 +26,27 @@ const columns = reactive([
   { name: 'ip', label: 'IP', align: 'left' },
   { name: 'mac', label: 'Caller', align: 'left' },
   { name: 'uptime', label: 'Tiempo de conexión', align: 'left' },
+  { name: 'actions', label: '', align: 'center' },
 ])
+const showRealtimeData = (user) => {
+  ui_states.pppoe_user = user
+  ui_states.showNavigation = true
+}
+const resetParams = () => {
+  ui_states.pppoe_user = null
+  ui_states.showNavigation = false
+}
 </script>
 <template>
   <div>
+    <template v-if="ui_states.showNavigation === true">
+      <RealtimeDialog
+        :user="ui_states.pppoe_user"
+        v-model:visible="ui_states.showNavigation"
+        @hide-dialog="resetParams"
+      />
+    </template>
+
     <base-data-table :columns="columns">
       <template v-slot:body="{ props }">
         <q-tr :props="props">
@@ -96,6 +117,22 @@ const columns = reactive([
           <!--    Uptime    -->
           <q-td key="uptime" class="text-left copy-text" :props="props">
             {{ props.row.uptime_human }}
+          </q-td>
+
+          <!--    Actions   -->
+          <q-td key="actions" :props="props">
+            <q-btn-group>
+              <q-btn
+                color="teal-10"
+                size="sm"
+                icon="mdi-web-sync"
+                @click="showRealtimeData(props.row.pppoe_user)"
+              >
+                <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
+                  Ver datos en tiempo real de {{ props.row.pppoe_user }}
+                </q-tooltip>
+              </q-btn>
+            </q-btn-group>
           </q-td>
         </q-tr>
       </template>
