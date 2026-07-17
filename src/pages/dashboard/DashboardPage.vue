@@ -2,6 +2,7 @@
 import { useAuthStore } from 'stores/auth.js'
 import ClientTypes from 'components/dashboard/ClientTypes.vue'
 import CPUMetrics from 'components/dashboard/CPUMetrics.vue'
+import MostConsumedPlan from 'components/dashboard/MostConsumedPlan.vue'
 
 const auth = useAuthStore()
 </script>
@@ -13,19 +14,23 @@ const auth = useAuthStore()
         <div class="text-amber text-h6">Bienvenid@ {{ auth.user.name }}</div>
       </q-card-section>
 
-      <div class="row full-width q-pa-md">
-        <div class="col-xs-12 col-sm-12 col-md-6 col-lg-4 q-ma-sm">
-          <ClientTypes />
-        </div>
+      <q-card-section>
+        <div class="row q-col-gutter-md q-pa-md">
+          <div class="col-xs-12 col-sm-12 col-md-6 col-lg-4">
+            <ClientTypes />
+          </div>
 
-        <div class="col-xs-12 col-sm-12 col-md-6 col-lg-4 q-ma-sm">
-          <c-p-u-metrics />
-        </div>
-      </div>
+          <div class="col-xs-12 col-sm-12 col-md-6 col-lg-4">
+            <CPUMetrics />
+          </div>
 
-      <div class="row full-width q-pa-md"></div>
+          <div class="col-xs-12 col-sm-12 col-md-6 col-lg-4">
+            <MostConsumedPlan />
+          </div>
+        </div>
+      </q-card-section>
     </q-card>
   </q-page>
 </template>
 
-<style scoped></style>
+<style scoped lang="sass"></style>
