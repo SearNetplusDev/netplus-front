@@ -17,6 +17,11 @@ const chartOptions = ref({
     background: 'transparent',
     toolbar: false,
     type: 'donut',
+    animations: {
+      enabled: true,
+      easing: 'easeinount',
+      speed: 900,
+    },
   },
   title: {
     text: 'Estado de facturas',
@@ -30,25 +35,54 @@ const chartOptions = ref({
   labels: [],
   dataLabels: {
     enabled: true,
+    formatter(val) {
+      return `${val.toFixed(0)}%`
+    },
     style: {
       colors: ['#ffffff'],
-      fontSize: '13px',
-      fontWeight: 'bold',
+      fontSize: '12px',
+      fontWeight: 600,
+    },
+    dropShadow: {
+      enabled: false,
     },
   },
   plotOptions: {
     pie: {
       donut: {
-        size: '60%',
+        size: '68%',
+        labels: {
+          show: true,
+          label: 'Total',
+          color: '#94a3b8',
+          formatter: function (w) {
+            return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
+          },
+        },
+        value: {
+          color: '#ffffff',
+          fontSize: '24px',
+          fontWeight: '700',
+        },
       },
     },
   },
   legend: {
     position: 'bottom',
+    horizontalAlign: 'center',
+    fontSize: '13px',
     labels: {
       color: '#cbd5e1',
     },
-    fontSize: '14px',
+    markers: {
+      width: 12,
+      height: 12,
+      radius: 12,
+    },
+    itemMargin: {
+      horizontal: 12,
+      vertical: 8,
+    },
   },
   tooltip: {
     theme: 'dark',
@@ -57,6 +91,27 @@ const chartOptions = ref({
     colors: ['#1e293b'],
     width: 2,
   },
+  colors: [
+    '#3b82f6', // Emitidas
+    '#f59e0b', // Pendientes
+    '#22c55e', // Pagadas
+    '#ef4444', // Vencidas
+    '#64748b', // Canceladas
+    '#8338ec', // Parcialmente pagadas
+  ],
+  responsive: [
+    {
+      breakpoint: 768,
+      options: {
+        chart: {
+          width: '100%',
+        },
+        legend: {
+          position: 'bottom',
+        },
+      },
+    },
+  ],
 })
 const chartSeries = ref([])
 const getChartData = async () => {

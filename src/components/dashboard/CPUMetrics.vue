@@ -7,6 +7,7 @@ import { useNotifications } from 'src/utils/notification.js'
 const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
+const loading = ref(true)
 const chartOptions = reactive({
   chart: {
     type: 'radialBar',
@@ -28,6 +29,7 @@ const chartOptions = reactive({
   },
   plotOptions: {
     radialBar: {
+      size: '75%',
       track: {
         background: '#334155',
       },
@@ -49,8 +51,19 @@ const chartOptions = reactive({
   legend: {
     show: true,
     position: 'bottom',
+    horizontalAlign: 'center',
+    fontSize: '13px',
     labels: {
-      colors: '#ffffff',
+      color: '#cbd5e1',
+    },
+    markers: {
+      width: 12,
+      height: 12,
+      radius: 12,
+    },
+    itemMargin: {
+      horizontal: 12,
+      vertical: 8,
     },
   },
 })
@@ -62,6 +75,7 @@ const colorByThreshold = (pct) => {
 }
 const getData = async () => {
   showLoading()
+  loading.value = true
   try {
     const { data } = await api.get('/api/v1/dashboard/resources')
     if (data?.data) {
@@ -91,6 +105,7 @@ const getData = async () => {
   } finally {
     setTimeout(() => {
       hideLoading()
+      loading.value = false
     }, 150)
   }
 }
@@ -101,6 +116,7 @@ onMounted(async () => {
 
 <template>
   <q-card flat class="custom-cards">
+    <q-inner-loading :showing="loading" />
     <apex-chart
       type="radialBar"
       :options="chartOptions"

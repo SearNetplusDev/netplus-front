@@ -7,6 +7,7 @@ import { useNotifications } from 'src/utils/notification.js'
 const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
+const loading = ref(true)
 const chartOptions = reactive({
   chart: {
     width: 200,
@@ -26,10 +27,20 @@ const chartOptions = reactive({
   },
   legend: {
     position: 'bottom',
+    horizontalAlign: 'center',
+    fontSize: '13px',
     labels: {
       color: '#cbd5e1',
     },
-    fontSize: '14px',
+    markers: {
+      width: 12,
+      height: 12,
+      radius: 12,
+    },
+    itemMargin: {
+      horizontal: 12,
+      vertical: 8,
+    },
   },
   dataLabels: {
     enabled: true,
@@ -42,6 +53,7 @@ const chartOptions = reactive({
   plotOptions: {
     pie: {
       customScale: 0.9,
+      size: '68%',
     },
   },
   tooltip: { theme: 'dark' },
@@ -60,6 +72,7 @@ const chartOptions = reactive({
 const chartSeries = ref([])
 const getData = async () => {
   showLoading()
+  loading.value = true
   try {
     const { data } = await api.get(`/api/v1/dashboard/client-types`)
     if (data) {
@@ -77,6 +90,7 @@ const getData = async () => {
   } finally {
     setTimeout(() => {
       hideLoading()
+      loading.value = false
     }, 150)
   }
 }
@@ -87,6 +101,7 @@ onMounted(async () => {
 
 <template>
   <q-card flat class="custom-cards">
+    <q-inner-loading :showing="loading" />
     <ApexChart v-if="chartSeries.length" type="pie" :options="chartOptions" :series="chartSeries" />
   </q-card>
 </template>
