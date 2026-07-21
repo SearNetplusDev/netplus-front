@@ -4,6 +4,7 @@ import ClientTypes from 'components/dashboard/ClientTypes.vue'
 import CPUMetrics from 'components/dashboard/CPUMetrics.vue'
 import MostConsumedPlan from 'components/dashboard/MostConsumedPlan.vue'
 import SupportsGraphic from 'components/dashboard/SupportsGraphic.vue'
+import InvoicesChart from 'components/dashboard/InvoicesChart.vue'
 
 const auth = useAuthStore()
 </script>
@@ -23,6 +24,10 @@ const auth = useAuthStore()
 
           <div class="col-xs-12 col-sm-12 col-md-6 col-lg-4">
             <CPUMetrics />
+          </div>
+
+          <div class="col-xs-12 col-sm-12 col-md-6 col-lg-4">
+            <InvoicesChart />
           </div>
 
           <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">

@@ -15,6 +15,7 @@ const chartOptions = ref({
     width: 200,
     height: 300,
     background: 'transparent',
+    toolbar: false,
   },
   title: {
     text: 'Top 10 planes más contratados',

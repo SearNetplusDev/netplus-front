@@ -1,22 +1,25 @@
 <script setup>
-import { reactive, onMounted, ref, defineAsyncComponent } from 'vue'
+import { defineAsyncComponent, ref, onMounted } from 'vue'
 import { api } from 'src/utils/api.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
 
-const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
+const apexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
-const chartOptions = reactive({
+const loading = ref(true)
+const chartOptions = ref({
   chart: {
+    id: 'invoices-statuses-chart',
+    foreColor: '#f8fafc',
     width: 200,
     height: 300,
-    type: 'pie',
     background: 'transparent',
-    foreColor: '#e2e8f0',
+    toolbar: false,
+    type: 'donut',
   },
   title: {
-    text: 'Tipos de clientes',
+    text: 'Estado de facturas',
     align: 'center',
     style: {
       color: '#f8fafc',
@@ -24,13 +27,7 @@ const chartOptions = reactive({
       fontWeight: '600',
     },
   },
-  legend: {
-    position: 'bottom',
-    labels: {
-      color: '#cbd5e1',
-    },
-    fontSize: '14px',
-  },
+  labels: [],
   dataLabels: {
     enabled: true,
     style: {
@@ -41,32 +38,38 @@ const chartOptions = reactive({
   },
   plotOptions: {
     pie: {
-      customScale: 0.9,
-    },
-  },
-  tooltip: { theme: 'dark' },
-  stroke: { colors: ['#1e293b'] },
-  colors: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'],
-  labels: [],
-  responsive: [
-    {
-      breakpoint: 480,
-      options: {
-        legend: { position: 'bottom' },
+      donut: {
+        size: '60%',
       },
     },
-  ],
+  },
+  legend: {
+    position: 'bottom',
+    labels: {
+      color: '#cbd5e1',
+    },
+    fontSize: '14px',
+  },
+  tooltip: {
+    theme: 'dark',
+  },
+  stroke: {
+    colors: ['#1e293b'],
+    width: 2,
+  },
 })
 const chartSeries = ref([])
-const getData = async () => {
+const getChartData = async () => {
   showLoading()
+  loading.value = true
   try {
-    const { data } = await api.get(`/api/v1/dashboard/client-types`)
+    const { data } = await api.get('/api/v1/dashboard/invoices-stats')
     if (data) {
-      chartOptions.labels = data.labels
-      chartSeries.value = data.data
-    } else {
-      showNotification('Error', 'Algo ha salido mal.', 'red-10')
+      chartOptions.value = {
+        // ...chartOptions.value,
+        labels: data.labels,
+      }
+      chartSeries.value = data.series
     }
   } catch (err) {
     showNotification(
@@ -77,17 +80,19 @@ const getData = async () => {
   } finally {
     setTimeout(() => {
       hideLoading()
+      loading.value = false
     }, 150)
   }
 }
 onMounted(async () => {
-  await getData()
+  await getChartData()
 })
 </script>
 
 <template>
   <q-card flat class="custom-cards">
-    <ApexChart v-if="chartSeries.length" type="pie" :options="chartOptions" :series="chartSeries" />
+    <q-inner-loading :showing="loading" />
+    <apex-chart type="donut" :options="chartOptions" :series="chartSeries" />
   </q-card>
 </template>
 
