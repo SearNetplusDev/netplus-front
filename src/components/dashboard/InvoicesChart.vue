@@ -8,6 +8,7 @@ const apexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
 const loading = ref(true)
+const title = ref('Estado de facturas')
 const chartOptions = ref({
   chart: {
     id: 'invoices-statuses-chart',
@@ -19,12 +20,12 @@ const chartOptions = ref({
     type: 'donut',
     animations: {
       enabled: true,
-      easing: 'easeinount',
+      easing: 'easeinout',
       speed: 900,
     },
   },
   title: {
-    text: 'Estado de facturas',
+    text: title.value,
     align: 'center',
     style: {
       color: '#f8fafc',
@@ -123,6 +124,10 @@ const getChartData = async () => {
       chartOptions.value = {
         // ...chartOptions.value,
         labels: data.labels,
+        title: {
+          ...chartOptions.value.title,
+          text: `Estado de facturas del período ${data.period}`,
+        },
       }
       chartSeries.value = data.series
     }

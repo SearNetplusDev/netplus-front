@@ -102,7 +102,7 @@ onMounted(async () => {
 <template>
   <q-card flat class="custom-cards">
     <q-inner-loading :showing="loading" />
-    <ApexChart v-if="chartSeries.length" type="pie" :options="chartOptions" :series="chartSeries" />
+    <ApexChart v-if="chartSeries.length" type="pie" :options="chartOptions" :series="chartSeries"/>
   </q-card>
 </template>
 
