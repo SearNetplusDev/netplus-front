@@ -1,13 +1,16 @@
 <script setup>
-import { ref, watch, computed, reactive } from 'vue'
+import { ref, watch, computed, reactive, defineAsyncComponent } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import SupportFormDialog from 'components/supports/SupportFormDialog.vue'
 import PDFDialog from 'components/base/widgets/PDFDialog.vue'
-import LogDialog from 'components/supports/LogDialog.vue'
 
+const LogDialog = defineAsyncComponent(() => import('components/supports/LogDialog.vue'))
+const SurveyDialog = defineAsyncComponent(
+  () => import('components/supports/surveys/SurveyDialogComponent.vue'),
+)
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const currentItem = ref(0)
@@ -88,6 +91,7 @@ const showForm = computed(() => dataViewer.get_dataViewer.showForm)
 const uiStates = reactive({
   visiblePDF: false,
   visibleLog: false,
+  visibleSurvey: false,
   currentSupport: 0,
   pdfUrl: '',
 })
@@ -100,17 +104,19 @@ const printSupport = (id) => {
   uiStates.currentSupport = id
   uiStates.pdfUrl = `/api/v1/supports/print/${id}`
 }
-const refreshPDFComponent = () => {
+const refreshDialog = () => {
   uiStates.visiblePDF = false
+  uiStates.visibleLog = false
+  uiStates.visibleSurvey = false
   uiStates.currentSupport = 0
 }
 const logDialog = (id) => {
   uiStates.visibleLog = true
   uiStates.currentSupport = id
 }
-const refreshLogDialog = () => {
-  uiStates.visibleLog = false
-  uiStates.currentSupport = 0
+const surveyDialog = (id) => {
+  uiStates.visibleSurvey = true
+  uiStates.currentSupport = id
 }
 watch(showForm, (newVal) => {
   if (newVal === 1) {
@@ -127,18 +133,22 @@ watch(showForm, (newVal) => {
     </template>
 
     <template v-if="uiStates.visiblePDF">
-      <PDFDialog
-        :visible="uiStates.visiblePDF"
-        :uri="uiStates.pdfUrl"
-        @hide="refreshPDFComponent"
-      />
+      <PDFDialog :visible="uiStates.visiblePDF" :uri="uiStates.pdfUrl" @hide="refreshDialog" />
     </template>
 
     <template v-if="uiStates.visibleLog">
       <LogDialog
         :id="uiStates.currentSupport"
         :visible="uiStates.visibleLog"
-        @hide="refreshLogDialog"
+        @hide="refreshDialog"
+      />
+    </template>
+
+    <template v-if="uiStates.visibleSurvey">
+      <SurveyDialog
+        v-model:visible="uiStates.visibleSurvey"
+        :support="uiStates.currentSupport"
+        @hide="refreshDialog"
       />
     </template>
 
@@ -257,11 +267,50 @@ watch(showForm, (newVal) => {
                 </q-tooltip>
               </q-btn>
 
-              <q-btn color="grey-8" icon="history" size="sm" @click="logDialog(props.row?.id)">
-                <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
-                  Historial del soporte {{ props.row?.ticket_number }}
-                </q-tooltip>
-              </q-btn>
+              <q-btn-dropdown color="teal-9" size="sm" label="extras">
+                <q-list>
+                  <q-item clickable v-close-popup @click="logDialog(props.row.id)">
+                    <q-item-section avatar>
+                      <q-avatar icon="history" color="teal-9" text-color="white" />
+                    </q-item-section>
+
+                    <q-item-section>
+                      <q-item-label>
+                        Historial del soporte {{ props.row.ticket_number }}
+                      </q-item-label>
+                      <q-item-label caption>Generado: {{ props.row.creation_date }}</q-item-label>
+                      <q-item-label caption>Finalizado: {{ props.row.closed_at }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                  <q-item
+                    v-if="props.row.status_id === 3"
+                    clickable
+                    v-close-popup
+                    @click="surveyDialog(props.row.id)"
+                  >
+                    <q-item-section avatar>
+                      <q-avatar icon="mdi-star" color="teal-9" text-color="white" />
+                    </q-item-section>
+
+                    <q-item-section>
+                      <q-item-label>
+                        Evaluación del soporte {{ props.row.ticket_number }}
+                      </q-item-label>
+                      <q-item-label caption>
+                        Calificación:
+                        <q-rating
+                          :model-value="props.row.survey ? props.row.survey?.overall_rate : 0"
+                          size="1.5em"
+                          color="amber"
+                          icon="star"
+                          readonly
+                        />
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-btn-dropdown>
             </q-btn-group>
           </q-td>
         </q-tr>
