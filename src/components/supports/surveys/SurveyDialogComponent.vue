@@ -16,6 +16,8 @@ const props = defineProps({
 const ui_states = reactive({
   title: 'Control de calidad',
   current: 0,
+  show_form: false,
+  support: 0,
 })
 const emit = defineEmits(['update:visible', 'hide'])
 const isVisible = computed({
@@ -61,6 +63,16 @@ const getData = async () => {
     }, 150)
   }
 }
+const callForm = (support, survey) => {
+  ui_states.show_form = true
+  ui_states.support = support
+  ui_states.current = survey
+}
+const resetDialog = () => {
+  ui_states.show_form = false
+  ui_states.current = 0
+  ui_states.support = 0
+}
 onMounted(async () => {
   await getData()
 })
@@ -83,6 +95,7 @@ onMounted(async () => {
           :ripple="{ center: true, color: 'primary' }"
           :label="survey_data === null ? 'Realizar evaluación' : 'Editar evaluación'"
           align="around"
+          @click="callForm(props.support, survey_data ? survey_data.id : 0)"
         />
       </q-card-section>
 
@@ -205,8 +218,13 @@ onMounted(async () => {
     </q-card>
   </q-dialog>
 
-  <template>
-    <SurveyForm :survey="ui_states.current" />
+  <template v-if="ui_states.show_form">
+    <SurveyForm
+      :survey="ui_states.current"
+      :support="ui_states.support"
+      v-model:visible="ui_states.show_form"
+      @hide="resetDialog"
+    />
   </template>
 </template>
 
