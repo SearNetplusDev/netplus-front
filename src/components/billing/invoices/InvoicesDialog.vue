@@ -95,6 +95,30 @@ const resetDialogState = () => {
   uiStates.currentInvoice = 0
   uiStates.pdfUri = ''
 }
+const recalculate = async (id) => {
+  showLoading()
+  uiStates.loading = true
+  try {
+    const { data } = await api.post(`${url}recalculate`, { invoice_id: id, _method: 'POST' })
+    if (data.success) {
+      showNotification('Éxito', 'Recalculo realizado.', 'blue-grey-10')
+      await getData()
+    } else {
+      showNotification('Error', 'Algo salió mal', 'red-10')
+    }
+  } catch (err) {
+    showNotification(
+      'Error',
+      err.response?.data?.message ?? err.message ?? 'Error inesperado',
+      'red-10',
+    )
+  } finally {
+    setTimeout(() => {
+      hideLoading()
+      uiStates.loading = false
+    }, 150)
+  }
+}
 onMounted(async () => {
   if (props.id > 0) await getData()
 })
@@ -214,7 +238,7 @@ onMounted(async () => {
 
                     <!--    Actions   -->
                     <q-td auto-width key="actions" :props="props">
-                      <q-btn-dropdown color="primary" label="acciones">
+                      <q-btn-dropdown color="teal-10" label="extras" size="sm">
                         <q-list>
                           <q-item clickable v-close-popup @click="print(props.row.id)">
                             <q-item-section>
@@ -231,6 +255,15 @@ onMounted(async () => {
                             </q-item-section>
                             <q-item-section avatar>
                               <q-avatar icon="mdi-store-clock-outline" text-color="white" />
+                            </q-item-section>
+                          </q-item>
+
+                          <q-item clickable v-close-popup @click="recalculate(props.row.id)">
+                            <q-item-section>
+                              <q-item-label>Recalcular</q-item-label>
+                            </q-item-section>
+                            <q-item-section avatar>
+                              <q-avatar icon="mdi-file-refresh" text-color="white" />
                             </q-item-section>
                           </q-item>
                         </q-list>
