@@ -11,6 +11,7 @@ const LogDialog = defineAsyncComponent(() => import('components/supports/LogDial
 const SurveyDialog = defineAsyncComponent(
   () => import('components/supports/surveys/SurveyDialogComponent.vue'),
 )
+const LocationMap = defineAsyncComponent(() => import('components/supports/LocationMapDialog.vue'))
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const currentItem = ref(0)
@@ -92,6 +93,7 @@ const uiStates = reactive({
   visiblePDF: false,
   visibleLog: false,
   visibleSurvey: false,
+  visibleLocation: false,
   currentSupport: 0,
   pdfUrl: '',
 })
@@ -108,6 +110,7 @@ const refreshDialog = () => {
   uiStates.visiblePDF = false
   uiStates.visibleLog = false
   uiStates.visibleSurvey = false
+  uiStates.visibleLocation = false
   uiStates.currentSupport = 0
 }
 const logDialog = (id) => {
@@ -117,6 +120,10 @@ const logDialog = (id) => {
 const surveyDialog = (id) => {
   uiStates.visibleSurvey = true
   uiStates.currentSupport = id
+}
+const locationDialog = (service) => {
+  uiStates.visibleLocation = true
+  uiStates.currentSupport = service
 }
 watch(showForm, (newVal) => {
   if (newVal === 1) {
@@ -148,6 +155,14 @@ watch(showForm, (newVal) => {
       <SurveyDialog
         v-model:visible="uiStates.visibleSurvey"
         :support="uiStates.currentSupport"
+        @hide="refreshDialog"
+      />
+    </template>
+
+    <template v-if="uiStates.visibleLocation">
+      <LocationMap
+        v-model:visible="uiStates.visibleLocation"
+        :service="uiStates.currentSupport"
         @hide="refreshDialog"
       />
     </template>
@@ -269,6 +284,18 @@ watch(showForm, (newVal) => {
 
               <q-btn-dropdown color="teal-9" size="sm" label="extras">
                 <q-list>
+                  <q-item clickable v-close-popup @click="locationDialog(props.row.service_id)">
+                    <q-item-section avatar>
+                      <q-avatar icon="mdi-google-maps" color="teal-9" text-color="white" />
+                    </q-item-section>
+
+                    <q-item-section>
+                      <q-item-label>
+                        Ubicación del Soporte {{ props.row.ticket_number }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+
                   <q-item clickable v-close-popup @click="logDialog(props.row.id)">
                     <q-item-section avatar>
                       <q-avatar icon="history" color="teal-9" text-color="white" />

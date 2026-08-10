@@ -97,6 +97,7 @@ const sendData = async () => {
     const { data } = await api.post(url, payload)
     if (data?.saved) {
       showNotification('Éxito', 'Datos almacenados correctamente.', 'blue-green-10')
+      emit('hide')
     }
   } catch (err) {
     if (err.response?.status === 422) {

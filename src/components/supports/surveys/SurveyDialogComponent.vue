@@ -68,10 +68,11 @@ const callForm = (support, survey) => {
   ui_states.support = support
   ui_states.current = survey
 }
-const resetDialog = () => {
+const resetDialog = async () => {
   ui_states.show_form = false
   ui_states.current = 0
   ui_states.support = 0
+  await getData()
 }
 onMounted(async () => {
   await getData()
