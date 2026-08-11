@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+import { useQuasar } from 'quasar'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -18,6 +19,7 @@ L.Icon.Default.mergeOptions({
 
 const { showLoading, hideLoading } = useLoading()
 const { showNotification } = useNotifications()
+const $q = useQuasar()
 const props = defineProps({
   visible: { type: Boolean, required: true },
   service: { type: Number, required: true },
@@ -78,6 +80,26 @@ const mapViews = [
     maxZoom: 20,
   },
 ]
+const destinationCoords = computed(() => {
+  const lat = parseFloat(serviceData.value.latitude)
+  const lng = parseFloat(serviceData.value.longitude)
+
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return null
+  return { lat, lng }
+})
+const openGoogleMapsDirections = () => {
+  if (!destinationCoords.value) return
+  const { lat, lng } = destinationCoords.value
+  window.open(
+    `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,
+    '_blank',
+  )
+}
+const openWazeDirections = () => {
+  if (!destinationCoords.value) return
+  const { lat, lng } = destinationCoords.value
+  window.open(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`, '_blank')
+}
 const getServiceLocation = async () => {
   showLoading()
   try {
@@ -269,6 +291,38 @@ onBeforeUnmount(() => {
       </q-card-section>
 
       <q-card-actions align="right">
+        <q-btn-dropdown
+          v-if="$q.platform.is.mobile"
+          icon="directions"
+          label="como llegar?"
+          color="primary"
+          :disable="!destinationCoords"
+        >
+          <q-list>
+            <q-item clickable v-close-popup @click="openGoogleMapsDirections">
+              <q-item-section avatar>
+                <q-icon name="mdi-google-maps" color="primary" />
+              </q-item-section>
+              <q-item-section>Google Maps</q-item-section>
+            </q-item>
+
+            <q-item clickable v-close-popup @click="openWazeDirections">
+              <q-item-section avatar>
+                <q-icon name="mdi-waze" color="blue-5" />
+              </q-item-section>
+              <q-item-section>Waze</q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+
+        <q-btn
+          v-else
+          icon="directions"
+          label="como llegar?"
+          color="primary"
+          :disable="!destinationCoords"
+          @click="openGoogleMapsDirections"
+        />
         <q-btn icon="close" label="cerrar" color="negative" v-close-popup />
       </q-card-actions>
     </q-card>
