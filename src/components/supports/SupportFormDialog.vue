@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, onMounted } from 'vue'
 import { useNotifications } from 'src/utils/notification.js'
-import { useSupportFields } from 'src/utils/composables/supports/useSupportFields.js'
+import { SUPPORT_TYPES, useSupportFields } from 'src/utils/composables/supports/useSupportFields.js'
 import { external, loadInitialData } from 'src/utils/composables/supports/useSupportLoaders.js'
 import { useSupportForm } from 'src/utils/composables/supports/useSupportForm.js'
 import { useSupportUtils } from 'src/utils/composables/supports/useSupportUtils.js'
@@ -12,6 +12,8 @@ const locale = LocaleEs
 
 const props = defineProps({
   id: { type: Number, required: true },
+  presetClient: { type: Object, default: null },
+  presetType: { type: Number, default: null },
 })
 
 const uiStates = reactive({
@@ -21,11 +23,8 @@ const uiStates = reactive({
 
 const { showNotification } = useNotifications()
 const { fields } = useSupportFields()
-const { getData, sendData, selectClient, setupWatchers, toggleLoading } = useSupportForm(
-  fields,
-  uiStates,
-  props,
-)
+const { getData, sendData, selectClient, setupWatchers, toggleLoading, presetForCreate } =
+  useSupportForm(fields, uiStates, props)
 const { regularFields, textAreaFields, selectOptions } = useSupportUtils(fields)
 
 onMounted(async () => {
@@ -33,7 +32,14 @@ onMounted(async () => {
   try {
     await loadInitialData()
     setupWatchers()
-    if (props.id > 0) await getData()
+    if (props.id > 0) {
+      await getData()
+    } else if (props.presetClient) {
+      await presetForCreate({
+        client: props.presetClient,
+        type: props.presetType || SUPPORT_TYPES.INTERNET_SUPPORT,
+      })
+    }
   } catch (err) {
     console.error(err)
     showNotification('Error', 'Error al cargar datos iniciales', 'red-10')

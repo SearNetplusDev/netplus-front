@@ -1,13 +1,16 @@
 <script setup>
-import { reactive } from 'vue'
+import { reactive, defineAsyncComponent } from 'vue'
 import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import RealtimeDialog from 'components/monitoring/internet/RealtimeDialog.vue'
 
+const SupportForm = defineAsyncComponent(() => import('components/supports/SupportFormDialog.vue'))
 const { copy } = useClipboard()
 const ui_states = reactive({
   pppoe_user: null,
   showNavigation: false,
+  showSupportForm: false,
+  presetClient: null,
 })
 const columns = reactive([
   {
@@ -36,6 +39,18 @@ const resetParams = () => {
   ui_states.pppoe_user = null
   ui_states.showNavigation = false
 }
+const openSupportForm = (client) => {
+  if (!client) return
+  ui_states.presetClient = {
+    id: client.id,
+    name: `${client.name} ${client.surname}`.trim(),
+  }
+  ui_states.showSupportForm = true
+}
+const resetSupportForm = () => {
+  ui_states.showSupportForm = false
+  ui_states.presetClient = null
+}
 </script>
 <template>
   <div>
@@ -47,6 +62,10 @@ const resetParams = () => {
       />
     </template>
 
+    <q-dialog v-model="ui_states.showSupportForm" maximized @hide="resetSupportForm">
+      <SupportForm :id="0" :preset-client="ui_states.presetClient" />
+    </q-dialog>
+
     <base-data-table :columns="columns">
       <template v-slot:body="{ props }">
         <q-tr :props="props">
@@ -55,23 +74,21 @@ const resetParams = () => {
             <q-badge
               class="text-center text-weight-bold q-py-xs"
               :style="{
-                backgroundColor:
-                  props.row.internet_service?.service?.client?.financial_status?.status
-                    ?.badge_color,
+                backgroundColor: props.row.client?.financial_status?.status?.badge_color,
               }"
-              :label="props.row.internet_service?.service?.client?.financial_status?.status?.name"
+              :label="props.row.client?.financial_status?.status?.name"
             />
           </q-td>
 
           <!--    Client    -->
           <q-td key="client" class="text-left" :props="props">
-            {{ props.row.internet_service?.service?.client?.name }}
-            {{ props.row.internet_service?.service?.client?.surname }}
+            {{ props.row.client?.name }}
+            {{ props.row.client?.surname }}
           </q-td>
 
           <!--    Branch    -->
           <q-td key="branch" class="text-left" :props="props">
-            {{ props.row.internet_service?.service?.client?.branch?.name }}
+            {{ props.row.client?.branch?.name }}
           </q-td>
 
           <!--    Phone   -->
@@ -79,9 +96,9 @@ const resetParams = () => {
             key="mobile"
             class="text-left copy-text"
             :props="props"
-            @click="copy(props.row.internet_service?.service?.client?.mobile?.number)"
+            @click="copy(props.row.client?.mobile?.number)"
           >
-            {{ props.row.internet_service?.service?.client?.mobile?.number }}
+            {{ props.row.client?.mobile?.number }}
           </q-td>
 
           <!--    PPPoe User    -->
@@ -130,6 +147,18 @@ const resetParams = () => {
               >
                 <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
                   Ver datos en tiempo real de {{ props.row.pppoe_user }}
+                </q-tooltip>
+              </q-btn>
+
+              <q-btn
+                color="blue-10"
+                size="sm"
+                icon="mdi-headset"
+                :disable="!props.row.client"
+                @click="openSupportForm(props.row.client)"
+              >
+                <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
+                  Crear soporte para {{ props.row.client?.name }} {{ props.row.client?.surname }}
                 </q-tooltip>
               </q-btn>
             </q-btn-group>

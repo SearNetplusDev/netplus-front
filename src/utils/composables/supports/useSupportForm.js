@@ -86,6 +86,37 @@ export const useSupportForm = (fields, uiStates, props) => {
     }, 100)
   }
 
+  const presetForCreate = async ({ client, type } = {}) => {
+    if (!type) return
+
+    isLoadingExistingData = true
+
+    const newFields = createFieldsForType(type)
+    Object.keys(fields).forEach((key) => delete fields[key])
+    Object.assign(fields, newFields)
+
+    if (fields.type) fields.type.data = type
+
+    await loaders.loadProfiles(type)
+    const needNodes = [1, 2, 5, 6, 7].includes(type)
+    if (needNodes) await loaders.loadNodes()
+
+    if (client && fields.client) {
+      external.filtered_client = [client]
+      fields.client.data = client.id
+
+      await loadClientBranch(client.id)
+
+      if ([3, 4, 5, 6, 7, 8, 9].includes(type)) {
+        await loaders.loadClientServices(client.id)
+      }
+    }
+
+    setTimeout(() => {
+      isLoadingExistingData = false
+    }, 150)
+  }
+
   const getData = async () => {
     if (props.id <= 0) return
 
@@ -316,6 +347,7 @@ export const useSupportForm = (fields, uiStates, props) => {
     setupWatchers,
     toggleLoading,
     populateFields,
+    presetForCreate,
     loadServiceAddress,
     loadClientBranch,
   }

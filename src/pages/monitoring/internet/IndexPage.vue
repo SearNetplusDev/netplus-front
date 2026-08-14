@@ -24,9 +24,9 @@ const filter = {
       opened: false,
       filters: [
         // { title: 'ID', name: 'id', type: 'numeric' },
-        { title: 'Nombres', name: 'internet_service.service.client.name', type: 'string' },
-        { title: 'Apellidos', name: 'internet_service.service.client.surname', type: 'string' },
-        { title: 'DUI', name: 'internet_service.service.client.dui.number', type: 'string' },
+        { title: 'Nombres', name: 'client.name', type: 'string' },
+        { title: 'Apellidos', name: 'client.surname', type: 'string' },
+        { title: 'DUI', name: 'client.dui.number', type: 'string' },
       ],
     },
   ],
