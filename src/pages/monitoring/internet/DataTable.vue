@@ -1,11 +1,16 @@
 <script setup>
-import { reactive, defineAsyncComponent } from 'vue'
+import { reactive, defineAsyncComponent, ref } from 'vue'
 import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import RealtimeDialog from 'components/monitoring/internet/RealtimeDialog.vue'
 
 const SupportForm = defineAsyncComponent(() => import('components/supports/SupportFormDialog.vue'))
+const ServiceContainer = defineAsyncComponent(
+  () => import('components/services/general/MainContainer.vue'),
+)
 const { copy } = useClipboard()
+const showServiceDialog = ref(false)
+const serviceData = ref(null)
 const ui_states = reactive({
   pppoe_user: null,
   showNavigation: false,
@@ -51,9 +56,23 @@ const resetSupportForm = () => {
   ui_states.showSupportForm = false
   ui_states.presetClient = null
 }
+const openService = (row) => {
+  if (!row.service_id) return
+  serviceData.value = {
+    id: row.service_id,
+    client_id: row.client_id || null,
+    client: row.client,
+  }
+  showServiceDialog.value = true
+}
+const closeServiceDialog = () => {
+  showServiceDialog.value = false
+  serviceData.value = null
+}
 </script>
 <template>
   <div>
+    <!--    Diálogo de tiempo real    -->
     <template v-if="ui_states.showNavigation === true">
       <RealtimeDialog
         :user="ui_states.pppoe_user"
@@ -61,10 +80,39 @@ const resetSupportForm = () => {
         @hide-dialog="resetParams"
       />
     </template>
+    <!--    Fin diálogo de tiempo real    -->
 
+    <!--    Diálogo de creación de soporte    -->
     <q-dialog v-model="ui_states.showSupportForm" maximized @hide="resetSupportForm">
       <SupportForm :id="0" :preset-client="ui_states.presetClient" />
     </q-dialog>
+    <!--    Fin diálogo de creación de soporte    -->
+
+    <!--    Diálogo para mostrar el servicio    -->
+    <q-dialog v-model="showServiceDialog" maximized @hide="closeServiceDialog">
+      <q-layout view="hHh LpR fFF" container class="bg-dark">
+        <q-header class="q-header">
+          <q-toolbar>
+            <q-toolbar-title>
+              Detalle del servicio # {{ serviceData?.id }}
+              <span v-if="serviceData.client" class="text-weight-light">
+                - {{ serviceData.client?.name }} {{ serviceData.client?.surname }}
+              </span>
+            </q-toolbar-title>
+            <q-btn v-close-popup round dense icon="close" />
+          </q-toolbar>
+        </q-header>
+
+        <q-page-container>
+          <q-card dark flat class="q-pa-xs">
+            <q-card-section>
+              <ServiceContainer :data="serviceData" :show-drawer="true" />
+            </q-card-section>
+          </q-card>
+        </q-page-container>
+      </q-layout>
+    </q-dialog>
+    <!--    Fin diálogo para mostrar el servicio    -->
 
     <base-data-table :columns="columns">
       <template v-slot:body="{ props }">
@@ -159,6 +207,19 @@ const resetSupportForm = () => {
               >
                 <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
                   Crear soporte para {{ props.row.client?.name }} {{ props.row.client?.surname }}
+                </q-tooltip>
+              </q-btn>
+
+              <q-btn
+                color="indigo-6"
+                size="sm"
+                icon="mdi-account-details"
+                :disable="!props.row.service_id"
+                @click="openService(props.row)"
+              >
+                <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
+                  Ver datos del servicio (ID: {{ props.row.service_id }}) de
+                  {{ props.row.client?.name }} {{ props.row.client?.surname }}
                 </q-tooltip>
               </q-btn>
             </q-btn-group>
