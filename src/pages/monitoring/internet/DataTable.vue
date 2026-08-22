@@ -69,6 +69,9 @@ const closeServiceDialog = () => {
   showServiceDialog.value = false
   serviceData.value = null
 }
+const openLink = (link) => {
+  window.open(`http://${link}`, '_blank')
+}
 </script>
 <template>
   <div>
@@ -164,7 +167,7 @@ const closeServiceDialog = () => {
             key="ip"
             class="text-left copy-text"
             :props="props"
-            @click="copy(props.row.ip_address)"
+            @click="openLink(props.row.ip_address)"
           >
             {{ props.row.ip_address }}
           </q-td>
