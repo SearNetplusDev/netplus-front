@@ -1,11 +1,12 @@
 <script setup>
-import { ref, watch, computed, reactive } from 'vue'
+import { ref, watch, computed, reactive, defineAsyncComponent } from 'vue'
 import { useDataviewerStore } from 'stores/dataviewer/index.js'
 import { useClipboard } from 'src/utils/clipboard.js'
 import BaseDataTable from 'pages/baseComponents/BaseDataTable.vue'
 import BaseDialog from 'components/base/BaseDialog.vue'
 import FormDialog from 'components/operations/technical/FormDialog.vue'
 
+const LocationMap = defineAsyncComponent(() => import('components/supports/LocationMapDialog.vue'))
 const dataViewer = useDataviewerStore()
 const { copy } = useClipboard()
 const currentItem = ref(0)
@@ -83,9 +84,21 @@ const columns = reactive([
   { name: 'actions', label: '', align: 'center' },
 ])
 const showForm = computed(() => dataViewer.get_dataViewer.showForm)
+const ui_states = reactive({
+  visibleLocation: false,
+  currentService: 0,
+})
 const edit = (itm) => {
   currentItem.value = itm
   dataViewer.changeShowForm(2)
+}
+const locationDialog = (service) => {
+  ui_states.visibleLocation = true
+  ui_states.currentService = service
+}
+const resetLocation = () => {
+  ui_states.visibleLocation = false
+  ui_states.currentService = 0
 }
 watch(showForm, (newVal) => {
   if (newVal === 1) {
@@ -99,6 +112,14 @@ watch(showForm, (newVal) => {
   <div>
     <template v-if="showForm !== 0">
       <BaseDialog :id="currentItem" :content="FormDialog" />
+    </template>
+
+    <template v-if="ui_states.visibleLocation">
+      <LocationMap
+        v-model:visible="ui_states.visibleLocation"
+        :service="ui_states.currentService"
+        @hide="resetLocation"
+      />
     </template>
 
     <BaseDataTable :columns="columns">
@@ -200,6 +221,17 @@ watch(showForm, (newVal) => {
           <!--    Actions    -->
           <q-td key="actions" :props="props">
             <q-btn-group>
+              <q-btn
+                color="blue-grey-10"
+                icon="mdi-google-maps"
+                size="sm"
+                @click="locationDialog(props.row.service_id)"
+              >
+                <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
+                  Ubicación del servicio de {{ props.row.client?.name }}
+                  {{ props.row.client?.surname }}
+                </q-tooltip>
+              </q-btn>
               <q-btn color="blue-10" icon="mdi-wrench" size="sm" @click="edit(props.row?.id)">
                 <q-tooltip transition-show="fade" transition-hide="flip-left" class="bg-grey-10">
                   Solucionar soporte {{ props.row?.ticket_number }}

@@ -8,6 +8,7 @@ const SupportForm = defineAsyncComponent(() => import('components/supports/Suppo
 const ServiceContainer = defineAsyncComponent(
   () => import('components/services/general/MainContainer.vue'),
 )
+const PDFViewer = defineAsyncComponent(() => import('components/base/widgets/PDFDialog.vue'))
 const { copy } = useClipboard()
 const showServiceDialog = ref(false)
 const serviceData = ref(null)
@@ -16,6 +17,8 @@ const ui_states = reactive({
   showNavigation: false,
   showSupportForm: false,
   presetClient: null,
+  visiblePdf: false,
+  pdfUri: '',
 })
 const columns = reactive([
   {
@@ -72,9 +75,23 @@ const closeServiceDialog = () => {
 const openLink = (link) => {
   window.open(`http://${link}`, '_blank')
 }
+const printSupport = (service_id) => {
+  ui_states.visiblePdf = true
+  ui_states.pdfUri = `/api/v1/monitoring/internet/print/last/support/${service_id}`
+}
+const resetPdfViewer = () => {
+  ui_states.visiblePdf = false
+  ui_states.pdfUri = null
+}
 </script>
 <template>
   <div>
+    <!--    PDF Viewer    --->
+    <template v-if="ui_states.visiblePdf">
+      <PDFViewer :visible="ui_states.visiblePdf" :uri="ui_states.pdfUri" @hide="resetPdfViewer" />
+    </template>
+    <!--    Fin PDF Viewer    --->
+
     <!--    Diálogo de tiempo real    -->
     <template v-if="ui_states.showNavigation === true">
       <RealtimeDialog
@@ -191,6 +208,24 @@ const openLink = (link) => {
           <q-td key="actions" :props="props">
             <q-btn-group>
               <q-btn
+                color="blue-grey-10"
+                size="sm"
+                icon="mdi-printer"
+                :disable="!props.row.client"
+                @click="printSupport(props.row.service_id)"
+              >
+                <q-tooltip
+                  transition-show="fade"
+                  transition-hide="slide-down"
+                  class="bg-grey-10"
+                  v-if="props.row.client"
+                >
+                  Imprimir último soporte generado para {{ props.row.client?.name }}
+                  {{ props.row.client?.surname }}
+                </q-tooltip>
+              </q-btn>
+
+              <q-btn
                 color="teal-10"
                 size="sm"
                 icon="mdi-web-sync"
@@ -208,7 +243,12 @@ const openLink = (link) => {
                 :disable="!props.row.client"
                 @click="openSupportForm(props.row.client)"
               >
-                <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
+                <q-tooltip
+                  transition-show="fade"
+                  transition-hide="slide-down"
+                  class="bg-grey-10"
+                  v-if="props.row.client"
+                >
                   Crear soporte para {{ props.row.client?.name }} {{ props.row.client?.surname }}
                 </q-tooltip>
               </q-btn>
@@ -220,7 +260,12 @@ const openLink = (link) => {
                 :disable="!props.row.service_id"
                 @click="openService(props.row)"
               >
-                <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
+                <q-tooltip
+                  transition-show="fade"
+                  transition-hide="slide-down"
+                  class="bg-grey-10"
+                  v-if="props.row.client"
+                >
                   Ver datos del servicio (ID: {{ props.row.service_id }}) de
                   {{ props.row.client?.name }} {{ props.row.client?.surname }}
                 </q-tooltip>
