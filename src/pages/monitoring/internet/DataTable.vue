@@ -19,6 +19,7 @@ const ui_states = reactive({
   presetClient: null,
   visiblePdf: false,
   pdfUri: '',
+  clientName: '',
 })
 const columns = reactive([
   {
@@ -39,13 +40,15 @@ const columns = reactive([
   { name: 'uptime', label: 'Tiempo de conexión', align: 'left' },
   { name: 'actions', label: '', align: 'center' },
 ])
-const showRealtimeData = (user) => {
+const showRealtimeData = (user, name, surname) => {
   ui_states.pppoe_user = user
   ui_states.showNavigation = true
+  ui_states.clientName = `${name} ${surname}`
 }
 const resetParams = () => {
   ui_states.pppoe_user = null
   ui_states.showNavigation = false
+  ui_states.clientName = ''
 }
 const openSupportForm = (client) => {
   if (!client) return
@@ -97,6 +100,7 @@ const resetPdfViewer = () => {
       <RealtimeDialog
         :user="ui_states.pppoe_user"
         v-model:visible="ui_states.showNavigation"
+        :client="ui_states.clientName"
         @hide-dialog="resetParams"
       />
     </template>
@@ -229,7 +233,13 @@ const resetPdfViewer = () => {
                 color="teal-10"
                 size="sm"
                 icon="mdi-web-sync"
-                @click="showRealtimeData(props.row.pppoe_user)"
+                @click="
+                  showRealtimeData(
+                    props.row.pppoe_user,
+                    props.row.client?.name,
+                    props.row.client?.surname,
+                  )
+                "
               >
                 <q-tooltip transition-show="fade" transition-hide="slide-down" class="bg-grey-10">
                   Ver datos en tiempo real de {{ props.row.pppoe_user }}

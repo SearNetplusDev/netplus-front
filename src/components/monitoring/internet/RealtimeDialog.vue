@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import VueApexCharts from 'vue3-apexcharts'
 import { api } from 'src/utils/api.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
@@ -11,6 +12,7 @@ const { formatLongDateTime } = useDateFormatter()
 const props = defineProps({
   user: { type: String, required: true },
   visible: { type: Boolean, required: true },
+  client: { type: String, required: true },
 })
 const emit = defineEmits(['update:visible', 'hide-dialog'])
 const isVisible = computed({
@@ -18,7 +20,7 @@ const isVisible = computed({
   set: (val) => emit('update:visible', val),
 })
 const ui_states = reactive({
-  title: `Obteniendo datos de ${props.user}, espera un momento...`,
+  title: `Obteniendo datos de ${props.user}, espera un momento....`,
   loading: false,
 })
 const navigation_data = ref([])
@@ -28,6 +30,86 @@ const formatBps = (bps) => {
   if (bps >= 1_000_000) return `${(bps / 1_000_000).toFixed(2)} Mbps`
   if (bps >= 1_000) return `${(bps / 1_000).toFixed(1)} Kbps`
   return `${bps} bps`
+}
+const POll_INTERVAL_MS = 1000
+const MAX_POINTS = 60
+let pollTimer = null
+const chartSeries = reactive([
+  { name: 'Descarga', data: [] },
+  { name: 'Subida', data: [] },
+])
+const chartOptions = computed(() => ({
+  chart: {
+    id: 'realtime-traffic',
+    type: 'line',
+    background: 'transparent',
+    animations: {
+      enabled: true,
+      easing: 'linear',
+      dynamicAnimation: { speed: POll_INTERVAL_MS },
+    },
+    toolbar: { show: false },
+    zoom: { enabled: false },
+  },
+  theme: { mode: 'dark' },
+  colors: ['#7cb342', '#ffa726'],
+  stroke: { curve: 'smooth', width: 2 },
+  markers: { size: 0 },
+  grid: { borderColor: '#424242' },
+  xaxis: {
+    type: 'datetime',
+    range: MAX_POINTS * POll_INTERVAL_MS,
+    labels: { datetimeUTC: false, style: { colors: '#bdbdbd' } },
+  },
+  yaxis: {
+    labels: {
+      style: { colors: '#bdbdbd' },
+      formatter: (val) => formatBps(val),
+    },
+  },
+  tooltip: {
+    theme: 'dark',
+    x: { format: 'HH:mm:ss' },
+    y: { formatter: (val) => formatBps(val) },
+  },
+  legend: { labels: { colors: '#bdbdbd' } },
+}))
+const pushTrafficPoint = (traffic) => {
+  const timestamp = Date.now()
+  const rx = traffic?.rx_bps ?? 0
+  const tx = traffic?.tx_bps ?? 0
+  chartSeries[0].data.push({ x: timestamp, y: rx })
+  chartSeries[1].data.push({ x: timestamp, y: tx })
+  if (chartSeries[0].data.length > MAX_POINTS) chartSeries[0].data.shift()
+  if (chartSeries[1].data.length > MAX_POINTS) chartSeries[1].data.shift()
+}
+const fetchTraffic = async () => {
+  try {
+    const {
+      data: { response },
+    } = await api.post('/api/v1/monitoring/internet/pppoe', {
+      pppoe_user: props.user,
+      _method: 'POST',
+    })
+    if (response) {
+      navigation_data.value = response
+      if (hasData.value) {
+        pushTrafficPoint(response.traffic)
+      }
+    }
+  } catch (err) {
+    console.error('Error al refrescar el tráfico PPPoe', err)
+  }
+}
+const startPolling = () => {
+  stopPolling()
+  pollTimer = setInterval(fetchTraffic, POll_INTERVAL_MS)
+}
+const stopPolling = () => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
 }
 const getData = async () => {
   ui_states.loading = true
@@ -43,8 +125,13 @@ const getData = async () => {
     if (response) {
       navigation_data.value = response
       ui_states.title = hasData.value
-        ? `Datos de navegación de ${props.user}`
+        ? `Datos de navegación de ${props.user} (${props.client})`
         : `${props.user} no tiene una sesión activa`
+
+      if (hasData.value) {
+        pushTrafficPoint(response.traffic)
+        startPolling()
+      }
     }
   } catch (err) {
     showNotification(
@@ -60,17 +147,23 @@ const getData = async () => {
     }, 150)
   }
 }
+const handleHide = () => {
+  stopPolling()
+  emit('hide-dialog')
+}
 onMounted(async () => {
   await getData()
 })
+onUnmounted(() => {
+  stopPolling()
+})
 </script>
-
 <template>
   <q-dialog
     v-model="isVisible"
     dark
     persistent
-    @hide="emit('hide-dialog')"
+    @hide="handleHide"
     backdrop-filter="blur(4px) saturate(150%)"
   >
     <q-card class="custom-cards q-pa-xs" dark>
@@ -115,7 +208,7 @@ onMounted(async () => {
               <q-icon name="mdi-download-network" color="light-green-5" size="24px" />
               <div class="text-caption text-grey-5">Descarga</div>
               <div class="text-subtitle2 text-white">
-                {{ formatBps(navigation_data.traffic?.rx_bps) }}
+                {{ formatBps(navigation_data?.traffic?.rx_bps) }}
               </div>
             </q-card>
           </div>
@@ -131,6 +224,12 @@ onMounted(async () => {
           </div>
         </div>
         <!--    Fin Tráfico RX/TX   -->
+
+        <!--  Gráfica     -->
+        <q-card flat bordered class="bg-grey-9 q-pa-sm q-mb-md">
+          <VueApexCharts type="line" height="220" :options="chartOptions" :series="chartSeries" />
+        </q-card>
+        <!--  Fin Gráfica     -->
 
         <!--    Detalles    -->
         <q-list dense separator dark>
@@ -163,7 +262,9 @@ onMounted(async () => {
               <q-icon name="mdi-update" color="grey-5" />
             </q-item-section>
             <q-item-section>Consultado</q-item-section>
-            <q-item-section side>{{ formatLongDateTime(navigation_data.fetched_at) }}</q-item-section>
+            <q-item-section side>{{
+              formatLongDateTime(navigation_data.fetched_at)
+            }}</q-item-section>
           </q-item>
         </q-list>
         <!--    Fin Detalles    -->
@@ -175,15 +276,14 @@ onMounted(async () => {
       </q-card-section>
 
       <q-card-actions align="right">
-        <q-btn icon="mdi-cancel" label="cerrar" color="negative" @click="emit('hide-dialog')" />
+        <q-btn icon="mdi-cancel" label="cerrar" color="negative" @click="handleHide" />
       </q-card-actions>
     </q-card>
   </q-dialog>
 </template>
-
-<style scoped lang="sass">
+<style lang="sass" scoped>
 .custom-cards
-  width: 50vw
-  max-width: 50vw
+  width: 95vw
+  max-width: 900px
   border-radius: 1em
 </style>
