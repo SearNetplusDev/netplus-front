@@ -1,302 +1,72 @@
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
-import { api } from 'src/utils/api.js'
 import { useLoading } from 'src/utils/loader.js'
 import { useNotifications } from 'src/utils/notification.js'
 import { useDateFormatter } from 'src/utils/composables/useDateFormatter.js'
+import { usePPPoETrafficPolling } from 'src/utils/composables/monitoring/usePPPoETrafficPolling.js'
+import { useTrafficChartOptions } from 'src/utils/composables/monitoring/useTrafficChartOptions.js'
+import { formatBps } from 'src/utils/composables/monitoring/formatBps.js'
 
-const { showLoading, hideLoading } = useLoading()
-const { showNotification } = useNotifications()
-const { formatLongDateTime } = useDateFormatter()
+const POLL_INTERVAL_MS = 1000
+const MAX_POINTS = 60
+
 const props = defineProps({
   user: { type: String, required: true },
   visible: { type: Boolean, required: true },
   client: { type: String, required: true },
 })
 const emit = defineEmits(['update:visible', 'hide-dialog'])
+
+const { showLoading, hideLoading } = useLoading()
+const { showNotification } = useNotifications()
+const { formatLongDateTime } = useDateFormatter()
+
 const isVisible = computed({
   get: () => props.visible,
-  set: (value) => {
-    emit('update:visible', value)
-  },
+  set: (value) => emit('update:visible', value),
 })
-const uiStates = reactive({
-  title: `Obteniendo datos de ${props.user}, espera un momento...`,
-  loading: false,
-})
-const navigationData = ref(null)
-const hasData = computed(() => {
-  return Boolean(navigationData.value?.pppoe_user)
-})
-const currentRx = computed(() => {
-  return Number(navigationData.value?.traffic?.rx_bps ?? 0)
-})
-const currentTx = computed(() => {
-  return Number(navigationData.value?.traffic?.tx_bps ?? 0)
-})
-const POLL_INTERVAL_MS = 1000
-const MAX_POINTS = 60
-let pollTimer = null
-let polling = false
-const chartSeries = ref([
-  { name: 'Descarga', data: [] },
-  { name: 'Subida', data: [] },
-])
-const formatBps = (bps) => {
-  if (bps === null || bps === undefined || Number.isNaN(Number(bps))) {
-    return '-'
-  }
 
-  const value = Number(bps)
-
-  if (value >= 1_000_000_000) {
-    return `${(value / 1_000_000_000).toFixed(2)} Gbps`
-  }
-
-  if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(2)} Mbps`
-  }
-
-  if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(2)} Kbps`
-  }
-
-  return `${value.toFixed(0)} bps`
-}
-const chartOptions = computed(() => ({
-  chart: {
-    id: 'realtime-traffic',
-    type: 'area',
-    background: 'transparent',
-    foreColor: '#9e9e9e',
-    animations: {
-      enabled: true,
-      easing: 'linear',
-      dynamicAnimation: { speed: POLL_INTERVAL_MS },
-    },
-    toolbar: { show: false },
-    zoom: { enabled: false },
-    parentHeightOffset: 0,
-  },
-  colors: ['#8bc34a', '#ff9800'],
-  fill: {
-    type: 'gradient',
-    gradient: {
-      shadeIntensity: 1,
-      opacityFrom: 0.35,
-      opacityTo: 0.03,
-      stops: [0, 90, 100],
-    },
-  },
-  stroke: {
-    curve: 'smooth',
-    width: 2,
-  },
-  dataLabels: { enabled: false },
-  markers: { size: 0, hover: { size: 5 } },
-  grid: {
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    strokeDasharray: 4,
-    padding: {
-      top: 5,
-      right: 10,
-      bottom: 0,
-      left: 10,
-    },
-  },
-  xaxis: {
-    type: 'datetime',
-    range: (MAX_POINTS - 1) * POLL_INTERVAL_MS,
-    axisBorder: { show: false },
-    axisTick: { show: false },
-    labels: {
-      dateTimeUTC: false,
-      format: 'HH:mm:ss',
-      style: {
-        colors: '#757575',
-        fontSize: '11px',
-      },
-    },
-  },
-  yaxis: {
-    min: 0,
-    forceNumeric: true,
-    labels: {
-      minWidth: 65,
-      style: {
-        colors: '#9E9E9E',
-        fontSize: '11px',
-      },
-      formatter: (value) => {
-        return formatBps(value)
-      },
-    },
-  },
-  tooltip: {
-    theme: 'dark',
-    shared: true,
-    intersect: false,
-    x: { format: 'HH:mm:ss' },
-    y: {
-      formatter: (value) => {
-        return formatBps(value)
-      },
-    },
-    marker: {
-      show: true,
-    },
-  },
-  legend: {
-    position: 'top',
-    horizontalAlign: 'right',
-    fontSize: '12px',
-    labels: { colors: '#bdbdbd' },
-    markers: { size: 6, shape: 'circle' },
-    itemMargin: { horizontal: 8 },
-  },
-  responsive: [
-    {
-      breakpoint: 600,
-      options: {
-        chart: {
-          height: 200,
-        },
-        legend: {
-          position: 'bottom',
-          horizontalAlign: 'center',
-        },
-        yaxis: {
-          labels: {
-            minWidth: 55,
-          },
-        },
-      },
-    },
-  ],
-}))
-const pushTrafficPoint = (traffic) => {
-  const timestamp = Date.now()
-  const rx = Number(traffic?.rx_bps ?? 0)
-  const tx = Number(traffic?.tx_bps ?? 0)
-  const series = chartSeries.value
-  series[0].data.push({
-    x: timestamp,
-    y: rx,
-  })
-  series[1].data.push({
-    x: timestamp,
-    y: tx,
+const { navigationData, chartSeries, loading, hasData, currentRx, currentTx, fetchInitial, stop } =
+  usePPPoETrafficPolling({
+    pppoeUser: computed(() => props.user),
+    client: computed(() => props.client),
+    pollIntervalMs: POLL_INTERVAL_MS,
+    maxPoints: MAX_POINTS,
   })
 
-  if (series[0].data.length > MAX_POINTS) {
-    series[0].data.shift()
-  }
+const chartOptions = useTrafficChartOptions({
+  maxPoints: MAX_POINTS,
+  pollIntervalMs: POLL_INTERVAL_MS,
+})
 
-  if (series[1].data.length > MAX_POINTS) {
-    series[1].data.shift()
-  }
-}
-const requestTraffic = async () => {
-  const { data } = await api.post('/api/v1/monitoring/internet/pppoe', {
-    pppoe_user: props.user,
-    _method: 'POST',
-  })
+const title = computed(() => {
+  if (loading.value) return `Obteniendo datos de ${props.user}, espera un momento...`
+  if (hasData.value) return `Datos de navegación de ${props.user} (${props.client})`
+  return `${props.user} no tiene una sesión activa (${props.client})`
+})
 
-  return data?.response
-}
-const fetchTraffic = async () => {
-  if (polling) {
-    return
-  }
-  polling = true
-  try {
-    const response = await requestTraffic()
-    if (!response) {
-      return
-    }
-    navigationData.value = response
-
-    if (hasData.value) {
-      pushTrafficPoint(response.traffic)
-    }
-  } catch (err) {
-    console.error(`Error al refrescar el trafico PPPoE: ${err}`)
-  } finally {
-    polling = false
-  }
-}
-const poll = async () => {
-  await fetchTraffic()
-
-  if (!hasData.value) {
-    stopPolling()
-    uiStates.title = `${props.user} no tiene una sesión activa (${props.client})`
-    return
-  }
-
-  if (!pollTimer) {
-    pollTimer = setTimeout(async () => {
-      pollTimer = null
-
-      if (props.visible) {
-        await poll()
-      }
-    }, POLL_INTERVAL_MS)
-  }
-}
-const startPolling = () => {
-  stopPolling()
-  pollTimer = setTimeout(async () => {
-    pollTimer = null
-    await poll()
-  }, POLL_INTERVAL_MS)
-}
-const stopPolling = () => {
-  if (pollTimer) {
-    clearTimeout(pollTimer)
-    pollTimer = null
-  }
-}
 const getData = async () => {
-  uiStates.loading = true
   showLoading()
   try {
-    const response = await requestTraffic()
-    if (!response) {
-      return
-    }
-    navigationData.value = response
-    uiStates.title = hasData.value
-      ? `Datos de navegación de ${props.user} (${props.client})`
-      : `${props.user} no tiene una sesión activa.`
-
-    if (hasData.value) {
-      pushTrafficPoint(response.traffic)
-      startPolling()
-    }
+    await fetchInitial()
   } catch (err) {
     showNotification(
       'Error',
       err.response?.data?.message ?? err.message ?? 'Error inesperado',
       'red-10',
     )
-    uiStates.title = 'Ha ocurrido un error'
   } finally {
-    uiStates.loading = false
     hideLoading()
   }
 }
+
 const handleHide = () => {
-  stopPolling()
+  stop()
   emit('hide-dialog')
 }
-onMounted(async () => {
-  await getData()
-})
-onUnmounted(() => {
-  stopPolling()
-})
+
+onMounted(getData)
 </script>
 
 <template>
@@ -309,16 +79,16 @@ onUnmounted(() => {
   >
     <q-card class="custom-card" dark>
       <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6 text-white">{{ uiStates.title }}</div>
+        <div class="text-h6 text-white">{{ title }}</div>
         <q-space />
         <q-btn icon="close" flat round dense color="white" v-close-popup />
       </q-card-section>
 
-      <q-card-section v-if="!uiStates.loading && hasData" class="q-pt-md">
+      <q-card-section v-if="!loading && hasData" class="q-pt-md">
         <!-- ================================================================================= -->
         <!--    Encabezado: Usuario, IP, Perfil   -->
         <!-- ================================================================================= -->
-        <div class="rows items-center q-col-gutter-sm q-mb-md">
+        <div class="row items-center q-col-gutter-sm q-mb-md">
           <div class="col-auto">
             <q-avatar color="primary" text-color="white" icon="mdi-account-network" />
           </div>
@@ -469,10 +239,7 @@ onUnmounted(() => {
         </q-list>
       </q-card-section>
 
-      <q-card-section
-        v-else-if="!uiStates.loading && !hasData"
-        class="text-center text-grey-5 q-pa-xl"
-      >
+      <q-card-section v-else-if="!loading && !hasData" class="text-center text-grey-5 q-pa-xl">
         <q-icon name="mdi-lan-disconnect" size="56px" class="q-mb-md" />
 
         <div class="text-subtitle1">Sin sesión PPPoE activa</div>
