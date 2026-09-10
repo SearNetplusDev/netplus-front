@@ -5,6 +5,7 @@ import CPUMetrics from 'components/dashboard/CPUMetrics.vue'
 import MostConsumedPlan from 'components/dashboard/MostConsumedPlan.vue'
 import SupportsGraphic from 'components/dashboard/SupportsGraphic.vue'
 import InvoicesChart from 'components/dashboard/InvoicesChart.vue'
+import StatsCard from 'components/dashboard/StatsCard.vue'
 
 const auth = useAuthStore()
 </script>
@@ -18,6 +19,10 @@ const auth = useAuthStore()
 
       <q-card-section>
         <div class="row q-col-gutter-md q-pa-md">
+          <div class="col-12">
+            <StatsCard />
+          </div>
+
           <div class="col-xs-12 col-sm-12 col-md-6 col-lg-4">
             <ClientTypes />
           </div>
