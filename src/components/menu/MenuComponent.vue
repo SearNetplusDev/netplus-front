@@ -1,14 +1,10 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useMenuStore } from 'stores/menu-store.js'
 import MenuItemsComponent from 'components/menu/MenuItemsComponent.vue'
 
 const menuStore = useMenuStore()
-const menuData = ref([])
-
-onMounted(() => {
-  menuData.value = menuStore.items.data
-})
+const menuData = computed(() => menuStore.items.data)
 </script>
 
 <template>
