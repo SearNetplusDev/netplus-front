@@ -175,6 +175,11 @@ onMounted(() => {
 
 <style lang="sass" scoped>
 $textColor: #F8FAFC
+$dashboard-background: #0b1120
+$dashboard-surface:#1e293b
+$dashboard-header: #0f172a
+$dashboard-border: rgba(148, 163, 184, 0.12)
+
 .app-layout
   background: $textColor
   color: #1e293b

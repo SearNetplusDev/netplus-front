@@ -15,7 +15,7 @@ const chartOptions = ref({
     width: 200,
     height: 300,
     background: 'transparent',
-    toolbar: false,
+    toolbar: { show: false },
   },
   title: {
     text: 'Top 10 planes más contratados',
@@ -98,7 +98,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <q-card flat class="custom-cards">
+  <q-card flat class="custom-cards dashboard-widget">
     <q-inner-loading :showing="loading" />
     <apex-chart type="bar" :options="chartOptions" :series="chartSeries" />
   </q-card>

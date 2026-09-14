@@ -124,7 +124,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <q-card flat class="custom-cards">
+  <q-card flat class="custom-cards dashboard-widget">
     <q-inner-loading :showing="loading" />
     <apex-chart type="area" :options="chartOptions" :series="series" />
   </q-card>

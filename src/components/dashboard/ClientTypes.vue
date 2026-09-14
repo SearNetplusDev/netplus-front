@@ -100,9 +100,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <q-card flat class="custom-cards">
+  <q-card flat class="custom-cards dashboard-widget">
     <q-inner-loading :showing="loading" />
-    <ApexChart v-if="chartSeries.length" type="pie" :options="chartOptions" :series="chartSeries"/>
+    <ApexChart v-if="chartSeries.length" type="pie" :options="chartOptions" :series="chartSeries" />
   </q-card>
 </template>
 

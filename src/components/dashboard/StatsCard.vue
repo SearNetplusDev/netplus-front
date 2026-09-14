@@ -80,7 +80,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <q-card flat class="custom-cards q-pa-md">
+  <q-card flat class="custom-card q-pa-md">
     <div class="row q-col-gutter-md">
       <div v-for="stat in stats" :key="stat.key" class="col-12 col-sm-6 col-md-3">
         <q-card flat class="stat-card" :class="`stat-card--${stat.color}`">
@@ -125,8 +125,9 @@ $card-border-hover: rgba(148, 163, 184, 0.25)
 $card-radius:12px
 $text-light: #f8fafc
 
-.custom-cards
-  background: transparent
+.custom-card
+  background: transparent !important
+  border: none !important
 
 .stat-card
   position: relative

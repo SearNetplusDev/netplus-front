@@ -14,9 +14,21 @@
 }
 
 .custom-cards {
-  background-color: $custom-primary;
-  border: 1px solid $custom-background;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  //background-color: $custom-primary;
+  //border: 1px solid $custom-background;
+  //box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  background: #1e293b;
+  border: 1px solid rgba(148, 163, 184, 0.10);
+  border-radius: 14px;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+
+  transition: transform 0.2 ease, border-color 0.2 ease, box-shadow 0.2 ease;
+
+  &:hover {
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  }
 }
 
 .background {
@@ -110,5 +122,23 @@
 }
 
 .dashboard-card {
-  height: 410px !important;
+  //height: 410px !important;
+}
+
+.dashboard-widget {
+  height: 100%;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 12px;
+  border-color: rgba(148, 163, 184, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  background: #1b293b;
+
+  &:hover {
+    border-color: rgba(148, 163, 184, 0.25);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
+  }
 }

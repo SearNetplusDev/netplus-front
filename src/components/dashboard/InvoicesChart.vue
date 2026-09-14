@@ -12,12 +12,12 @@ const title = ref('Estado de facturas')
 const chartOptions = ref({
   chart: {
     id: 'invoices-statuses-chart',
+    type: 'donut',
+    height: 350,
     foreColor: '#f8fafc',
     width: 200,
-    height: 300,
     background: 'transparent',
-    toolbar: false,
-    type: 'donut',
+    toolbar: { show: false },
     animations: {
       enabled: true,
       easing: 'easeinout',
@@ -37,7 +37,7 @@ const chartOptions = ref({
   dataLabels: {
     enabled: true,
     formatter(val) {
-      return `${val.toFixed(0)}%`
+      return val >= 5 ? `${val.toFixed(0)}%` : ''
     },
     style: {
       colors: ['#ffffff'],
@@ -150,7 +150,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <q-card flat class="custom-cards">
+  <q-card flat class="custom-cards dashboard-widget">
     <q-inner-loading :showing="loading" />
     <apex-chart type="donut" :options="chartOptions" :series="chartSeries" />
   </q-card>
