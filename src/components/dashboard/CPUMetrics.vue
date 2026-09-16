@@ -1,41 +1,30 @@
 <script setup>
 import { reactive, onMounted, ref, defineAsyncComponent } from 'vue'
-import { api } from 'src/utils/api.js'
-import { useLoading } from 'src/utils/loader.js'
-import { useNotifications } from 'src/utils/notification.js'
+import { useChart } from 'src/utils/composables/charts/useChart.js'
+import {
+  baseChartChrome,
+  chartLegend,
+  colorByThreshold,
+} from 'src/utils/composables/charts/useChartTheme.js'
 
 const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
-const { showLoading, hideLoading } = useLoading()
-const { showNotification } = useNotifications()
-const loading = ref(true)
+const { loading, fetchDashboardData } = useChart('/api/v1/dashboard/resources')
 const chartOptions = reactive({
-  chart: {
-    type: 'radialBar',
-    width: 200,
-    height: 300,
-    background: 'transparent',
-    foreColor: '#e2e8f0',
-  },
+  chart: baseChartChrome({ type: 'radialBar', height: 300 }),
   labels: ['CPU', 'Memoria', 'Almacenamiento'],
-  colors: ['#00B4D8', '#48CAE4', '#90E0EF'],
+  colors: ['#00b4d8', '#48cae4', '#90e0ef'],
   title: {
     text: '',
     align: 'center',
-    style: {
-      fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#ffffff',
-    },
+    style: { fontSize: '16px', fontWeight: 'bold', color: '#fff' },
   },
   plotOptions: {
     radialBar: {
       size: '75%',
-      track: {
-        background: '#334155',
-      },
+      track: { background: '#334155' },
       dataLabels: {
-        name: { fontSize: '14px' },
-        value: { fontSize: '16px', color: '#ffffff' },
+        name: { fontsize: '14px' },
+        value: { fontsize: '16px', color: '#fff' },
         total: {
           show: true,
           label: 'Promedio',
@@ -48,69 +37,24 @@ const chartOptions = reactive({
       },
     },
   },
-  legend: {
-    show: true,
-    position: 'bottom',
-    horizontalAlign: 'center',
-    fontSize: '13px',
-    labels: {
-      color: '#cbd5e1',
-    },
-    markers: {
-      width: 12,
-      height: 12,
-      radius: 12,
-    },
-    itemMargin: {
-      horizontal: 12,
-      vertical: 8,
-    },
-  },
+  legend: chartLegend(),
 })
 const chartSeries = ref([])
-const colorByThreshold = (pct) => {
-  if (pct > 90) return '#ff4560'
-  if (pct > 75) return '#feb019'
-  return ['#00e396']
-}
-const getData = async () => {
-  showLoading()
-  loading.value = true
-  try {
-    const { data } = await api.get('/api/v1/dashboard/resources')
-    if (data?.data) {
-      const { cpu, memory, storage, system } = data.data
-      chartSeries.value = [
-        cpu.load_pct,
-        Number(memory.used_pct.toFixed(2)),
-        Number(storage.used_pct.toFixed(2)),
-      ]
-      const dynamicColors = [
-        colorByThreshold(cpu.load_pct),
-        colorByThreshold(memory.used_pct),
-        colorByThreshold(storage.used_pct),
-      ]
-
-      chartOptions.colors = [...dynamicColors]
-      chartOptions.title.text = `Estado de equipo ${system.board_name}`
-    } else {
-      showNotification('Error', 'Algo ha salido mal.', 'red-10')
-    }
-  } catch (err) {
-    showNotification(
-      'Error',
-      err.response?.data?.message ?? err.message ?? 'Error inesperado',
-      'red-10',
-    )
-  } finally {
-    setTimeout(() => {
-      hideLoading()
-      loading.value = false
-    }, 150)
-  }
-}
-onMounted(async () => {
-  await getData()
+onMounted(() => {
+  fetchDashboardData((data) => {
+    const { cpu, memory, storage, system } = data.data
+    chartSeries.value = [
+      cpu.load_pct,
+      Number(memory.used_pct.toFixed(2)),
+      Number(storage.used_pct.toFixed(2)),
+    ]
+    chartOptions.colors = [
+      colorByThreshold(cpu.load_pct),
+      colorByThreshold(memory.used_pct),
+      colorByThreshold(storage.used_pct),
+    ]
+    chartOptions.title.text = `Estado de equipo ${system.board_name}`
+  })
 })
 </script>
 
@@ -118,6 +62,7 @@ onMounted(async () => {
   <q-card flat class="custom-cards dashboard-widget">
     <q-inner-loading :showing="loading" />
     <apex-chart
+      v-if="chartSeries.length"
       type="radialBar"
       :options="chartOptions"
       :series="chartSeries"

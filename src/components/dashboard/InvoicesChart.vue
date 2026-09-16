@@ -1,38 +1,22 @@
 <script setup>
 import { defineAsyncComponent, ref, onMounted } from 'vue'
-import { api } from 'src/utils/api.js'
-import { useLoading } from 'src/utils/loader.js'
-import { useNotifications } from 'src/utils/notification.js'
+import { useChart } from 'src/utils/composables/charts/useChart.js'
+import {
+  baseChartChrome,
+  chartTitle,
+  chartLegend,
+  darkTooltip,
+  CHART_PALETTE,
+} from 'src/utils/composables/charts/useChartTheme.js'
 
-const apexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
-const { showLoading, hideLoading } = useLoading()
-const { showNotification } = useNotifications()
-const loading = ref(true)
-const title = ref('Estado de facturas')
+const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
+const { loading, fetchDashboardData } = useChart('api/v1/dashboard/invoices-stats')
 const chartOptions = ref({
   chart: {
-    id: 'invoices-statuses-chart',
-    type: 'donut',
-    height: 350,
-    foreColor: '#f8fafc',
-    width: 200,
-    background: 'transparent',
-    toolbar: { show: false },
-    animations: {
-      enabled: true,
-      easing: 'easeinout',
-      speed: 900,
-    },
+    ...baseChartChrome({ id: 'invoices-statuses-chart', type: 'donut', height: 350 }),
+    animations: { enabled: true, easing: 'easeinout', speed: 900 },
   },
-  title: {
-    text: title.value,
-    align: 'center',
-    style: {
-      color: '#f8fafc',
-      fontSize: '18px',
-      fontWeight: '600',
-    },
-  },
+  title: chartTitle('Estado de facturas'),
   labels: [],
   dataLabels: {
     enabled: true,
@@ -40,13 +24,11 @@ const chartOptions = ref({
       return val >= 5 ? `${val.toFixed(0)}%` : ''
     },
     style: {
-      colors: ['#ffffff'],
+      colors: ['#fff'],
       fontSize: '12px',
       fontWeight: 600,
     },
-    dropShadow: {
-      enabled: false,
-    },
+    dropShadow: { enabled: false },
   },
   plotOptions: {
     pie: {
@@ -56,103 +38,48 @@ const chartOptions = ref({
           show: true,
           label: 'Total',
           color: '#94a3b8',
-          formatter: function (w) {
-            return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
-          },
+          formatter: (val) => val.globals.seriesTotals.reduce((a, b) => a + b, 0),
         },
-        value: {
-          color: '#ffffff',
-          fontSize: '24px',
-          fontWeight: '700',
-        },
+        value: { color: '#fff', fontSize: '24px', fontWeight: 700 },
       },
     },
   },
-  legend: {
-    position: 'bottom',
-    horizontalAlign: 'center',
-    fontSize: '13px',
-    labels: {
-      color: '#cbd5e1',
-    },
-    markers: {
-      width: 12,
-      height: 12,
-      radius: 12,
-    },
-    itemMargin: {
-      horizontal: 12,
-      vertical: 8,
-    },
-  },
-  tooltip: {
-    theme: 'dark',
-  },
-  stroke: {
-    colors: ['#1e293b'],
-    width: 2,
-  },
-  colors: [
-    '#3b82f6', // Emitidas
-    '#f59e0b', // Pendientes
-    '#22c55e', // Pagadas
-    '#ef4444', // Vencidas
-    '#64748b', // Canceladas
-    '#8338ec', // Parcialmente pagadas
-  ],
+  legend: chartLegend(),
+  tooltip: darkTooltip(),
+  stroke: { colors: ['#1e293b'], width: 2 },
+  colors: CHART_PALETTE.invoices,
   responsive: [
     {
       breakpoint: 768,
       options: {
-        chart: {
-          width: '100%',
-        },
-        legend: {
-          position: 'bottom',
-        },
+        chart: { width: '100%' },
+        legend: { position: 'bottom' },
       },
     },
   ],
 })
 const chartSeries = ref([])
-const getChartData = async () => {
-  showLoading()
-  loading.value = true
-  try {
-    const { data } = await api.get('/api/v1/dashboard/invoices-stats')
-    if (data) {
-      chartOptions.value = {
-        // ...chartOptions.value,
-        labels: data.labels,
-        title: {
-          ...chartOptions.value.title,
-          text: `Estado de facturas del período ${data.period}`,
-        },
-      }
-      chartSeries.value = data.series
+onMounted(() => {
+  fetchDashboardData((data) => {
+    chartOptions.value = {
+      ...chartOptions.value,
+      labels: data.labels,
+      title: { ...chartOptions.value.title, text: `Estado de facturas del período ${data.period}` },
     }
-  } catch (err) {
-    showNotification(
-      'Error',
-      err.response?.data?.message ?? err.message ?? 'Error inesperado',
-      'red-10',
-    )
-  } finally {
-    setTimeout(() => {
-      hideLoading()
-      loading.value = false
-    }, 150)
-  }
-}
-onMounted(async () => {
-  await getChartData()
+    chartSeries.value = data.series
+  })
 })
 </script>
 
 <template>
   <q-card flat class="custom-cards dashboard-widget">
     <q-inner-loading :showing="loading" />
-    <apex-chart type="donut" :options="chartOptions" :series="chartSeries" />
+    <apex-chart
+      v-if="chartSeries.length"
+      type="donut"
+      :options="chartOptions"
+      :series="chartSeries"
+    />
   </q-card>
 </template>
 
