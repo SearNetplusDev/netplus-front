@@ -1,40 +1,23 @@
 <script setup>
 import { defineAsyncComponent, onMounted, ref } from 'vue'
-import { api } from 'src/utils/api.js'
-import { useLoading } from 'src/utils/loader.js'
-import { useNotifications } from 'src/utils/notification.js'
+import { useChart } from 'src/utils/composables/charts/useChart.js'
+import {
+  baseChartChrome,
+  chartTitle,
+  CHART_PALETTE,
+} from 'src/utils/composables/charts/useChartTheme.js'
 
 const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
-const { showLoading, hideLoading } = useLoading()
-const { showNotification } = useNotifications()
-const loading = ref(true)
-const options = { month: 'long' }
-const monthName = new Date().toLocaleDateString('es-ES', options)
+const { loading, fetchDashboardData } = useChart('/api/v1/dashboard/supports-data')
+const monthName = new Date().toLocaleDateString('es-ES', { month: 'long' })
 const chartOptions = ref({
   chart: {
-    id: 'supports',
-    foreColor: '#f8fafc',
-    background: 'transparent',
-    type: 'area',
-    height: 300,
-    width: 200,
-    toolbar: {
-      show: false,
-    },
-    zoom: {
-      enabled: false,
-    },
-    animations: {
-      enabled: true,
-    },
+    ...baseChartChrome({ id: 'supports-chart', type: 'area', height: 350, width: '100%' }),
+    zoom: { enabled: false },
+    animations: { enabled: true },
   },
-  stroke: {
-    curve: 'smooth',
-    width: 3,
-  },
-  dataLabels: {
-    enabled: false,
-  },
+  stroke: { curve: 'smooth', width: 3 },
+  dataLabels: { enabled: false },
   fill: {
     type: 'gradient',
     gradient: {
@@ -45,89 +28,34 @@ const chartOptions = ref({
       stops: [0, 90, 100],
     },
   },
-  markers: {
-    size: 0,
-    hover: {
-      size: 6,
-    },
-  },
-  grid: {
-    borderColor: '#f1f1f1',
-    strokeDashArray: 4,
-  },
-  title: {
-    text: `Soportes solucionados el mes de ${monthName}`,
-    align: 'center',
-    style: {
-      color: '#f8fafc',
-      fontSize: '18px',
-      fontWeight: '600',
-    },
-  },
-  xaxis: {
-    categories: [],
-    title: {
-      text: 'Día del mes',
-    },
-  },
-  yaxis: {
-    min: 0,
-    forceNiceScale: true,
-    title: {
-      text: 'Soportes solucionados',
-    },
-  },
-  legend: {
-    position: 'top',
-    horizontalAlign: 'left',
-  },
+  markers: { size: 0, hover: { size: 6 } },
+  grid: { borderColor: '#F1F1F1', strokeDasharray: 4 },
+  title: chartTitle(`Soportes solucionados durante el mes de ${monthName}`),
+  xaxis: { categories: [], title: { text: 'Día del mes' } },
+  yaxis: { min: 0, forceNiceScale: true, title: { text: 'Soportes solucionados' } },
+  legend: { position: 'top', horizontalAlign: 'left' },
   tooltip: {
     shared: true,
     intersect: false,
-    x: {
-      formatter: (val) => `Día ${val}`,
-    },
+    x: { formatter: (val) => `Día ${val} de ${monthName}` },
   },
-  colors: ['#00E396', '#FEB019', '#008FFB', '#FF4560'],
+  colors: CHART_PALETTE.supports,
 })
 const series = ref([])
-const loadChart = async () => {
-  showLoading()
-  loading.value = true
-  try {
-    const { data } = await api.get('/api/v1/dashboard/supports-data')
-    if (data) {
-      chartOptions.value = {
-        xaxis: {
-          ...chartOptions.value.xaxis,
-          categories: data.categories,
-        },
-      }
-      series.value = data.series
+onMounted(() => {
+  fetchDashboardData((data) => {
+    chartOptions.value = {
+      ...chartOptions.value,
+      xaxis: { ...chartOptions.value.xaxis, categories: data.categories },
     }
-  } catch (err) {
-    showNotification(
-      'Error',
-      err.response?.data?.message ?? err.message ?? 'Error inesperado',
-      'red-10',
-    )
-  } finally {
-    setTimeout(() => {
-      loading.value = false
-      hideLoading()
-    }, 150)
-  }
-}
-onMounted(async () => {
-  await loadChart()
+    series.value = data.series
+  })
 })
 </script>
-
 <template>
   <q-card flat class="custom-cards dashboard-widget">
     <q-inner-loading :showing="loading" />
-    <apex-chart type="area" :options="chartOptions" :series="series" />
+    <apex-chart v-if="series.length" type="area" :options="chartOptions" :series="series" />
   </q-card>
 </template>
-
-<style scoped></style>
+<style lang="sass" scoped></style>

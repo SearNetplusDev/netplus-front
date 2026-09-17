@@ -1,50 +1,24 @@
 <script setup>
 import { defineAsyncComponent, onMounted, ref } from 'vue'
-import { api } from 'src/utils/api.js'
-import { useLoading } from 'src/utils/loader.js'
-import { useNotifications } from 'src/utils/notification.js'
+import { useChart } from 'src/utils/composables/charts/useChart.js'
+import { baseChartChrome, chartTitle } from 'src/utils/composables/charts/useChartTheme.js'
 
 const ApexChart = defineAsyncComponent(() => import('vue3-apexcharts'))
-const { showLoading, hideLoading } = useLoading()
-const { showNotification } = useNotifications()
-const loading = ref(true)
+const { loading, fetchDashboardData } = useChart('/api/v1/dashboard/top-profiles')
+
 const chartOptions = ref({
-  chart: {
-    id: 'consumed-plans',
-    foreColor: '#f8fafc',
-    width: 200,
-    height: 300,
-    background: 'transparent',
-    toolbar: { show: false },
-  },
-  title: {
-    text: 'Top 10 planes más contratados',
-    align: 'center',
-    style: {
-      color: '#f8fafc',
-      fontSize: '18px',
-      fontWeight: '600',
-    },
-  },
+  chart: baseChartChrome({ id: 'consumed-plans', height: 350, width: '100%' }),
+  title: chartTitle('Top 10 planes más contratados'),
   xaxis: {
-    axisBorder: {
-      color: '#94a3b8',
-    },
-    axisTick: {
-      color: '#94a3b8',
-    },
+    axisBorder: { color: '#94A3B8' },
+    axisTick: { color: '#94A3B8' },
     categories: [],
-    labels: {
-      style: {
-        colors: '#f8fafc',
-        fontSize: '12px',
-      },
-    },
+    labels: { style: { colors: '#F8FAFC', fontSize: '12px' } },
   },
   yaxis: {
     labels: {
       style: {
-        colors: '#f8fafc',
+        colors: '#F8FAFC',
         fontSize: '12px',
       },
     },
@@ -55,53 +29,28 @@ const chartOptions = ref({
       horizontal: true,
     },
   },
-  responsive: [
-    {
-      breakpoint: 480,
-      options: {
-        legend: { position: 'bottom' },
-      },
-    },
-  ],
+  responsive: [{ breakpoint: 480, options: { legend: { position: 'bottom' } } }],
 })
 const chartSeries = ref([{ name: 'Total de servicios', data: [] }])
-const getData = async () => {
-  showLoading()
-  loading.value = true
-  try {
-    const { data } = await api.get('/api/v1/dashboard/top-profiles')
-    if (data) {
-      chartOptions.value = {
-        xaxis: {
-          ...chartOptions.value.xaxis,
-          categories: data.labels,
-        },
-      }
-      chartSeries.value = [{ name: 'Total de servicios', data: data.data }]
+onMounted(() => {
+  fetchDashboardData((data) => {
+    chartOptions.value = {
+      ...chartOptions.value,
+      xaxis: { ...chartOptions.value.xaxis, categories: data.labels },
     }
-  } catch (err) {
-    showNotification(
-      'Error',
-      err.response?.data?.message ?? err.message ?? 'Error inesperado',
-      'red-10',
-    )
-  } finally {
-    setTimeout(() => {
-      hideLoading()
-      loading.value = false
-    }, 150)
-  }
-}
-onMounted(async () => {
-  await getData()
+    chartSeries.value = [{ name: 'Total de servicios', data: data.data }]
+  })
 })
 </script>
-
 <template>
   <q-card flat class="custom-cards dashboard-widget">
     <q-inner-loading :showing="loading" />
-    <apex-chart type="bar" :options="chartOptions" :series="chartSeries" />
+    <apex-chart
+      v-if="chartSeries.length"
+      type="bar"
+      :options="chartOptions"
+      :series="chartSeries"
+    />
   </q-card>
 </template>
-
-<style scoped lang="sass"></style>
+<style lang="sass" scoped></style>
