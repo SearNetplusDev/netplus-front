@@ -7,6 +7,7 @@ export const CHART_PALETTE = {
   invoices: ['#3b82f6', '#f59e0b', '#22c55e', '#ef4444', '#64748b', '#8338ec'],
   supports: ['#00E396', '#FEB019', '#008FFB', '#FF4560'],
   cpu: ['#00B4D8', '#48CAE4', '#90E0EF'],
+  payments: ['#22C55E'],
 }
 
 /**

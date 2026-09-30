@@ -9,6 +9,7 @@ import MostConsumedPlan from 'components/dashboard/MostConsumedPlan.vue'
 import SupportsGraphic from 'components/dashboard/SupportsGraphic.vue'
 import InvoicesChart from 'components/dashboard/InvoicesChart.vue'
 import StatsCard from 'components/dashboard/StatsCard.vue'
+import DailyPaymentsChart from 'components/dashboard/DailyPaymentsChart.vue'
 
 const auth = useAuthStore()
 const now = ref(new Date())
@@ -65,6 +66,10 @@ onMounted(() => {
       </div>
 
       <div class="row q-col-gutter-lg">
+        <div class="col-12 col-lg-12">
+          <DailyPaymentsChart />
+        </div>
+
         <div class="col-12 col-md-4">
           <ClientTypes />
         </div>
