@@ -1,79 +1,47 @@
-export function useInvoiceSelectionRules({
-  overdueInvoices,
-  pendingInvoices,
-  partiallyPaidInvoices,
-  allOverdueSelected,
-  allPendingSelected,
-  allPartiallyPaidSelected,
-  external,
-  // fields,
-}) {
+/**
+ * Reglas de selección de facturas para el pago.
+ *
+ * Las facturas deben pagarse en orden estricto: el que define `external.invoices`
+ * (ya ordenado por prioridad de estado y dentro de cada estado, en el orden en que lo entrega
+ * el backend; se asume cronológico, de la más antigua a la más reciente).
+ *
+ * - Una factura solo se puede seleccionar si TODAS las anteriores ya están seleccionadas.
+ * - Si se quita una factura, se quitan también todas las posteriores.
+ * @param external
+ * @param fields
+ * @returns {{isInvoiceDisabled: (function(*): (boolean|*))|*, normalizeSelection: (function([]=, []=): (any[]|*[]))|*}}
+ */
+export function useInvoiceSelectionRules({ external, fields }) {
+  const getSelected = () => (Array.isArray(fields.invoices.data) ? fields.invoices.data : [])
+
   const isInvoiceDisabled = (opt) => {
-    const isOverdue = opt.name.includes('(Vencida)')
-    const isPending = opt.name.includes('(Pendiente de pago)') || opt.name.includes('(Pendiente)')
-    const isPartially = opt.name.includes('(Parcialmente pagada)')
+    const selected = getSelected()
 
-    if (overdueInvoices.value.length > 0 && !allOverdueSelected.value) {
-      return !isOverdue
-    }
+    //  Ya seleccionadas siempre se pueden quitar.
+    if (selected.includes(opt.id)) return false
+    const index = external.invoices.findIndex((inv) => inv.id === opt.id)
+    if (index <= 0) return false
 
-    if (allOverdueSelected.value && pendingInvoices.value.length > 0 && !allPendingSelected.value) {
-      return !isPending
-    }
-
-    if (
-      allOverdueSelected.value &&
-      allPendingSelected.value &&
-      partiallyPaidInvoices.value.length > 0 &&
-      !allPartiallyPaidSelected.value
-    ) {
-      return !isPartially
-    }
-
-    return false
+    //  Bloqueada si existe alguna factura anterior sin seleccionar
+    return external.invoices.slice(0, index).some((inv) => !selected.includes(inv.id))
   }
 
   const normalizeSelection = (newVal = [], oldVal = []) => {
     const safeNew = Array.isArray(newVal) ? newVal : []
-    const safeOld = Array.isArray(oldVal) ? oldVal : []
+    const safeOld = Array.isArray(oldVal) ? oldVal : [oldVal]
 
-    const getByStatus = (ids, matcher) =>
-      ids.filter((id) => {
-        const inv = external.invoices.find((i) => i.id === id)
-        return inv && matcher(inv.name)
-      })
+    //  Si se agregó una factura no hay nada que corregir (las opciones bloqueadas no se pueden elegir)
+    if (safeNew.length >= safeOld.length) return safeNew
 
-    const overdue = getByStatus(safeNew, (n) => n.includes('(Vencida)'))
-    const pending = getByStatus(
-      safeNew,
-      (n) => n.includes('(Pendiente de pago)') || n.includes('(Pendiente)'),
-    )
-    const partial = getByStatus(safeNew, (n) => n.includes('(Parcialmente pagada)'))
-
-    const oldOverdue = getByStatus(safeOld, (n) => n.includes('(Vencida)'))
-    const oldPending = getByStatus(
-      safeOld,
-      (n) => n.includes('(Pendiente de pago)') || n.includes('(Pendiente)'),
-    )
-    const oldPartial = getByStatus(safeOld, (n) => n.includes('(Parcialmente pagada)'))
-
-    if (overdue.length < oldOverdue.length) {
-      return overdue
+    //  Se quitó una: conservar solo la secuencia continua desde la primera factura.
+    const selected = new Set(safeNew)
+    const result = []
+    for (const inv of external.invoices) {
+      if (!selected.has(inv.id)) break
+      result.push(inv.id)
     }
-
-    if (pending.length < oldPending.length) {
-      return [...overdue, ...pending]
-    }
-
-    if (partial.length < oldPartial.length) {
-      return [...overdue, ...pending, ...partial]
-    }
-
-    return safeNew
+    return result
   }
 
-  return {
-    isInvoiceDisabled,
-    normalizeSelection,
-  }
+  return { isInvoiceDisabled, normalizeSelection }
 }

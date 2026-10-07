@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, onMounted, watch } from 'vue'
+import { reactive, computed, onMounted, watch } from 'vue'
 import { api } from 'src/utils/api.js'
 import { getSupportData } from 'src/utils/composables/getData.js'
 import { useNotifications } from 'src/utils/notification.js'
@@ -15,20 +15,55 @@ import { useInvoiceOrdering } from 'src/utils/composables/billing/useInvoiceOrde
 import { useInvoiceStatusHelper } from 'src/utils/composables/billing/useInvoiceStatusHelper.js'
 import { useInvoiceSelectionRules } from 'src/utils/composables/billing/useInvoiceSelectionRules.js'
 
-const { showLoading, hideLoading } = useLoading()
-const { showNotification } = useNotifications()
-const { validationRules, createField } = useFields()
+// ---------------------------------------------------------------------------
+// Constantes
+// ---------------------------------------------------------------------------
+const CASH_METHOD_ID = 1
+const CASH_ONLY_FIELDS = ['cash', 'change']
+const MONEY_INPUT_FIELDS = ['cash']
+const uri = 'api/v1/billing/payments'
+
+// ---------------------------------------------------------------------------
+// Props / emits / composables
+// ---------------------------------------------------------------------------
 const props = defineProps({
   client: { type: Number, required: true },
   visible: { type: Boolean, required: true },
 })
-const uri = 'api/v1/billing/payments'
 const emit = defineEmits(['hide'])
+
+const { showLoading, hideLoading } = useLoading()
+const { showNotification } = useNotifications()
+const { validationRules, createField } = useFields()
+const { sortInvoicesByPriority } = useInvoiceOrdering()
 const ui_states = reactive({
   is_visible: props.visible,
   loading: false,
-  title: `Ingresar pago`,
+  title: 'Ingresar pago',
 })
+
+// ---------------------------------------------------------------------------
+// Helpers de dinero
+// ---------------------------------------------------------------------------
+const toNumber = (val) => {
+  const num = parseFloat(val)
+  return Number.isFinite(num) ? num : 0
+}
+const formatMoney = (val) => {
+  if (val === null || val === undefined || val === '') return val
+  const num = Number(String(val).replace(/[,\s$]/g, ''))
+  return Number.isFinite(num) && num >= 0 ? num.toFixed(2) : val
+}
+
+// ---------------------------------------------------------------------------
+// Campos
+// ---------------------------------------------------------------------------
+const cashRules = [
+  validationRules.text_required,
+  (val) => /^\d{1,4}(\.\d{1,2})?$/.test(String(val ?? '').trim()) || 'Formato inválido',
+  (val) =>
+    toNumber(val) >= toNumber(fields.amount.data) || 'El efectivo no puede ser menor al total',
+]
 const fields = reactive({
   invoices: createField('Facturas', 'multi-select', [validationRules.select_required]),
   discount: createField('Descuento', 'select', []),
@@ -39,10 +74,7 @@ const fields = reactive({
     true,
   ),
   payment_method: createField('Método de pago', 'select', [validationRules.select_required]),
-  cash: createField('Efectivo', 'text', [
-    validationRules.text_required,
-    validationRules.money_two_decimal,
-  ]),
+  cash: createField('Efectivo', 'text', cashRules),
   change: createField('Cambio', 'text', [], true),
   comments: createField('Observaciones', 'textarea', []),
 })
@@ -51,46 +83,62 @@ const external = reactive({
   discounts: [],
   methods: [],
 })
-const { normalFields, textAreaFields } = useFieldFilters(fields)
 const optionsMap = {
   payment_method: 'methods',
   discount: 'discounts',
 }
 const get_options = (key) => external[optionsMap[key]] || []
-const { sortInvoicesByPriority } = useInvoiceOrdering()
+const { normalFields, textAreaFields } = useFieldFilters(fields)
+const isCash = computed(() => fields.payment_method.data === CASH_METHOD_ID)
+const visibleFields = computed(() =>
+  Object.fromEntries(
+    Object.entries(normalFields.value).filter(
+      ([key]) => isCash.value || !CASH_ONLY_FIELDS.includes(key),
+    ),
+  ),
+)
 const status = useInvoiceStatusHelper(external, fields)
 const { isInvoiceDisabled, normalizeSelection } = useInvoiceSelectionRules({
   ...status,
   external,
   fields,
 })
+const onFieldBlur = (key) => {
+  if (MONEY_INPUT_FIELDS.includes(key)) {
+    fields[key].data = formatMoney(fields[key].data)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Datos
+// ---------------------------------------------------------------------------
+const load_invoices = async () => {
+  const invoices = await getSupportData(`/api/v1/billing/invoices/client/${props.client}`)
+  external.invoices = sortInvoicesByPriority(invoices)
+}
 const get_initial_data = async () => {
-  const [invoices, discounts, methods] = await Promise.all([
-    getSupportData(`/api/v1/billing/invoices/client/${props.client}`),
+  const [, discounts, methods] = await Promise.all([
+    load_invoices(),
     getSupportData('/api/v1/general/billing/discounts/list'),
     getSupportData('/api/v1/general/billing/payment-methods'),
   ])
-  external.invoices = sortInvoicesByPriority(invoices)
   external.discounts = discounts
   external.methods = methods
 }
 const clear_data = async () => {
-  fields.invoices.data = null
-  fields.discount.data = null
-  fields.amount.data = null
-  fields.payment_method.data = null
-  fields.cash.data = null
-  fields.change.data = null
-  fields.comments.data = null
-  let invoices = await getSupportData(`/api/v1/billing/invoices/client/${props.client}`)
-  external.invoices = sortInvoicesByPriority(invoices)
+  Object.values(fields).forEach((field) => {
+    field.data = null
+    if ('error' in field) field.error = false
+  })
+  await load_invoices()
 }
 const send_data = async () => {
   ui_states.loading = true
   showLoading()
   resetFieldErrors(fields)
-  let method = 'POST'
-  let params = buildFormData(fields, { _method: method, client: props.client })
+  if (isCash.value) fields.cash.data = formatMoney(fields.cash.data)
+  const params = buildFormData(fields, { _method: 'POST', client: props.client })
+
   try {
     const { data } = await api.post(uri, params)
     if (data.saved) {
@@ -114,54 +162,50 @@ const send_data = async () => {
     }, 150)
   }
 }
+
+// ---------------------------------------------------------------------------
+// Cálculos
+// ---------------------------------------------------------------------------
 const calculate_total = () => {
-  let total = 0
-  if (fields.invoices.data && fields.invoices.data.length > 0) {
-    total = fields.invoices.data.reduce((sum, invoice_id) => {
-      const invoice = external.invoices.find((inv) => inv.id === invoice_id)
-      return sum + (invoice ? parseFloat(invoice.total) : 0)
-    }, 0)
-  }
+  const selected = fields.invoices.data ?? []
+  let total = selected.reduce((sum, invoice_id) => {
+    const invoice = external.invoices.find((inv) => inv.id === invoice_id)
+    return sum + (invoice ? toNumber(invoice.total) : 0)
+  }, 0)
 
   if (fields.discount.data) {
     const discount = external.discounts.find((disc) => disc.id === fields.discount.data)
-    if (discount) total -= parseFloat(discount.amount)
+    if (discount) total -= toNumber(discount.amount)
   }
 
-  total = Math.max(0, total)
-  fields.amount.data = total.toFixed(2)
+  fields.amount.data = Math.max(0, total).toFixed(2)
 }
 const calculate_change = () => {
-  const cash = parseFloat(fields.cash.data || 0)
-  const total = parseFloat(fields.amount.data || 0)
-  let change = cash - total
-  change = change < 0 ? 0 : change
+  const change = Math.max(0, toNumber(fields.cash.data) - toNumber(fields.amount.data))
   fields.change.data = change.toFixed(2)
 }
+
+// ---------------------------------------------------------------------------
+// Watchers
+// ---------------------------------------------------------------------------
 watch(
   () => fields.invoices.data,
   (newVal, oldVal) => {
-    fields.invoices.data = normalizeSelection(newVal, oldVal)
+    const normalized = normalizeSelection(newVal, oldVal)
+    if (normalized !== newVal) fields.invoices.data = normalized
     calculate_total()
   },
   { deep: true },
 )
-watch(
-  () => fields.invoices.data,
-  () => calculate_total(),
-)
-watch(
-  () => fields.discount.data,
-  () => calculate_total(),
-)
-watch(
-  () => [fields.cash.data, fields.amount.data],
-  () => calculate_change(),
-  { deep: true },
-)
-onMounted(async () => {
-  await get_initial_data()
+watch(() => fields.discount.data, calculate_total)
+watch(() => [fields.cash.data, fields.amount.data], calculate_change)
+watch(isCash, (cash) => {
+  if (cash) return
+  fields.cash.data = null
+  fields.cash.error = false
+  fields.change.data = null
 })
+onMounted(get_initial_data)
 </script>
 
 <template>
@@ -192,11 +236,20 @@ onMounted(async () => {
               <div class="row content-start items-start q-pa-sm">
                 <div
                   class="col-xs-12 col-sm-12 col-md-4 col-lg-6 q-pa-sm"
-                  v-for="(field, index) in normalFields"
+                  v-for="(field, index) in visibleFields"
                   :key="index"
                 >
-                  <template v-if="field.type === 'multi-select'">
+                  <q-skeleton
+                    v-if="ui_states.loading"
+                    class="q-my-xs"
+                    dark
+                    animation="fade"
+                    type="QInput"
+                  />
+
+                  <template v-else>
                     <q-select
+                      v-if="field.type === 'multi-select'"
                       v-model="field.data"
                       dark
                       dense
@@ -211,7 +264,6 @@ onMounted(async () => {
                       multiple
                       use-chips
                       stack-label
-                      v-if="!ui_states.loading"
                       :label="field.label"
                       :rules="field.rules"
                       :error="field.error"
@@ -221,10 +273,9 @@ onMounted(async () => {
                       :option-label="(opt) => opt.name"
                       :option-disable="isInvoiceDisabled"
                     />
-                  </template>
 
-                  <template v-if="field.type === 'select'">
                     <q-select
+                      v-else-if="field.type === 'select'"
                       v-model="field.data"
                       dark
                       dense
@@ -236,7 +287,6 @@ onMounted(async () => {
                       transition-show="flip-up"
                       transition-hide="flip-down"
                       lazy-rules
-                      v-if="!ui_states.loading"
                       :label="field.label"
                       :rules="field.rules"
                       :error="field.error"
@@ -245,32 +295,24 @@ onMounted(async () => {
                       :option-value="(opt) => opt.id"
                       :option-label="(opt) => opt.name"
                     />
-                  </template>
 
-                  <template v-if="field.type === 'text'">
                     <q-input
+                      v-else-if="field.type === 'text'"
                       v-model="field.data"
                       dark
                       dense
                       outlined
                       clearable
                       lazy-rules
-                      v-if="!ui_states.loading"
                       :label="field.label"
                       :rules="field.rules"
                       :error="field.error"
                       :error-message="field['error-message']"
                       :disable="field.disabled"
                       :mask="field.mask"
+                      @blur="onFieldBlur(index)"
                     />
                   </template>
-                  <q-skeleton
-                    v-if="ui_states.loading"
-                    class="q-my-xs"
-                    dark
-                    animation="fade"
-                    type="QInput"
-                  />
                 </div>
 
                 <div
@@ -278,26 +320,24 @@ onMounted(async () => {
                   v-for="(field, index) in textAreaFields"
                   :key="index"
                 >
-                  <template v-if="field.type === 'textarea'">
-                    <q-input
-                      v-model="field.data"
-                      outlined
-                      dark
-                      dense
-                      type="textarea"
-                      :label="field.label"
-                      :error="field.error"
-                      :error-message="field['error-message']"
-                      v-if="!ui_states.loading"
-                    />
-                  </template>
-
                   <q-skeleton
                     v-if="ui_states.loading"
                     class="q-my-xs"
                     dark
                     animation="fade"
                     type="QInput"
+                  />
+
+                  <q-input
+                    v-else
+                    v-model="field.data"
+                    outlined
+                    dark
+                    dense
+                    type="textarea"
+                    :label="field.label"
+                    :error="field.error"
+                    :error-message="field['error-message']"
                   />
                 </div>
 

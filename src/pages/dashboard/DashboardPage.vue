@@ -66,7 +66,7 @@ onMounted(() => {
       </div>
 
       <div class="row q-col-gutter-lg">
-        <div class="col-12 col-lg-12">
+        <div class="col-12 col-lg-8">
           <DailyPaymentsChart />
         </div>
 
