@@ -60,36 +60,43 @@ onMounted(() => {
       <div class="dashboard-section-header">
         <div class="dashboard-section-title">Análisis operativo</div>
 
-        <div class="dashboard-section-description">
-          Clientes, facturación, infraestructura y soporte
-        </div>
+        <div class="dashboard-section-description">Clientes, facturación y soporte</div>
       </div>
 
       <div class="row q-col-gutter-lg">
-        <div class="col-12 col-lg-8">
-          <DailyPaymentsChart />
-        </div>
-
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-6 col-lg-4">
           <ClientTypes />
         </div>
 
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-md-6 col-lg-4">
           <InvoicesChart />
         </div>
 
-        <div class="col-12 col-md-4">
-          <CPUMetrics />
+        <div class="col-12 col-lg-4">
+          <MostConsumedPlan />
         </div>
 
         <div class="col-12 col-lg-6">
-          <MostConsumedPlan />
+          <DailyPaymentsChart />
         </div>
 
         <div class="col-12 col-lg-6">
           <SupportsGraphic />
         </div>
       </div>
+    </section>
+
+    <!-- Infraestructura -->
+    <section class="q-mt-xl">
+      <div class="dashboard-section-header">
+        <div class="dashboard-section-title">Infraestructura</div>
+
+        <div class="dashboard-section-description">
+          Estado de hardware de los servidores de autenticación
+        </div>
+      </div>
+
+      <CPUMetrics />
     </section>
   </q-page>
 </template>
