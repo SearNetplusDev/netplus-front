@@ -23,8 +23,8 @@ const columns = reactive([
     options: [],
     align: 'left',
   },
-  { name: 'name', label: 'Nombre', align: 'left' },
-  { name: 'code', label: 'Código', align: 'left' },
+  { name: 'name', label: 'Nombre', sortable: true, align: 'left' },
+  { name: 'code', label: 'Código', sortable: true, align: 'left' },
   {
     name: 'municipality',
     label: 'Municipio',

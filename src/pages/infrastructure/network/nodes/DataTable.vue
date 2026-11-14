@@ -23,8 +23,8 @@ const columns = reactive([
     options: [],
     align: 'left',
   },
-  { name: 'name', label: 'Nombre', align: 'left' },
-  { name: 'auth_server', label: 'Servidor de Autenticación', align: 'left' },
+  { name: 'name', label: 'Nombre', align: 'left', sortable: true },
+  { name: 'auth_server.name', label: 'Servidor de Autenticación', align: 'left', sortable: true },
   { name: 'nc', label: 'NC', align: 'left' },
   { name: 'state', label: 'Departamento', align: 'left' },
   { name: 'municipality', label: 'Municipio', align: 'left' },
@@ -98,7 +98,7 @@ watch(showForm, (newVal) => {
           </q-td>
 
           <!--    Auth Server     -->
-          <q-td key="auth_server" class="text-left copy-text" :props="props">
+          <q-td key="auth_server.name" class="text-left copy-text" :props="props">
             {{ props.row?.auth_server?.name }}
           </q-td>
 

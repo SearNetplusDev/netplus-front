@@ -23,8 +23,8 @@ const columns = reactive([
     options: [],
     align: 'left',
   },
-  { name: 'name', label: 'Nombres', align: 'left' },
-  { name: 'surname', label: 'Apellidos', align: 'left' },
+  { name: 'name', label: 'Nombres', align: 'left', sortable: true },
+  { name: 'surname', label: 'Apellidos', align: 'left', sortable: true },
   { name: 'document', label: 'DUI', align: 'left' },
   { name: 'mobile', label: 'Teléfono', align: 'left' },
   {
