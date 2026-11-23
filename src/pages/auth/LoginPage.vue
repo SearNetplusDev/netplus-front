@@ -24,6 +24,7 @@ const login = async () => {
   loading.value = true
 
   try {
+    loading.value = true
     const success = await auth.login({
       email: email.value,
       password: password.value,
@@ -35,10 +36,8 @@ const login = async () => {
       console.error('Credenciales incorrectas o Usuario inactivo')
     }
   } catch (error) {
-    // showNotification('Error', 'Credenciales incorrectas o Usuario inactivo', 'red-10')
     showNotification('Error', `${error.response?.data?.message}`, 'red-10')
     loading.value = false
-    console.error('General error: ', error)
   }
 }
 </script>
@@ -114,14 +113,7 @@ const login = async () => {
                 />
               </div>
 
-              <q-btn
-                class="login-btn"
-                label="Acceder"
-                no-caps
-                :loading="loading"
-                @click="login"
-                type="submit"
-              />
+              <q-btn class="login-btn" label="Acceder" no-caps :loading="loading" type="submit" />
             </div>
           </q-form>
         </div>

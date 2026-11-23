@@ -1,66 +1,49 @@
-// import { defineBoot } from '#q-app/wrappers'
-// import axios from 'axios'
-// import qs from 'qs'
-//
-// // Be careful when using SSR for cross-request state pollution
-// // due to creating a Singleton instance here;
-// // If any data changes this (global) instance, it might be a
-// // good idea to move this instance creation inside of the
-// // "export default () => {}" function below (which runs individually
-// // for each data)
-// // const api = axios.create({ baseURL: 'https://api.example.com' })
-// const api = axios.create({
-//   paramsSerializer: (params) => {
-//     return qs.stringify(params, { arrayFormat: 'repeat' })
-//   },
-//   baseURL: process.env.API_URL,
-//   withCredentials: true,
-//   withXSRFToken: true,
-// })
-//
-// class CancelToken {
-//   constructor(initVal) {
-//     console.log(initVal)
-//     this.source = axios.CancelToken.source()
-//   }
-//
-//   getSource() {
-//     return this.source
-//   }
-//
-//   setSource() {
-//     this.source = axios.CancelToken.source()
-//   }
-//
-//   cancel() {
-//     this.source.cancel()
-//   }
-// }
-//
-// const cancelSource = new CancelToken()
-//
-// /*
-//  *
-//  * */
-// api.defaults.withCredentials = true
-// export default defineBoot(({ app }) => {
-//   // for use inside Vue files (Options API) through this.$axios and this.$api
-//
-//   app.config.globalProperties.$axios = axios
-//   // ^ ^ ^ this will allow you to use this.$axios (for Vue Options API form)
-//   //       so you won't necessarily have to import axios in each vue file
-//
-//   app.config.globalProperties.$api = api
-//   // ^ ^ ^ this will allow you to use this.$api (for Vue Options API form)
-//   //       so you can easily perform requests against your app's API
-// })
-//
-// export { api, cancelSource }
-
 import { boot } from 'quasar/wrappers'
 import { api, axios } from 'src/utils/api.js'
+import { useAuthStore } from 'stores/auth.js'
 
-export default boot(({ app }) => {
+export default boot(({ app, router }) => {
+  let isRedirecting = false
+
+  api.interceptors.response.use(
+    (response) => response,
+    async (err) => {
+      const status = err.response?.status
+      const url = err.config?.url || ''
+
+      /**
+       * /api/user se excluye porque el guard del router ya maneja su fallo
+       */
+      const excludedRoutes = [
+        '/api/v1/auth/login',
+        '/api/v1/auth/logout',
+        '/sanctum-csrf-cookie',
+        '/api/user',
+      ]
+
+      const isExcluded = excludedRoutes.some((route) => url.includes(route))
+
+      if ((status === 401 || status === 419) && !isExcluded && !isRedirecting) {
+        isRedirecting = true
+
+        try {
+          //  Clave: limpiar el estado antes de la redirección
+          const auth = useAuthStore()
+          auth.clearSession()
+
+          if (router.currentRoute.value.name !== 'login') {
+            await router.replace({ name: 'login' })
+          }
+        } finally {
+          isRedirecting = false
+        }
+      }
+      return Promise.reject(err)
+    },
+  )
+
   app.config.globalProperties.$axios = axios
   app.config.globalProperties.$api = api
 })
+
+export { api }

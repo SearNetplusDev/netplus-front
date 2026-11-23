@@ -8,11 +8,13 @@ const api = axios.create({
   baseURL: process.env.API_URL,
   withCredentials: true,
   withXSRFToken: true,
+  headers: {
+    Accept: 'application/json',
+  },
 })
 
 class CancelToken {
-  constructor(initVal) {
-    console.log(initVal)
+  constructor() {
     this.source = axios.CancelToken.source()
   }
 

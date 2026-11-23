@@ -63,12 +63,21 @@ export default defineRouter(function (/* { store, ssrContext } */) {
    * Validate auth middleware
    * */
 
+  //  Indica si ya validamos la sesión contra el servidor en esta carga de la app
+  let sessionVerified = false
+
   Router.beforeEach(async (to, from, next) => {
     const auth = useAuthStore()
     let isLoggedIn = auth.isAuthenticated
-    if (!isLoggedIn) {
+
+    if (!sessionVerified) {
+      //  No confiar en el user persistido en localStorage: la cookie pudo expirar
       isLoggedIn = await auth.fetchUser()
+      sessionVerified = true
+    } else {
+      isLoggedIn = auth.isAuthenticated
     }
+
     if (to.path === '/login' && isLoggedIn) return next('/dashboard')
 
     if (to.meta.requiresAuth && !isLoggedIn) return next('/login')

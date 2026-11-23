@@ -20,7 +20,7 @@ const infrastructure = [
         path: 'redes/equipos',
         name: 'infraestructura.redes.equipos',
         component: () => import('pages/infrastructure/equipment/equipment/IndexPage.vue'),
-        meta: { requiresAuth: true, title: 'Equipos', permission: [23] },
+        meta: { requiresAuth: true, title: 'Paneles', permission: [23] },
       },
       {
         path: 'equipos/tipos',

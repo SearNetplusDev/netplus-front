@@ -11,16 +11,22 @@ export const useAuthStore = defineStore('auth', {
     isAuthenticated: (state) => !!state.user,
   },
   actions: {
+    clearSession() {
+      this.user = null
+      this.permissions = []
+      const menuStore = useMenuStore()
+      menuStore.items = []
+    },
+
     async fetchUser() {
       try {
         const response = await api.get('/api/user')
         this.user = response.data
         this.permissions = response.data.permissions || []
         return true
-      } catch (error) {
-        console.log(`Error getting user info: ${error}`)
-        this.user = null
-        this.permissions = []
+      } catch (err) {
+        console.log(`Error getting user info: ${err}`)
+        this.clearSession()
         return false
       }
     },
@@ -35,16 +41,18 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout() {
-      await api.post('/api/v1/auth/logout')
-      this.user = null
-      this.permissions = []
+      try {
+        await api.post('/api/v1/auth/logout')
+      } finally {
+        this.clearSession()
+      }
     },
 
     hasPermissions(permission) {
       return this.permissions.includes(permission)
     },
 
-    //  Método para verificar si el usuario tiene al menos uno de los permisos
+    //  Verifica si el usuario tiene al menos uno de los permisos
     hasAnyPermission(permissions) {
       if (!Array.isArray(permissions)) {
         return this.hasPermissions(permissions)
@@ -52,12 +60,12 @@ export const useAuthStore = defineStore('auth', {
       return permissions.some((perm) => this.permissions.includes(perm))
     },
 
-    //  Método para verificar si tiene todos los permisos
+    //  Verifica si tiene todos los permisos
     hasAllPermissions(permissions) {
       if (!Array.isArray(permissions)) {
         return this.hasPermissions(permissions)
       }
-      return permissions.every((perm) => this.permissions.includes(perm))
+      return permissions.every((prem) => this.permissions.includes(prem))
     },
   },
 
