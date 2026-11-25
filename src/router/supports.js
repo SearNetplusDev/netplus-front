@@ -22,6 +22,12 @@ const supports = [
         component: () => import('pages/supports/status/IndexPage.vue'),
         meta: { requiresAuth: true, title: 'Estados para los soportes', permissions: [47] },
       },
+      {
+        path: 'precios',
+        name: 'soportes.precios',
+        component: () => import('pages/supports/prices/IndexPage.vue'),
+        meta: { requiresAuth: true, title: 'Precio para soportes', permissions: [60] },
+      },
     ],
   },
 ]
