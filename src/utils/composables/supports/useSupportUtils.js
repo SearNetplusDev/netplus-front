@@ -25,6 +25,7 @@ export const useSupportUtils = (fields) => {
         branch: 'branches',
         status: 'statuses',
         profile: 'profiles',
+        price: 'price',
         node: 'nodes',
         equipment: 'equipments',
         technician: 'technicians',

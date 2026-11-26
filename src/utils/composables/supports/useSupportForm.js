@@ -46,6 +46,7 @@ export const useSupportForm = (fields, uiStates, props) => {
       description: data.description,
       solution: data.solution,
       comments: data.comments,
+      price: data.price_id,
     }
 
     // Asignar campos simples

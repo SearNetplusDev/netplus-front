@@ -6,6 +6,7 @@ import { SUPPORT_TYPES } from './useSupportFields.js'
 const { showNotification } = useNotify()
 export const external = reactive({
   branches: [],
+  price: [],
   districts: [],
   equipments: [],
   filtered_client: [],
@@ -58,6 +59,9 @@ export const loaders = {
 
     if (profileType) await loadData(`profiles/select/${profileType}`, 'profiles')
   },
+  loadPrice: async () => {
+    external.price = await getSupportData('/api/v1/supports/prices/catalog')
+  },
 }
 
 export const loadInitialData = async () => {
@@ -67,6 +71,7 @@ export const loadInitialData = async () => {
     getSupportData('/api/v1/general/management/users/technicians'),
     getSupportData('/api/v1/general/supports/types'),
     loaders.loadStates(),
+    loaders.loadPrice(),
   ])
 
   Object.assign(external, { branches, statuses, technicians, types })

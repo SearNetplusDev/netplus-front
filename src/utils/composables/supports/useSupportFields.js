@@ -33,22 +33,33 @@ const FIELD_CONFIG = {
   ],
   contract: ['profile', 'initial_date', 'final_date', 'node', 'equipment'],
   service: ['service'],
+  pricing: ['price'],
 }
 
 export const FIELDS_BY_TYPE = {
-  [SUPPORT_TYPES.INTERNET_INSTALLATION]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.contract],
-  [SUPPORT_TYPES.IPTV_INSTALLATION]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.contract],
+  [SUPPORT_TYPES.INTERNET_INSTALLATION]: [
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.contract,
+    ...FIELD_CONFIG.pricing,
+  ],
+  [SUPPORT_TYPES.IPTV_INSTALLATION]: [
+    ...FIELD_CONFIG.base,
+    ...FIELD_CONFIG.contract,
+    ...FIELD_CONFIG.pricing,
+  ],
   [SUPPORT_TYPES.INTERNET_SUPPORT]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service],
   [SUPPORT_TYPES.IPTV_SUPPORT]: [...FIELD_CONFIG.base, ...FIELD_CONFIG.service],
   [SUPPORT_TYPES.INTERNET_RENEWAL]: [
     ...FIELD_CONFIG.base,
     ...FIELD_CONFIG.service,
     ...FIELD_CONFIG.contract,
+    ...FIELD_CONFIG.pricing,
   ],
   [SUPPORT_TYPES.IPTV_RENEWAL]: [
     ...FIELD_CONFIG.base,
     ...FIELD_CONFIG.service,
     ...FIELD_CONFIG.contract,
+    ...FIELD_CONFIG.pricing,
   ],
   [SUPPORT_TYPES.CHANGE_ADDRESS]: [
     ...FIELD_CONFIG.base,
@@ -66,6 +77,7 @@ const fieldDefs = {
   client: ['Cliente', 'select-filter', true],
   service: ['Servicio', 'select', true],
   profile: ['Perfil de navegación', 'select', true],
+  price: ['Costo de instalación', 'select', true],
   initial_date: ['Fecha de inicio del contrato', 'date', true],
   final_date: ['Fecha caducidad del contrato', 'date', true],
   // node: ['Nodo', 'select', false],
@@ -104,6 +116,7 @@ export const fieldOrder = [
   'client',
   'service',
   'profile',
+  'price',
   'initial_date',
   'final_date',
   // 'node',
@@ -128,6 +141,7 @@ export const fieldOptionsMap = {
   client: 'filtered_client',
   service: 'services',
   profile: 'profiles',
+  price: 'price',
   node: 'nodes',
   equipment: 'equipments',
   branch: 'branches',
